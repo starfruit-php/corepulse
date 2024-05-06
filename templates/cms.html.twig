@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    {% set title = viewData.metaTitle is defined ? viewData.metaTitleDefault ~ ' ' ~ viewData.metaTitle : viewData.metaTitleDefault %}
+    {% set favicon = viewData.favicon is defined ? viewData.favicon : '/bundles/corepulse/image/corepulse.png' %}
+
+    <title>{{ title }}</title>
+    {% if favicon %}
+        <link href="{{ favicon }}" media="" rel="icon" type="image/x-icon" />
+    {% endif %}
+    
+    <link
+            href="https://api.mapbox.com/mapbox-gl-js/v1.12.0/mapbox-gl.css"
+            rel="stylesheet"
+        />
+    
+    {# <link rel="stylesheet" type="text/css" href="{{ asset('build/app.css') }}"> #}
+    {% block stylesheets %}
+        {{ vite_entry_link_tags('app') }}
+    {% endblock %}
+    {{ inertiaHead(page) }}
+</head>
+
+<body>
+{{ inertia(page) }}
+<script src="{{ asset('bundles/fosjsrouting/js/router.min.js') }}"></script>
+<script src="{{ path('fos_js_routing_js', { callback: 'fos.Router.setData' }) }}"></script>
+<script type="text/javascript" {{ pimcore_csp.getNonceHtmlAttribute()|raw }}>
+   
+    window.route = function(name, params) {
+        return Routing.generate(name, params);
+    }
+    
+</script>
+{% block javascripts %}
+    {{ vite_entry_script_tags('app') }}
+{% endblock %}
+</body>
+</html>

@@ -1,0 +1,72 @@
+{
+  "base": "/bundles/corepulse/js/vue/",
+  "entryPoints": {
+    "app": {
+      "css": [
+        "/bundles/corepulse/js/vue/app-758fb55b.css"
+      ],
+      "dynamic": [
+        "/bundles/corepulse/js/vue/LoginSetting-c51ae919.js",
+        "/bundles/corepulse/js/vue/ObjectSetting-9b18c4fd.js",
+        "/bundles/corepulse/js/vue/ObjectSettingDetail-3fe7582a.js",
+        "/bundles/corepulse/js/vue/Login-f947cd5e.js",
+        "/bundles/corepulse/js/vue/AccessDiend-269e9a4e.js",
+        "/bundles/corepulse/js/vue/Asset-ec27973f.js",
+        "/bundles/corepulse/js/vue/AssetDetail-63585443.js",
+        "/bundles/corepulse/js/vue/ModalEditName-b16e80b7.js",
+        "/bundles/corepulse/js/vue/Layout-121c1e8d.js",
+        "/bundles/corepulse/js/vue/LayoutDocument-90b11cda.js",
+        "/bundles/corepulse/js/vue/Dashboard-250f0d83.js",
+        "/bundles/corepulse/js/vue/Detail-82c73467.js",
+        "/bundles/corepulse/js/vue/Listing-70d7a083.js",
+        "/bundles/corepulse/js/vue/DataDocField-60735a86.js",
+        "/bundles/corepulse/js/vue/ModalAddNew-08552f91.js",
+        "/bundles/corepulse/js/vue/ModalAreaBlock-28cdf437.js",
+        "/bundles/corepulse/js/vue/ModalBlockEditable-d2944b8f.js",
+        "/bundles/corepulse/js/vue/ModalCreatePage-bcb9d388.js",
+        "/bundles/corepulse/js/vue/ModalFeaturette-a20232f8.js",
+        "/bundles/corepulse/js/vue/ModalScheduled-445b3552.js",
+        "/bundles/corepulse/js/vue/ModalVideo-7e606443.js",
+        "/bundles/corepulse/js/vue/ModalViewPath-c0a3d5b8.js",
+        "/bundles/corepulse/js/vue/rawDisplay-2da481be.js",
+        "/bundles/corepulse/js/vue/Layout-ba243bd7.js",
+        "/bundles/corepulse/js/vue/Create-8a1ff090.js",
+        "/bundles/corepulse/js/vue/Detail-353ec2ec.js",
+        "/bundles/corepulse/js/vue/Listing-e64cab00.js",
+        "/bundles/corepulse/js/vue/ModalMetric-88b3296c.js",
+        "/bundles/corepulse/js/vue/ModalPoperty-b0ba4c8f.js",
+        "/bundles/corepulse/js/vue/Setting-78d4a4a5.js",
+        "/bundles/corepulse/js/vue/Widget-3f731e9b.js",
+        "/bundles/corepulse/js/vue/Profile-d7c12e19.js",
+        "/bundles/corepulse/js/vue/View-e2d5905b.js",
+        "/bundles/corepulse/js/vue/Create-3d41b4b3.js",
+        "/bundles/corepulse/js/vue/Detail-fa28dac0.js",
+        "/bundles/corepulse/js/vue/Listing-522816dc.js",
+        "/bundles/corepulse/js/vue/ModalCreate-2be55acf.js",
+        "/bundles/corepulse/js/vue/ModalSelected-b3e9c3b8.js",
+        "/bundles/corepulse/js/vue/Setting-10d1d568.js",
+        "/bundles/corepulse/js/vue/Listing-b2aa9130.js",
+        "/bundles/corepulse/js/vue/ModalCreate-7c96334d.js",
+        "/bundles/corepulse/js/vue/ModalEdit-c4eaa2ac.js",
+        "/bundles/corepulse/js/vue/Create-61a2f4b7.js",
+        "/bundles/corepulse/js/vue/Detail-77e70afb.js",
+        "/bundles/corepulse/js/vue/Listing-ccde1302.js",
+        "/bundles/corepulse/js/vue/Version-594f4f4c.js"
+      ],
+      "js": [
+        "/bundles/corepulse/js/vue/app-c610bbee.js"
+      ],
+      "legacy": false,
+      "preload": []
+    }
+  },
+  "legacy": false,
+  "metadatas": {},
+  "version": [
+    "6.1.1",
+    6,
+    1,
+    1
+  ],
+  "viteServer": null
+}

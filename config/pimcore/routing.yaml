@@ -1,0 +1,18 @@
+vuetify_default:
+  controller: "CorepulseBundle\\Controller\\DefaultController::indexAction"
+  path: "/cms"
+
+vuetify_cms:
+  resource: "../../src/Controller/Cms"
+  type: annotation
+  prefix: /cms
+
+vuetify_admin:
+  resource: "../../src/Controller/Admin"
+  type: annotation
+  prefix: /admin
+
+vuetify_api:
+  resource: "../../src/Controller/Api"
+  type: annotation
+  prefix: /api

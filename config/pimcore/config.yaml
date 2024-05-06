@@ -1,0 +1,29 @@
+rompetomp_inertia:
+  root_view: "@Corepulse/cms.html.twig"
+
+pimcore:
+    security:
+        # the password hasher factory as defined in services.yaml
+        password_hasher_factories:
+            CorepulseBundle\Model\User: corepulse.security.password_hasher_factory
+
+security:
+  providers:
+    corepulse_cms_provider:
+      id: corepulse.security.user_provider
+
+corepulse:
+  security_firewall:
+    lazy: true
+    pattern: ^/cms(/.*)?$
+    user_checker: CorepulseBundle\Security\User\UserChecker
+    provider: corepulse_cms_provider
+    entry_point: CorepulseBundle\Security\EntryPoint
+    json_login:
+        # login_path: vuetify_login_attempt
+        check_path: vuetify_login_attempt
+        failure_handler: CorepulseBundle\Security\JsonLoginFailureHandler
+    logout:
+        path: vuetify_logout
+        target: vuetify_login
+        invalidate_session: false

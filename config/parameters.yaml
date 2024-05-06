@@ -1,0 +1,7 @@
+parameters:
+  pentatrion_vite.configs:
+    _default:
+      base: /bundles/corepulse/js/vue/
+      script_attributes: []
+      link_attributes: []
+      preload_attributes: []
