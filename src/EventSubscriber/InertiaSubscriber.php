@@ -26,7 +26,7 @@ use CorepulseBundle\Services\Helper\SearchHelper;
 
 class InertiaSubscriber implements EventSubscriberInterface
 {
-
+    CONST PATH_ROOT = '/cms';
     use PimcoreContextAwareTrait;
 
     protected $inertia;
@@ -63,94 +63,99 @@ class InertiaSubscriber implements EventSubscriberInterface
     {
         $user = $this->security->getUser();
         $request = $event->getRequest();
-        // Get the current controller
-        $controller = $event->getController();
-        $this->inertia->viewData('metaTitleDefault', 'CorePulse CMS');
 
-        // Check if the controller is a class (not a closure or invokable object)
-        if (is_array($controller) && $controller[1] == 'editModeAction') {
-            $document = Document::getById((int) $request->get('id'));
+        $pathInfo = $request->getPathInfo();
 
-            // Add additional variables to the Twig environment
-            $this->twig->addGlobal('document1', $document);
-        }
-        if ($user !== null) {
-            $this->inertia->share('auth', [
-                'user' => $user->getId(),
-                'language' => 'en'
-            ]);
+        if (substr( $pathInfo, 0, 4) === self::PATH_ROOT) {
+            // Get the current controller
+            $controller = $event->getController();
+            $this->inertia->viewData('metaTitleDefault', 'CorePulse CMS');
 
-            $this->inertia->share('infoUser', [
-                'name' => method_exists($user, 'getName') ? ($user->getName() ? $user->getName() : 'user') : '',
-                'avatar' => method_exists($user, 'getAvatar') ? $user->getAvatar() : '',
-                'email' => method_exists($user, 'getEmail') ? $user->getEmail() : '',
-            ]);
-        }
+            // Check if the controller is a class (not a closure or invokable object)
+            if (is_array($controller) && $controller[1] == 'editModeAction') {
+                $document = Document::getById((int) $request->get('id'));
 
-        $objectSetting = Db::get()->fetchAssociative('SELECT * FROM `vuetify_settings` WHERE `type` = "object"', []);
-        if ($objectSetting !== null && $objectSetting) {
-            // lấy danh sách bảng
-            $query = 'SELECT * FROM `classes`';
-            $classListing = Db::get()->fetchAllAssociative($query);
-            $dataObjectSetting = json_decode($objectSetting['config']) ?? [];
-            $data = [];
-            foreach ($classListing as $class) {
-                if (in_array($class['id'], $dataObjectSetting)) {
-                    $classDefinition = ClassDefinition::getById($class['id']);
+                // Add additional variables to the Twig environment
+                $this->twig->addGlobal('document1', $document);
+            }
+            if ($user !== null) {
+                $this->inertia->share('auth', [
+                    'user' => $user->getId(),
+                    'language' => 'en'
+                ]);
 
-                    $newData["id"] = $class["id"];
-                    $newData["name"] = $class["name"];
-                    $newData["title"] = $classDefinition ? ($classDefinition->getTitle() ? $classDefinition->getTitle() :  $classDefinition->getName()) : $class["name"];
-                    $data[] = $newData;
+                $this->inertia->share('infoUser', [
+                    'name' => method_exists($user, 'getName') ? ($user->getName() ? $user->getName() : 'user') : '',
+                    'avatar' => method_exists($user, 'getAvatar') ? $user->getAvatar() : '',
+                    'email' => method_exists($user, 'getEmail') ? $user->getEmail() : '',
+                ]);
+            }
+
+            $objectSetting = Db::get()->fetchAssociative('SELECT * FROM `vuetify_settings` WHERE `type` = "object"', []);
+            if ($objectSetting !== null && $objectSetting) {
+                // lấy danh sách bảng
+                $query = 'SELECT * FROM `classes`';
+                $classListing = Db::get()->fetchAllAssociative($query);
+                $dataObjectSetting = json_decode($objectSetting['config']) ?? [];
+                $data = [];
+                foreach ($classListing as $class) {
+                    if (in_array($class['id'], $dataObjectSetting)) {
+                        $classDefinition = ClassDefinition::getById($class['id']);
+
+                        $newData["id"] = $class["id"];
+                        $newData["name"] = $class["name"];
+                        $newData["title"] = $classDefinition ? ($classDefinition->getTitle() ? $classDefinition->getTitle() :  $classDefinition->getName()) : $class["name"];
+                        $data[] = $newData;
+                    }
+                }
+                $this->inertia->share('objectSetting', $data);
+            } else {
+                $this->inertia->share('objectSetting', []);
+            }
+
+            $loginSetting = Db::get()->fetchAssociative('SELECT * FROM `vuetify_settings` WHERE `type` = "login"', []);
+            if (!$loginSetting) {
+                Db::get()->insert('vuetify_settings', [
+                    'type' => 'login',
+                ]);
+                $loginSetting = Db::get()->fetchAssociative('SELECT * FROM `vuetify_settings` WHERE `type` = "login"', []);
+            }
+            if ($loginSetting['config']) {
+                $loginSetting['config'] = json_decode($loginSetting['config'], true);
+            } else {
+                $loginSetting['config'] = [];
+            }
+            $this->inertia->share('appearance', $loginSetting['config']);
+
+            $colorPrimary = "#6a1b9a";
+            $colorLight = "#f3e5f5";
+            if ($loginSetting['config']) {
+                $colorPrimary = $loginSetting['config']['color'] ?? '#6a1b9a';
+                $colorLight = $loginSetting['config']['colorLight'] ?? '#f3e5f5';
+                if ($loginSetting['config']['logo']) {
+                    $this->inertia->viewData('favicon', $loginSetting['config']['logo']);
                 }
             }
-            $this->inertia->share('objectSetting', $data);
-        } else {
-            $this->inertia->share('objectSetting', []);
-        }
+            $this->inertia->share('colorPrimary', $colorPrimary);
+            $this->inertia->share('colorLight', $colorLight);
 
-        $loginSetting = Db::get()->fetchAssociative('SELECT * FROM `vuetify_settings` WHERE `type` = "login"', []);
-        if (!$loginSetting) {
-            Db::get()->insert('vuetify_settings', [
-                'type' => 'login',
-            ]);
-            $loginSetting = Db::get()->fetchAssociative('SELECT * FROM `vuetify_settings` WHERE `type` = "login"', []);
-        }
-        if ($loginSetting['config']) {
-            $loginSetting['config'] = json_decode($loginSetting['config'], true);
-        } else {
-            $loginSetting['config'] = [];
-        }
-        $this->inertia->share('appearance', $loginSetting['config']);
-
-        $colorPrimary = "#6a1b9a";
-        $colorLight = "#f3e5f5";
-        if ($loginSetting['config']) {
-            $colorPrimary = $loginSetting['config']['color'] ?? '#6a1b9a';
-            $colorLight = $loginSetting['config']['colorLight'] ?? '#f3e5f5';
-            if ($loginSetting['config']['logo']) {
-                $this->inertia->viewData('favicon', $loginSetting['config']['logo']);
+            $plausibleSetting = null;
+            $checkTableExistQuery = "SHOW TABLES LIKE 'corepulse_plausible'";
+            $checkTableExistResult = Db::get()->fetchFirstColumn($checkTableExistQuery);
+            if ($checkTableExistResult) {
+                $plausibleSetting = Db::get()->fetchAssociative('SELECT * FROM `corepulse_plausible`', ['id' => 1]);
             }
-        }
-        $this->inertia->share('colorPrimary', $colorPrimary);
-        $this->inertia->share('colorLight', $colorLight);
+            $data = [];
+            if ($plausibleSetting !== null && $plausibleSetting) {
+                $data = $plausibleSetting;
+            }
+            $this->inertia->share('plausibleSetting', $data);
 
-        $plausibleSetting = null;
-        $checkTableExistQuery = "SHOW TABLES LIKE 'corepulse_plausible'";
-        $checkTableExistResult = Db::get()->fetchFirstColumn($checkTableExistQuery);
-        if ($checkTableExistResult) {
-            $plausibleSetting = Db::get()->fetchAssociative('SELECT * FROM `corepulse_plausible`', ['id' => 1]);
+            $classCre = SearchHelper::getClassSearch('listing');
+            $classList = SearchHelper::getClassSearch('create');
+            $datas = array_merge($classCre, $classList);
+            $this->inertia->share('classSearch', $datas);
         }
-        $data = [];
-        if ($plausibleSetting !== null && $plausibleSetting) {
-            $data = $plausibleSetting;
-        } 
-        $this->inertia->share('plausibleSetting', $data);
-
-        $classCre = SearchHelper::getClassSearch('listing');
-        $classList = SearchHelper::getClassSearch('create');
-        $datas = array_merge($classCre, $classList);
-        $this->inertia->share('classSearch', $datas);
     }
 
     public function onKernelResponse(ResponseEvent $event)
@@ -315,7 +320,7 @@ class InertiaSubscriber implements EventSubscriberInterface
 
         // lấy dữ liệu
         $data = DocumentServices::getDataDocument($document);
-        
+
         // Chuyển đổi mảng $data thành chuỗi JSON
         $jsonData = json_encode($data, JSON_UNESCAPED_UNICODE | JSON_HEX_QUOT);
 

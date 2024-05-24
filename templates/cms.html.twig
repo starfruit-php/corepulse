@@ -2,9 +2,14 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    {% set title = viewData.metaTitle is defined ? viewData.metaTitleDefault ~ ' ' ~ viewData.metaTitle : viewData.metaTitleDefault %}
-    {% set favicon = viewData.favicon is defined ? viewData.favicon : '/bundles/corepulse/image/corepulse.png' %}
-
+    {% if viewData | length %}
+        {% set title = viewData.metaTitle is defined ? viewData.metaTitleDefault ~ ' ' ~ viewData.metaTitle : viewData.metaTitleDefault %}
+        {% set favicon = viewData.favicon is defined ? viewData.favicon : '/bundles/corepulse/image/corepulse.png' %}
+    {% else %}
+        {% set title = 'Corepulse' %}
+        {% set favicon = '/bundles/corepulse/image/corepulse.png' %}
+    {% endif %}
+    
     <title>{{ title }}</title>
     {% if favicon %}
         <link href="{{ favicon }}" media="" rel="icon" type="image/x-icon" />
