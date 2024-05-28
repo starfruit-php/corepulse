@@ -13,6 +13,7 @@ use Pimcore\Model\Asset;
 use Pimcore\Model\DataObject\Concrete;
 use Pimcore\Model\Document\Editable\Input;
 use Pimcore\Model\Document\Editable\Wysiwyg;
+use Pimcore\Model\Document\Editable\Image;
 
 use function PHPSTORM_META\type;
 
@@ -637,9 +638,11 @@ class FieldServices
                         foreach ($value as $l => $val) {
                             $i++;
                             $dataBlocks[] = $i;
+                            
                             foreach ($val as $keyBlockT=> $v) {
                                 if (!in_array($v->type, $notType)) {
                                     $blockSave = $document->getEditable($keyBlockT);
+                                    
                                     if ($blockSave) {
                                         if ($v->type == 'pdf') {
                                             $asset = Asset::getByPath($v->value);
@@ -672,13 +675,46 @@ class FieldServices
                                             $blockSave?->setDataFromResource($v->value);
                                         }
                                     } else {
+                                        $oldArr = $document->getEditables();
                                         $function = ucwords($v->type);
-                                        $newBlock = new $function($keyBlockT);
+                                        
+                                        $newBlock = new Image($keyBlockT);
                                         $newBlock->setDocument($document);
                                         $newBlock->setName($keyBlockT);
-                                        $newBlock->setDataFromResource($v->value);
+
+                                        if ($v->type == 'pdf') {
+                                            $asset = Asset::getByPath($v->value);
+                                            if ($asset) {
+                                                $idPdf = $newBlock?->setDataFromEditmode([
+                                                    'id' => (int) $asset->getId(),
+                                                ]);
+                                            }
+                                        }
+                                        if ($v->type == 'video') {
+                                            $asset = Asset::getByPath($v->value->path);
+                                            $asset ? $assetId = $asset->getId() : $assetId = '';
+                                            $dataVideo = [
+                                                'id' => $assetId,
+                                                'type' => $v->value->type,
+                                                'allowedTypes' => ['asset', 'youtube', 'vimeo', 'dailymotion'],
+                                                'title' => $v->value->title,
+                                                'description' => $v->value->description,
+                                                'path' => $v->value->path,
+                                                'poster' => $v->value->poster,
+                                            ];
+                                            $infoVideo = $newBlock?->setDataFromEditmode($dataVideo);
+                                        }
+                                        if ($v->type == 'image') {
+                                            $asset = Asset::getByPath($v->value);
+                                            if ($asset) {
+                                                $idImage = $newBlock?->setId($asset->getId());
+                                            }
+                                        } else {
+                                            $newBlock->setDataFromResource($v->value);
+                                        }
+
                                         $newBlock->save();
-        
+                                        // $newArr[] =  $newBlock;
                                         array_merge($document->getEditables(), $newBlock);
                                     }
                                 }
@@ -687,6 +723,7 @@ class FieldServices
                         if ($dataBlocks) {
                             $getData->setDataFromEditmode($dataBlocks);
                         }
+                        // dd($document);
                         $document->save();
                     }
                 }
@@ -816,11 +853,12 @@ class FieldServices
                             foreach ($val as $item) {
                                 $relations[] = [
                                     'id' => $item[2],
-                                    'type' => strtolower($item[0]),
+                                    'type' => strtolower($item[0]) == "dataobject" ? 'object' : strtolower($item[0]),
                                     'subtype' => $item[1],
                                 ];
                             }
                             $getData->setDataFromEditmode($relations);
+                            $getData->setElements($relations);
                             $document->save();
                         }
                     }
@@ -887,4 +925,67 @@ class FieldServices
             return ['status' => 500, 'messsage' => 'Error'];
         }
     }
+
+    // getType search
+    const listField = [
+        "input", "textarea", "wysiwyg", "password",
+        "number", "numericRange", "slider", "numeric",
+        "date", "datetime", "dateRange", "time", "manyToOneRelation",
+        "select", 'multiselect', 'image', 'manyToManyRelation',
+        'manyToManyObjectRelation', 'imageGallery', 'urlSlug'
+    ];
+
+    const chipField = [
+        "select", "multiselect", "manyToOneRelation", "manyToManyObjectRelation",
+        "manyToManyRelation", "advancedManyToManyRelation", "advancedmanyToManyObjectRelation"
+    ];
+
+    const multiField = [
+        "multiselect", 'manyToManyRelation', 'manyToManyObjectRelation'
+    ];
+
+    const relationField = [
+        "manyToOneRelation"
+    ];
+
+    const relationsField = ["manyToManyObjectRelation", "manyToManyRelation", "advancedManyToManyRelation", "advancedmanyToManyObjectRelation"];
+
+    const noSearch = ["image", "imageGallery", "urlSlug"];
+
+    public static function getType($fieldType) 
+    {
+        $searchType = 'Input';
+        if (in_array($fieldType, self::listField)) {
+            $searchType = 'Input';
+
+            if (in_array($fieldType, self::chipField)) {
+                $searchType = 'Select';
+
+                $searchType = 'Select';
+
+                if (in_array($fieldType, self::multiField)) {
+                    $searchType = 'Select';
+                }
+
+                if (in_array($fieldType, self::relationField)) {
+                    $searchType = 'Relation';
+                }
+
+                if (in_array($fieldType, self::relationsField)) {
+                    $searchType = 'Relation';
+                }
+            } elseif ($fieldType == 'dateRange') {
+                $searchType = 'DateRange';
+            } elseif ($fieldType == 'date') {
+                $searchType = 'DatePicker';
+            }
+        }
+
+        if (in_array($fieldType, self::noSearch)) {
+            $searchType = 'nosearch';
+        }
+
+        return $searchType;
+    }
+
 }

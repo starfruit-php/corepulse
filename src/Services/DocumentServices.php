@@ -254,7 +254,7 @@ class DocumentServices
     // lấy dữ liệu của các field trong block
     public static function getDataBlock($document, $arrTypeChillBlock) {
         $list = [];
-        $arrType = ['input', "wysiwyg", "select", "textarea"];
+        $arrType = ['input', "wysiwyg", "textarea"];
         foreach ($arrTypeChillBlock as $keyBlockT => $type) {
             $titleBlock = '';
             if (in_array($type, $arrType)) {
@@ -302,6 +302,10 @@ class DocumentServices
                     'type' => 'documment',
                     'fullPath' => $fullPath,
                 ];
+            }
+
+            if ($type == 'select') {
+                $contentField = $document->getEditable($keyBlockT)?->getData();
             }
 
             $list[$keyBlockT] = 

@@ -463,6 +463,7 @@ class DocumentController extends BaseController
                         }
                         if ($document->getEditable($keyEditable)->getType() == 'relations') {
                             $valueRelations = $document->getEditable($keyEditable)->getData();
+                            // dd($valueRelations);
                             $nameReltions = $document->getEditable($keyEditable)->getName();
                             foreach ($valueRelations as $item) {
                                 if ($item->getType() == "object") {
@@ -802,6 +803,8 @@ class DocumentController extends BaseController
 
                 $arrNoSaveInFor = ['title', 'description', 'prettyUrl', 'controller', 'template', 'enabled', 'lifetime', 'id', 'href', 'linktype', 'internalType', 'internal'];
                 $arrss = [];
+
+                // dd($data);
                 foreach ($data as $key => $value) {
                     if (!in_array($key, $arrNoSaveInFor)) {
                         $decode = json_decode($value);
@@ -1033,22 +1036,22 @@ class DocumentController extends BaseController
         $arrTypes = $subTypes ? json_decode($subTypes, true) : [];
 
         $types = [];
+        // dd($arrTypes);
         if (($arrTypes != null) && is_array($arrTypes)) {
             foreach ($arrTypes as $key => $value) {
                 if ($key == 'asset') {
-                    foreach ($value as $v) {
-                        $types[$key][] = ['assetTypes' => $v];
-                    }
+                    // foreach ($value as $v) {
+                        $types[$key][] = ['assetTypes' => $value];
+                    // }
                 }
                 if ($key == 'document') {
-                    foreach ($value as $v) {
-                        $types[$key][] = ['documentTypes' => $v];
-                    }
-                }
-                if ($key == 'object') {
-                    foreach ($value as $v) {
-                        $types[$key][] = ['classes' => $v];
-                    }
+                    // foreach ($value as $v) {
+                        $types[$key][] = ['documentTypes' => $value];
+                    // }
+                } else {
+                    // foreach ($value as $v) {
+                        $types['object'][] = ['classes' => $value];
+                    // }
                 }
             }
         } elseif ($arrTypes == 'snippet') {

@@ -48,7 +48,7 @@ class FieldController extends BaseController
         return $data;
     }
 
-    static public function extractStructure($layoutDefinition, $object, $getValue = true, $lang)
+    static public function extractStructure($layoutDefinition, $object, $getValue = true, $lang = null)
     {
 
         $type = null;
