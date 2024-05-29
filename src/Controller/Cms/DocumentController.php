@@ -463,13 +463,12 @@ class DocumentController extends BaseController
                         }
                         if ($document->getEditable($keyEditable)->getType() == 'relations') {
                             $valueRelations = $document->getEditable($keyEditable)->getData();
-                            // dd($valueRelations);
                             $nameReltions = $document->getEditable($keyEditable)->getName();
                             foreach ($valueRelations as $item) {
                                 if ($item->getType() == "object") {
                                     $listRelations[$nameReltions][] = [
-                                        0 => 'Object',
-                                        1 => $item->getType(),
+                                        0 => 'DataObject',
+                                        1 => $item->getClassName(),
                                         2 => $item->getId(),
                                     ];
                                 } elseif  (

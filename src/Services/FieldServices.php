@@ -14,6 +14,11 @@ use Pimcore\Model\DataObject\Concrete;
 use Pimcore\Model\Document\Editable\Input;
 use Pimcore\Model\Document\Editable\Wysiwyg;
 use Pimcore\Model\Document\Editable\Image;
+use Pimcore\Model\Document\Editable\Relation;
+use Pimcore\Model\Document\Editable\Relations;
+use Pimcore\Model\Document\Editable\Select;
+use Pimcore\Model\Document\Editable\Multiselect;
+use Pimcore\Model\Document\Editable\Date;
 
 use function PHPSTORM_META\type;
 
@@ -630,7 +635,9 @@ class FieldServices
             $getData = $document->getEditable($decode->name);
             if ($getData) {
                 if ($decode->value) {
-                    $notType = ['snippet', "renderlet", "block", "pdf", "video"];
+                    $notType = ['snippet', "renderlet", "block"];
+                    $notSave = ['snippet', "renderlet", "block", "video", "pdf", "relation", "relations", "image"];
+
                     foreach ($decode->value as $key => $value) {
                         $i = 0;
                         $dataBlocks = [];
@@ -638,12 +645,21 @@ class FieldServices
                         foreach ($value as $l => $val) {
                             $i++;
                             $dataBlocks[] = $i;
-                            
                             foreach ($val as $keyBlockT=> $v) {
                                 if (!in_array($v->type, $notType)) {
                                     $blockSave = $document->getEditable($keyBlockT);
-                                    
+
                                     if ($blockSave) {
+                                        if ($v->type == 'relation') {
+                                            if ($v->value) {
+                                                $dataSave = [
+                                                    'id' => (int) $v->value[2],
+                                                    'type' => strtolower($v->value[0]) == "dataobject" ? 'object' : strtolower($v->value[0]),
+                                                    'subtype' => $v->value[1],
+                                                ];
+                                                $blockSave->setDataFromEditmode($dataSave);
+                                            }
+                                        }
                                         if ($v->type == 'pdf') {
                                             $asset = Asset::getByPath($v->value);
                                             if ($asset) {
@@ -671,16 +687,29 @@ class FieldServices
                                             if ($asset) {
                                                 $idImage = $blockSave?->setId($asset->getId());
                                             }
-                                        } else {
+                                        } 
+                                        if (!in_array($v->type, $notSave)) { 
                                             $blockSave?->setDataFromResource($v->value);
                                         }
                                     } else {
                                         $oldArr = $document->getEditables();
-                                        $function = ucwords($v->type);
+                                        $function = "Pimcore\\Model\\Document\\Editable\\" . ucwords($v->type);
                                         
-                                        $newBlock = new Image($keyBlockT);
+                                        $newBlock = new $function($keyBlockT);
+                                        // dd($newBlock);
                                         $newBlock->setDocument($document);
                                         $newBlock->setName($keyBlockT);
+
+                                        if ($v->type == 'relation') {
+                                            if ($v->value) {
+                                                $dataSave = [
+                                                    'id' => (int) $v->value[2],
+                                                    'type' => strtolower($v->value[0]) == "dataobject" ? 'object' : strtolower($v->value[0]),
+                                                    'subtype' => $v->value[1],
+                                                ];
+                                                $newBlock->setDataFromEditmode($dataSave);
+                                            }
+                                        }
 
                                         if ($v->type == 'pdf') {
                                             $asset = Asset::getByPath($v->value);
@@ -709,13 +738,15 @@ class FieldServices
                                             if ($asset) {
                                                 $idImage = $newBlock?->setId($asset->getId());
                                             }
-                                        } else {
+                                        } 
+                                        if (!in_array($v->type, $notSave)) { 
+                                            dd(1);
                                             $newBlock->setDataFromResource($v->value);
                                         }
 
                                         $newBlock->save();
                                         // $newArr[] =  $newBlock;
-                                        array_merge($document->getEditables(), $newBlock);
+                                        array_push($document->getEditables(), $newBlock);
                                     }
                                 }
                             }

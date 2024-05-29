@@ -47,36 +47,39 @@ class AssetController extends BaseController
             if ($id) {
                 // lấy ra thông tin hiển thị trên breadcrumbs
                 $parentInfo = Asset::getById($id);
-                $nameFoldes = $parentInfo?->getFileName();
-                $pathParent = $parentInfo?->getPath() . $parentInfo?->getFileName();
-                $nameParent = explode('/', $pathParent);
-                $result = array_filter($nameParent, function ($nameParent) {
-                    return !empty($nameParent);
-                });
-                $nameParent = [];
-                $previousSubstring = '';
-                foreach ($result as $key => $val) {
-                    $idChill = '';
-                    $substring = '';
+                if ($parentInfo) {
 
-                    if (strpos($parentInfo->getPath(), $val) !== false) {
-                        $substring = $previousSubstring . '/' . $val;
-
-                        $asset = Asset::getByPath($substring);
-                        if ($asset) {
-                            $idChill = $asset->getId();
+                    $nameFoldes = $parentInfo?->getFileName();
+                    $pathParent = $parentInfo?->getPath() . $parentInfo?->getFileName();
+                    $nameParent = explode('/', $pathParent);
+                    $result = array_filter($nameParent, function ($nameParent) {
+                        return !empty($nameParent);
+                    });
+                    $nameParent = [];
+                    $previousSubstring = '';
+                    foreach ($result as $key => $val) {
+                        $idChill = '';
+                        $substring = '';
+    
+                        if (strpos($parentInfo->getPath(), $val) !== false) {
+                            $substring = $previousSubstring . '/' . $val;
+    
+                            $asset = Asset::getByPath($substring);
+                            if ($asset) {
+                                $idChill = $asset->getId();
+                            }
                         }
+                        $nameParent[] = [
+                            'id' => $idChill,
+                            'name' => $val,
+                            'end' =>  $key == array_key_last($result),
+                        ];
+                        $previousSubstring = $substring;
                     }
-                    $nameParent[] = [
-                        'id' => $idChill,
-                        'name' => $val,
-                        'end' =>  $key == array_key_last($result),
-                    ];
-                    $previousSubstring = $substring;
+                    // thêm điều kiện query
+                    $parentId = $id;
+                    // $list->setCondition('parentId = ?', [$id]);
                 }
-                // thêm điều kiện query
-                $parentId = $id;
-                // $list->setCondition('parentId = ?', [$id]);
             }
             $conditionQuery .= ' AND parentId = :parentId';
             $conditionParams['parentId'] = $parentId;
@@ -355,11 +358,15 @@ class AssetController extends BaseController
             $parentId = $request->get('parentId');
             if ($parentId) {
                 $folders = Asset::getById($parentId);
-                $path = $folders->getPath() . $folders->getFileName();
-                AssetService::createFolderByPath($path . "/" . $nameFolder);
-                $params = [
-                    'folderId' => $parentId,
-                ];
+                if ($folders) {
+                    $path = $folders->getPath() . $folders->getFileName();
+                    AssetService::createFolderByPath($path . "/" . $nameFolder);
+                    $params = [
+                        'folderId' => $parentId,
+                    ];
+                } else {
+                    AssetService::createFolderByPath("/" . $nameFolder);
+                }
             } else {
                 AssetService::createFolderByPath("/" . $nameFolder);
             }
@@ -387,7 +394,11 @@ class AssetController extends BaseController
             $infoFile = json_decode($infoFile);
             $folderId = $infoFile->parentId ?  $infoFile->parentId : 1;
 
-            $folder = Asset::getById((int)$folderId);
+            $folder = Asset::getById(1);
+            $checkFolder = Asset::getById((int)$folderId);
+            if ($checkFolder) {
+                $folder = $checkFolder;
+            } 
 
             $path = property_exists($infoFile, 'path') ? $infoFile->path : '';
             if ($path) {
@@ -455,7 +466,8 @@ class AssetController extends BaseController
                     'folderId' => $folderId,
                 ];
             }
-            return $this->redirectToRoute('vuetify_asset', $params);
+            // dd($params);
+            return $this->redirectToRoute('vuetify_asset');
         }
 
         // } else {
