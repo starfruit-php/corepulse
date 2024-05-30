@@ -279,7 +279,19 @@ class DocumentServices
                 $contentField = $document->getEditable($keyBlockT)?->getValue();
             }
             if ($type == 'link') {
-                $contentField = $document->getEditable($keyBlockT)?->getData();
+                // dd($document->getEditable($keyBlockT));
+                if ($document->getEditable($keyBlockT)?->getData()) {
+                    $contentField = $document->getEditable($keyBlockT)?->getData();
+                } else {
+                    $contentField = [ 
+                        "internalType" => "",
+                        "linktype" => "",
+                        "text" => "",
+                        "path" => "",
+                        "internal" => "",
+                        "internalId" => "",
+                    ];
+                }
             }
             if ($type == 'numeric') {
                 $contentField = $document->getEditable($keyBlockT)?->getNumber();
@@ -289,6 +301,15 @@ class DocumentServices
             }
             if ($type == 'table') {
                 $contentField = $document->getEditable($keyBlockT)?->getData();
+            }
+            if ($type == 'relation') {
+                $subtype = $document->getEditable($keyBlockT)->getSubtype();
+                $contentField = [
+                    0 => ($subtype != "document" || $subtype != "asset") ? "DataObject" : $subtype,
+                    1 =>$document->getEditable($keyBlockT)->getElement()?->getClassName(),
+                    2 => $document->getEditable($keyBlockT)->getId(),
+                ];
+                // dd($contentField);
             }
             if ($type == 'snippet') {
                 $idSnippet = $document->getEditable($keyBlockT)?->getId();
@@ -360,5 +381,106 @@ class DocumentServices
         }
 
         return $options;
+    }
+
+
+    static public function setDataBlock($v, $blockSave, $notSave)
+    {
+        if ($v->type == "link" && $v->value) {
+            $dataInternal = [
+                "internalType" => null,
+                "linktype" => "direct",
+                "internal" => false,
+                "internalId" => null,
+            ];
+            if (property_exists($v->value, 'path')) {
+                if (\Pimcore\Model\Document::getByPath($v->value->path)) {
+                    $id = \Pimcore\Model\Document::getByPath($v->value->path)->getId();
+                    $dataInternal = [
+                        "internalType" => "document",
+                        "linktype" => "internal",
+                        "text" => "",
+                        "path" => $v->value->path,
+                        "internal" => true,
+                        "internalId" => $id,
+                    ];
+                } elseif (\Pimcore\Model\Asset::getByPath($v->value->path)) {
+                    $id = \Pimcore\Model\Asset::getByPath($v->value->path)->getId();
+                    $dataInternal = [
+                        "internalType" => "asset",
+                        "linktype" => "internal",
+                        "text" => "",
+                        "path" => $v->value->path,
+                        "internal" => true,
+                        "internalId" => $id,
+                    ];
+                } elseif (\Pimcore\Model\DataObject::getByPath($v->value->path)) {
+                    $id = \Pimcore\Model\DataObject::getByPath($v->value->path)->getId();
+                    $dataInternal = [
+                        "internalType" => "object",
+                        "linktype" => "internal",
+                        "text" => "",
+                        "path" => $v->value->path,
+                        "internal" => true,
+                        "internalId" => $id,
+                    ];
+                }
+            }
+            $blockSave->setDataFromEditmode($dataInternal);
+        }
+        if ($v->type == 'relation') {
+            if ($v->value) {
+                if (is_array($v->value)) {
+                    $dataSave = [
+                        'id' => (int) $v->value[2],
+                        'type' => strtolower($v->value[0]) == "dataobject" ? 'object' : strtolower($v->value[0]),
+                        'subtype' => $v->value[1],
+                    ];
+                } 
+                // else {
+                //     $dataSave = [
+                //         'id' => (int) $v->value->id,
+                //         'type' => strtolower($v->value->type) == "dataobject" ? 'object' : strtolower($v->value->type),
+                //         'subtype' => $v->value->subtype,
+                //     ];
+                // }
+                $blockSave->setDataFromEditmode($dataSave);
+            }
+        }
+        if ($v->type == 'pdf') {
+            $asset = Asset::getByPath($v->value);
+            if ($asset) {
+                $idPdf = $blockSave?->setDataFromEditmode([
+                    'id' => (int) $asset->getId(),
+                ]);
+            }
+        }
+        if ($v->type == 'video') {
+            $asset = Asset::getByPath($v->value->path);
+            $asset ? $assetId = $asset->getId() : $assetId = '';
+            $dataVideo = [
+                'id' => $assetId,
+                'type' => $v->value->type,
+                'allowedTypes' => ['asset', 'youtube', 'vimeo', 'dailymotion'],
+                'title' => $v->value->title,
+                'description' => $v->value->description,
+                'path' => $v->value->path,
+                'poster' => $v->value->poster,
+            ];
+            $infoVideo = $blockSave?->setDataFromEditmode($dataVideo);
+        }
+        if ($v->type == 'image') {
+            $asset = Asset::getByPath($v->value);
+            if ($asset) {
+                $idImage = $blockSave?->setId($asset->getId());
+            }
+        } 
+        
+        if (!in_array($v->type, $notSave)) { 
+            $blockSave?->setDataFromResource($v->value);
+        }
+
+        return $blockSave;
+
     }
 }

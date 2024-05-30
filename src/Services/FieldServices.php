@@ -637,11 +637,12 @@ class FieldServices
                 if ($decode->value) {
                     $notType = ['snippet', "renderlet", "block"];
                     $notSave = ['snippet', "renderlet", "block", "video", "pdf", "relation", "relations", "image"];
-
+    
                     foreach ($decode->value as $key => $value) {
                         $i = 0;
                         $dataBlocks = [];
 
+                        $getData = $document->getEditable($key);
                         foreach ($value as $l => $val) {
                             $i++;
                             $dataBlocks[] = $i;
@@ -650,99 +651,16 @@ class FieldServices
                                     $blockSave = $document->getEditable($keyBlockT);
 
                                     if ($blockSave) {
-                                        if ($v->type == 'relation') {
-                                            if ($v->value) {
-                                                $dataSave = [
-                                                    'id' => (int) $v->value[2],
-                                                    'type' => strtolower($v->value[0]) == "dataobject" ? 'object' : strtolower($v->value[0]),
-                                                    'subtype' => $v->value[1],
-                                                ];
-                                                $blockSave->setDataFromEditmode($dataSave);
-                                            }
-                                        }
-                                        if ($v->type == 'pdf') {
-                                            $asset = Asset::getByPath($v->value);
-                                            if ($asset) {
-                                                $idPdf = $blockSave?->setDataFromEditmode([
-                                                    'id' => (int) $asset->getId(),
-                                                ]);
-                                            }
-                                        }
-                                        if ($v->type == 'video') {
-                                            $asset = Asset::getByPath($v->value->path);
-                                            $asset ? $assetId = $asset->getId() : $assetId = '';
-                                            $dataVideo = [
-                                                'id' => $assetId,
-                                                'type' => $v->value->type,
-                                                'allowedTypes' => ['asset', 'youtube', 'vimeo', 'dailymotion'],
-                                                'title' => $v->value->title,
-                                                'description' => $v->value->description,
-                                                'path' => $v->value->path,
-                                                'poster' => $v->value->poster,
-                                            ];
-                                            $infoVideo = $blockSave?->setDataFromEditmode($dataVideo);
-                                        }
-                                        if ($v->type == 'image') {
-                                            $asset = Asset::getByPath($v->value);
-                                            if ($asset) {
-                                                $idImage = $blockSave?->setId($asset->getId());
-                                            }
-                                        } 
-                                        if (!in_array($v->type, $notSave)) { 
-                                            $blockSave?->setDataFromResource($v->value);
-                                        }
+                                        $blockSave = DocumentServices::setDataBlock($v, $blockSave, $notSave);
                                     } else {
                                         $oldArr = $document->getEditables();
                                         $function = "Pimcore\\Model\\Document\\Editable\\" . ucwords($v->type);
-                                        
+                                       
                                         $newBlock = new $function($keyBlockT);
-                                        // dd($newBlock);
                                         $newBlock->setDocument($document);
                                         $newBlock->setName($keyBlockT);
 
-                                        if ($v->type == 'relation') {
-                                            if ($v->value) {
-                                                $dataSave = [
-                                                    'id' => (int) $v->value[2],
-                                                    'type' => strtolower($v->value[0]) == "dataobject" ? 'object' : strtolower($v->value[0]),
-                                                    'subtype' => $v->value[1],
-                                                ];
-                                                $newBlock->setDataFromEditmode($dataSave);
-                                            }
-                                        }
-
-                                        if ($v->type == 'pdf') {
-                                            $asset = Asset::getByPath($v->value);
-                                            if ($asset) {
-                                                $idPdf = $newBlock?->setDataFromEditmode([
-                                                    'id' => (int) $asset->getId(),
-                                                ]);
-                                            }
-                                        }
-                                        if ($v->type == 'video') {
-                                            $asset = Asset::getByPath($v->value->path);
-                                            $asset ? $assetId = $asset->getId() : $assetId = '';
-                                            $dataVideo = [
-                                                'id' => $assetId,
-                                                'type' => $v->value->type,
-                                                'allowedTypes' => ['asset', 'youtube', 'vimeo', 'dailymotion'],
-                                                'title' => $v->value->title,
-                                                'description' => $v->value->description,
-                                                'path' => $v->value->path,
-                                                'poster' => $v->value->poster,
-                                            ];
-                                            $infoVideo = $newBlock?->setDataFromEditmode($dataVideo);
-                                        }
-                                        if ($v->type == 'image') {
-                                            $asset = Asset::getByPath($v->value);
-                                            if ($asset) {
-                                                $idImage = $newBlock?->setId($asset->getId());
-                                            }
-                                        } 
-                                        if (!in_array($v->type, $notSave)) { 
-                                            dd(1);
-                                            $newBlock->setDataFromResource($v->value);
-                                        }
+                                        $newBlock = DocumentServices::setDataBlock($v, $newBlock, $notSave);
 
                                         $newBlock->save();
                                         // $newArr[] =  $newBlock;
@@ -754,9 +672,8 @@ class FieldServices
                         if ($dataBlocks) {
                             $getData->setDataFromEditmode($dataBlocks);
                         }
-                        // dd($document);
                         $document->save();
-                    }
+                    } 
                 }
                 return ['status' => 200, 'messsage' => 'Success'];
             } else {
