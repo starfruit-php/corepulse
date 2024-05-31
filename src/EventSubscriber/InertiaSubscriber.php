@@ -155,6 +155,9 @@ class InertiaSubscriber implements EventSubscriberInterface
             $classList = SearchHelper::getClassSearch('create');
             $datas = array_merge($classCre, $classList);
             $this->inertia->share('classSearch', $datas);
+
+            $configSidebar = \Pimcore::getContainer()->getParameter('corepulse_admin.sidebar');
+            $this->inertia->share('configSidebar', $configSidebar);
         }
     }
 

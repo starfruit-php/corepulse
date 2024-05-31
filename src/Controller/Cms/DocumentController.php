@@ -38,6 +38,7 @@ class DocumentController extends BaseController
         Request $request,
         \Knp\Component\Pager\PaginatorInterface $paginator
     ) {
+        
         // if ($this->checkRole('homeDocumentList')) {
             $permission = $this->getPermission();
             date_default_timezone_set('Asia/Bangkok');

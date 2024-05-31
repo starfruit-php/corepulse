@@ -28,6 +28,7 @@ class CorepulseExtension extends Extension implements PrependExtensionInterface
         $loader = new Loader\YamlFileLoader($container, new FileLocator(__DIR__ . '/../../config'));
         $loader->load('services.yaml');
         $loader->load('parameters.yaml');
+        $container->setParameter('corepulse_admin.sidebar', $config['sidebar'] ?? null);
 
         // new \Twig\Loader\FilesystemLoader(__DIR__ . '/../../templates');
     }
@@ -36,7 +37,9 @@ class CorepulseExtension extends Extension implements PrependExtensionInterface
     {
         if (!$container->hasParameter('corepulse_admin.firewall_settings')) {
             $containerConfig = ConfigurationHelper::getConfigNodeFromSymfonyTree($container, 'corepulse');
+            // dd($containerConfig);
             $container->setParameter('corepulse_admin.firewall_settings', $containerConfig['security_firewall']);
+
         }
     }
 }
