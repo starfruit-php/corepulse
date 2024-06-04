@@ -399,7 +399,7 @@ class DocumentServices
                     $dataInternal = [
                         "internalType" => "document",
                         "linktype" => "internal",
-                        "text" => "",
+                        "text" => $v->value->text,
                         "path" => $v->value->path,
                         "internal" => true,
                         "internalId" => $id,
@@ -409,7 +409,7 @@ class DocumentServices
                     $dataInternal = [
                         "internalType" => "asset",
                         "linktype" => "internal",
-                        "text" => "",
+                        "text" => $v->value->text,
                         "path" => $v->value->path,
                         "internal" => true,
                         "internalId" => $id,
@@ -419,7 +419,7 @@ class DocumentServices
                     $dataInternal = [
                         "internalType" => "object",
                         "linktype" => "internal",
-                        "text" => "",
+                        "text" => $v->value->text,
                         "path" => $v->value->path,
                         "internal" => true,
                         "internalId" => $id,

@@ -11,6 +11,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use Carbon\Carbon;
+use CorepulseBundle\Controller\Admin\SettingController;
 use CorepulseBundle\Services\AssetServices;
 use CorepulseBundle\Services\DocumentServices;
 use CorepulseBundle\Services\FieldServices;
@@ -682,10 +683,20 @@ class DocumentController extends BaseController
                 $dataObjects = self::listingObject();
                 $dataAllItem = array_merge($dataDocs, $dataAssets, $dataObjects);
 
-                // dd($document);
+                $seoImage = null;
+                $seo = \Starfruit\BuilderBundle\Model\Seo::getOrCreate($document);
+                if ($seo) {
+                    $idImage = $seo->getImageAsset();
+                    $asset = Asset::getById((int)$idImage);
+                    if ($asset) {
+                        $seoImage = $asset->getFullPath();
+                    }
+                }
+                // dd($seoImage);
                 $data = [
                     'id' => $document->getId() ?? '',
-                    'title' => $document->getKey(),
+                    'title' => $document->getTitle(),
+                    'imageSeo' => $seoImage,
                     'prettyUrl' =>  method_exists($document, 'getPrettyUrl') ?  $document->getPrettyUrl() : '',
                     'description' => method_exists($document, 'getDescription') ? $document->getDescription() : '',
                     'controller' => method_exists($document, 'getController') ? $document->getController() : '',
@@ -788,6 +799,15 @@ class DocumentController extends BaseController
                     if ($data['lifetime'] && ($data['lifetime'] != "null")) {
                         $document->setStaticGeneratorLifetime($data['lifetime']);
                     }
+
+                    if ($data['imageSeo']) {
+                        $asset = Asset::getByPath($data['imageSeo']);
+                        if ($asset) {
+                            $seo = \Starfruit\BuilderBundle\Model\Seo::getOrCreate($document);
+                            $seo->setImageAsset($asset->getId());
+                            $seo->save();
+                        }
+                    }
                 }
                 if ($document->getType() == 'link' && isset($data['href'])) {
                     $repornse = FieldServices::setHref($document, $data['href']);
@@ -801,7 +821,7 @@ class DocumentController extends BaseController
                 }
                 $document->save();
 
-                $arrNoSaveInFor = ['title', 'description', 'prettyUrl', 'controller', 'template', 'enabled', 'lifetime', 'id', 'href', 'linktype', 'internalType', 'internal'];
+                $arrNoSaveInFor = ['title', 'description', 'prettyUrl', 'controller', 'template', 'enabled', 'lifetime', 'id', 'href', 'linktype', 'internalType', 'internal', 'imageSeo'];
                 $arrss = [];
 
                 // dd($data);
