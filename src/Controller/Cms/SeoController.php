@@ -21,9 +21,19 @@ use Pimcore\Bundle\SeoBundle\Redirect\RedirectHandler;
 class SeoController extends BaseController
 {
     /**
+     * @Route("/", name="seo_index", options={"expose"=true}))
+     */
+    public function index(Request $request)
+    {
+        $viewData = ['metaTitle' => 'Seo'];
+
+        return $this->renderWithInertia('Pages/Seo/Layout', [], $viewData);
+    }
+
+    /**
      * @Route("/object/data", name="seo_object_data", options={"expose"=true}))
      */
-    public function objectData(Request $request)
+    public function objectData(Request $request): JsonResponse
     {
         $language = $request->get('language');
         $object = DataObject::getById($request->get('id'));
@@ -32,12 +42,32 @@ class SeoController extends BaseController
             $seo = Seo::getOrCreate($object, $language);
 
             if ($request->get('update')) {
-                $keyword = $request->get('keyword');
-                $seo->setKeyword($keyword);
+                $params = $request->request->all();
+                $keyUpdate = ['keyword', 'title', 'slug', 'description', 'image', 'canonicalUrl', 'redirectLink',
+                'nofollow', 'indexing', 'redirectType', 'destinationUrl', 'schemaBlock', 'image', 'imageAsset'];
+
+                foreach ($params as $key => $value) {
+                    $function = 'set' . ucfirst($key);
+
+                    if (in_array($key, $keyUpdate) && method_exists($seo, $function)) {
+                        if ($key == 'nofollow' || $key == 'indexing' || $key == 'redirectLink') {
+                           $value = filter_var($value, FILTER_VALIDATE_BOOLEAN);
+                        }
+                        $seo->$function($value);
+                    }
+                }
                 $seo->save();
             }
 
             $scoring = $seo->getScoring();
+
+            $keyData = ['canonicalUrl', 'redirectLink', 'nofollow', 'indexing', 'redirectType', 'destinationUrl', 'schemaBlock', 'image', 'imageAsset'];
+            foreach ($keyData as $item) {
+                $function = 'get' . ucfirst($item);
+                if (method_exists($seo, $function)) {
+                    $scoring['data'][$item] = $seo->$function();
+                }
+            }
         } catch (\Throwable $th) {
             $scoring = [];
         }
@@ -46,13 +76,34 @@ class SeoController extends BaseController
     }
 
     /**
-     * @Route("/", name="seo_index", options={"expose"=true}))
+     * @Route("/redirect-type", name="seo_redirect_type", options={"expose"=true}))
      */
-    public function index(Request $request)
+    public function redirectType(Request $request): JsonResponse
     {
-        $viewData = ['metaTitle' => 'Seo'];
+        $data = [
+            [
+                'key' => '301 Permanent Move',
+                'value' => 301
+            ],
+            [
+                'key' => '302 Temporary Move',
+                'value' => 302
+            ],
+            [
+                'key' => '307 Temporary Redirect',
+                'value' => 307
+            ],
+            [
+                'key' => '401 Content Deleted',
+                'value' => 401
+            ],
+            [
+                'key' => '451 Content Unavailable',
+                'value' => 451
+            ]
+        ];
 
-        return $this->renderWithInertia('Pages/Seo/Layout', [], $viewData);
+        return new JsonResponse($data);
     }
 
     /**
@@ -68,8 +119,8 @@ class SeoController extends BaseController
         $page = (int)$request->get('page', 1);
         $orderKey = $request->get('orderKey');
         $order = $request->get('order');
-        $filter = $request->get('filter');
-        
+        $search = $request->get('search');
+
         $offset = 0;
 
         if ($page) {
@@ -85,17 +136,25 @@ class SeoController extends BaseController
         }
 
         $condition = '';
-        if ($filter) {
-            $filter = $db->quote('%' . $filter . '%');
+        if ($search) {
+            $search = json_decode($search, true);
+
+            $search = array_filter($search, function($value) {
+                return $value !== "" && $value !== " ";
+            });
 
             $conditionParts = [];
-            foreach (['uri', 'code', 'parametersGet', 'parametersPost', 'serverVars', 'cookies'] as $field) {
-                $conditionParts[] = $field . ' LIKE ' . $filter;
+            foreach ($search as $key => $value) {
+                $conditionParts[] = $key . ' LIKE ' . $db->quote('%' . $value . '%');
             }
-            $condition = ' WHERE ' . implode(' OR ', $conditionParts);
+
+            if (count($conditionParts)) {
+                $condition = ' WHERE ' . implode(' OR ', $conditionParts);
+            }
         }
 
-        $listData = $db->fetchAllAssociative('SELECT code,uri,`count`, FROM_UNIXTIME(date, "%Y-%m-%d %h:%i") AS "date" FROM http_error_log ' . $condition . ' ORDER BY ' . $orderKey . ' ' . $order . ' LIMIT ' . $offset . ',' . $limit);
+        $listData = $db->fetchAllAssociative('SELECT id, code,uri,`count`, FROM_UNIXTIME(date, "%Y-%m-%d %h:%i") AS "date" FROM http_error_log ' . $condition . ' ORDER BY ' . $orderKey . ' ' . $order . ' LIMIT ' . $offset . ',' . $limit);
+        // $listData =$db->fetchAllAssociative('SELECT * FROM http_error_log ' . $condition . ' ORDER BY ' . $orderKey . ' ' . $order . ' LIMIT ' . $offset . ',' . $limit);
         $totalItems = $db->fetchOne('SELECT count(*) FROM http_error_log ' . $condition);
 
         $fields = [];
@@ -104,7 +163,7 @@ class SeoController extends BaseController
                 'key' => $value,
                 'tooltip' => '',
                 'title' => $value,
-                'removable' => true,
+                'removable' => false,
                 'searchType' => 'Input',
             ];
         }
@@ -122,10 +181,10 @@ class SeoController extends BaseController
     /**
      * @Route("/seo-monitor-detail", name="seo_monitor_detail", options={"expose"=true}))
      */
-    public function seoMonitorDetail(Request $request): Response
+    public function seoMonitorDetail(Request $request): JsonResponse
     {
         $db = Db::get();
-        $data = $db->fetchAssociative('SELECT * FROM http_error_log WHERE uri = ?', [$request->get('uri')]);
+        $data = $db->fetchAssociative('SELECT * FROM http_error_log WHERE id = ?', [$request->get('id')]);
 
         foreach ($data as $key => &$value) {
             if (in_array($key, ['parametersGet', 'parametersPost', 'serverVars', 'cookies'])) {
@@ -133,22 +192,38 @@ class SeoController extends BaseController
             }
         }
 
-        $result = [
-            "data" => $data,
-        ];
-
-        return new JsonResponse($result);
+        return new JsonResponse($data);
     }
 
     /**
-     * @Route("/http", name="flush", methods={"DELETE"})
+     * @Route("/seo-monitor-truncate", name="seo_monitor_truncate", methods={"POST"}, options={"expose"=true}))
      */
-    public function httpErrorLogFlushAction(Request $request): JsonResponse
+    public function seoMonitorTruncate(Request $request): JsonResponse
     {
         $db = Db::get();
         $db->executeQuery('TRUNCATE TABLE http_error_log');
 
-        return $this->jsonResponse([
+        return new JsonResponse([
+            'success' => true,
+        ]);
+    }
+
+    /**
+     * @Route("/seo-monitor-delete", name="seo_monitor_delete", methods={"POST"}, options={"expose"=true}))
+     */
+    public function seoMonitorDelete(Request $request): JsonResponse
+    {
+        $db = Db::get();
+        if ($request->get('all')) {
+            $ids = $request->get('id');
+            foreach($ids as $id) {
+                $db->executeQuery('DELETE FROM http_error_log WHERE id = ' . $id);
+            }
+        } else {
+            $db->executeQuery('DELETE FROM http_error_log WHERE id = ' . $request->get('id'));
+        }
+
+        return new JsonResponse([
             'success' => true,
         ]);
     }
@@ -156,13 +231,13 @@ class SeoController extends BaseController
     /**
      * @Route("/seo-redirect", name="seo_redirect", options={"expose"=true}))
      */
-    public function seoRedirect(Request $request)
+    public function seoRedirect(Request $request): JsonResponse
     {
         $limit = (int)$request->get('limit', 10);
         $page = (int)$request->get('page', 1);
         $orderKey = $request->get('orderKey');
         $order = $request->get('order');
-        $filter = $request->get('filter');
+        $search = $request->get('search');
         $offset = 0;
 
         if ($page) {
@@ -181,13 +256,23 @@ class SeoController extends BaseController
             $list->setOrder($order);
         }
 
-        if ($filter) {
-            if (is_numeric($filter)) {
-                $list->setCondition('id = ?', [$filter]);
-            }  else {
-                $list->setCondition('`source` LIKE ' . $list->quote('%' . $filter . '%') . ' OR `target` LIKE ' . $list->quote('%' . $filter . '%'));
+        $condition = '';
+        if ($search) {
+            $search = json_decode($search, true);
+
+            $search = array_filter($search, function($value) {
+                return $value !== "" && $value !== " ";
+            });
+
+            $conditionParts = [];
+            foreach ($search as $key => $value) {
+                $conditionParts[] = $key . ' LIKE ' . $list->quote('%' . $value . '%');
             }
+
+            $condition =  implode(' OR ', $conditionParts);
         }
+
+        $list->setCondition($condition);
 
         $list->load();
 
@@ -224,5 +309,62 @@ class SeoController extends BaseController
         ];
 
         return new JsonResponse($result);
+    }
+
+    /**
+     * @Route("/seo-redirect-delete", name="seo_redirect_delete", methods={"POST"}, options={"expose"=true}))
+     */
+    public function seoRedirectDelete(Request $request): JsonResponse
+    {
+        if ($request->get('all')) {
+            $ids = $request->get('id');
+            foreach($ids as $id) {
+                $redirect = Redirect::getById($id);
+                $redirect->delete();
+            }
+        } else {
+            $redirect = Redirect::getById($request->get('id'));
+            $redirect->delete();
+        }
+
+        return new JsonResponse([
+            'success' => true,
+        ]);
+    }
+
+    public function siteOption(Request $request)
+    {
+        $excludeMainSite = $request->get('excludeMainSite');
+
+        $sitesList = new Site\Listing();
+        $sitesObjects = $sitesList->load();
+        
+        $sites = [];
+        if (!$excludeMainSite) {
+            $sites[] = [
+                'id' => 0,
+                'rootId' => 1,
+                'domains' => '',
+                'rootPath' => '/',
+                'domain' => $this->translator->trans('main_site', [], 'admin'),
+            ];
+        }
+
+        foreach ($sitesObjects as $site) {
+            if ($site->getRootDocument()) {
+                if ($site->getMainDomain()) {
+                    $sites[] = [
+                        'id' => $site->getId(),
+                        'rootId' => $site->getRootId(),
+                        'domains' => implode(',', $site->getDomains()),
+                        'rootPath' => $site->getRootPath(),
+                        'domain' => $site->getMainDomain(),
+                    ];
+                }
+            } else {
+                // site is useless, parent doesn't exist anymore
+                $site->delete();
+            }
+        }
     }
 }

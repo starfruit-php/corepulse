@@ -573,7 +573,7 @@ class ObjectController extends FieldController
         }
 
         $viewData = ['metaTitle' => $classes->getName() . ': ' . $object->getKey()];
-        // dd($data);
+
         return $this->renderWithInertia('Pages/Object/Detail', [
             'data' => $data,
             'breadcrumb' => $breadcrumb,

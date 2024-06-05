@@ -129,6 +129,10 @@ class FieldController extends BaseController
             }
         }
 
+        if ($layoutDefinition instanceof Layout\Text) {
+            $structure['value'] = $layoutDefinition->getHtml();
+        }
+
         if (in_array($structure['type'], self::listField) && $getValue) {
             $structure['value'] = JsonHelper::getValueByType($object, $layoutDefinition, $lang);
         }

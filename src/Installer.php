@@ -66,7 +66,21 @@ class Installer extends SettingsStoreAwareInstaller
             `username` varchar(190) COLLATE utf8mb4_unicode_ci NOT NULL,
             `password` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
             PRIMARY KEY (`id`)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;'
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;',
+        'corepulse_notification' => 'CREATE TABLE `corepulse_notification` (
+            `id` int(11) NOT NULL AUTO_INCREMENT,
+            `title` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+            `description` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+            `user` int(11) NOT NULL,
+            `sender` int(11) NOT NULL,
+            `type` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+            `action` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+            `actionType` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+            `active` tinyint(1) DEFAULT 0,
+            `createAt` timestamp DEFAULT current_timestamp(),
+            `updateAt` timestamp DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+            PRIMARY KEY (`id`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;',
     ];
 
 
