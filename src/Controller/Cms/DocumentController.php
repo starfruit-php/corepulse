@@ -686,10 +686,12 @@ class DocumentController extends BaseController
                 $seoImage = null;
                 $seo = \Starfruit\BuilderBundle\Model\Seo::getOrCreate($document);
                 if ($seo) {
-                    $idImage = $seo->getImageAsset();
-                    $asset = Asset::getById((int)$idImage);
-                    if ($asset) {
-                        $seoImage = $asset->getFullPath();
+                    if (method_exists($seo, 'getImageAsset')) {
+                        $idImage = $seo->getImageAsset();
+                        $asset = Asset::getById((int)$idImage);
+                        if ($asset) {
+                            $seoImage = $asset->getFullPath();
+                        }
                     }
                 }
                 // dd($seoImage);
