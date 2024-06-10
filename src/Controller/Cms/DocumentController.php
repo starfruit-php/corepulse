@@ -694,10 +694,10 @@ class DocumentController extends BaseController
                         }
                     }
                 }
-                // dd($seoImage);
+                // dd($seoImage, $document);
                 $data = [
                     'id' => $document->getId() ?? '',
-                    'title' => $document->getTitle(),
+                    'title' => method_exists($document, 'getTitle') ? $document->getTitle() : $document->getKey(),
                     'imageSeo' => $seoImage,
                     'prettyUrl' =>  method_exists($document, 'getPrettyUrl') ?  $document->getPrettyUrl() : '',
                     'description' => method_exists($document, 'getDescription') ? $document->getDescription() : '',
@@ -806,8 +806,10 @@ class DocumentController extends BaseController
                         $asset = Asset::getByPath($data['imageSeo']);
                         if ($asset) {
                             $seo = \Starfruit\BuilderBundle\Model\Seo::getOrCreate($document);
-                            $seo->setImageAsset($asset->getId());
-                            $seo->save();
+                            if (method_exists($seo, 'setImageAsset')) {
+                                $seo->setImageAsset($asset->getId());
+                                $seo->save();
+                            }
                         }
                     }
                 }
