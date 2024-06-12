@@ -115,16 +115,16 @@ class ObjectServices
 
     static private function geopoint($object, $fieldType, $fieldName, $fieldValue, $lang)
     {
-        // if ($fieldValue['latitude'] || $fieldValue['longitude']) {
+        if ($fieldValue['latitude'] || $fieldValue['longitude']) {
 
-        //     $point = new \Pimcore\Model\DataObject\Data\GeoCoordinates($fieldValue['latitude'], $fieldValue['longitude']);
+            $point = new \Pimcore\Model\DataObject\Data\GeoCoordinates($fieldValue['latitude'], $fieldValue['longitude']);
 
-        //     $function = 'set' . ucfirst($fieldName);
+            $function = 'set' . ucfirst($fieldName);
 
-        //     if (method_exists($object, $function)) {
-        //         $object->$function($point);
-        //     }
-        // }
+            if (method_exists($object, $function)) {
+                $object->$function($point);
+            }
+        }
         return $object;
     }
 
