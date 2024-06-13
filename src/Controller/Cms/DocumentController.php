@@ -796,11 +796,11 @@ class DocumentController extends BaseController
                 if ($document->getType() == 'page') {
                     $document->setTitle($data['title']);
                     $document->setDescription($data['description']);
-                    $document->setPrettyUrl($data['prettyUrl']);
-                    $document->setStaticGeneratorEnabled($data['enabled']);
-                    if ($data['lifetime'] && ($data['lifetime'] != "null")) {
-                        $document->setStaticGeneratorLifetime($data['lifetime']);
-                    }
+                    // $document->setPrettyUrl($data['prettyUrl']);
+                    // $document->setStaticGeneratorEnabled($data['enabled']);
+                    // if ($data['lifetime'] && ($data['lifetime'] != "null")) {
+                    //     $document->setStaticGeneratorLifetime($data['lifetime']);
+                    // }
 
                     if ($data['imageSeo']) {
                         $asset = Asset::getByPath($data['imageSeo']);
