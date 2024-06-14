@@ -29,6 +29,15 @@ class DocumentServices
             $page = new \Pimcore\Model\Document\Link();
         } elseif ($type == 'Email') {
             $page = new \Pimcore\Model\Document\Email();
+
+            $folder =  Document::getByPath("/emails");
+            if (!$folder) {
+                $folder = new \Pimcore\Model\Document\Folder();
+                $folder->setKey('emails');
+                $folder->setParentId(1);
+                $folder->save();
+            }
+            $parentId = $folder->getId();
         } elseif ($type == 'Hardlink') {
             $page = new \Pimcore\Model\Document\Hardlink();
         } elseif ($type == 'Folder') {

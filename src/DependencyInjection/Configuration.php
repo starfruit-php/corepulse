@@ -60,6 +60,9 @@ class Configuration implements ConfigurationInterface
                         ->booleanNode('seo')
                             ->defaultTrue()
                         ->end()
+                        ->booleanNode('emails')
+                            ->defaultTrue()
+                        ->end()
                         
                     ->end()
                 ->end()

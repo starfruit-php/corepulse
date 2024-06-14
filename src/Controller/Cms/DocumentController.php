@@ -51,7 +51,7 @@ class DocumentController extends BaseController
 
             $document = new \Pimcore\Model\Document\Listing();
             $document->setUnpublished(true);
-            $conditionQuery = 'id != 1';
+            $conditionQuery = 'id != 1 AND type != "email"';
             $conditionParams = [];
 
             $id = $request->get('folderId') ? $request->get('folderId') : '';
@@ -258,13 +258,11 @@ class DocumentController extends BaseController
             $folderId = $request->get('folderId');
             $parentId = ($folderId != 'null') ? (int)$folderId : 1;
 
+            $type = $request->get('type');
+            $key = $request->get('key');
             if ($title) {
                 $checkPage = Document::getByPath("/" . $title);
                 if (!$checkPage) {
-                    
-                    $key = $request->get('key');
-                    $type = $request->get('type');
-
                     $page = DocumentServices::createDoc($key, $title, $type, $parentId);
                     if ($page)
                         $this->addFlash("success", "Create document ". $page ->getKey() ." successfully");
@@ -285,6 +283,9 @@ class DocumentController extends BaseController
             $page = $request->get('page');
             if ($page && ($page == "catalog")) {
                 return $this->redirectToRoute('cms_document_catalog');
+            }
+            if ($type == 'Email') {
+                return $this->redirectToRoute('vuetify_doc_listing_email', $params);
             }
             return $this->redirectToRoute('vuetify_doc_listing', $params);
 
@@ -1089,5 +1090,190 @@ class DocumentController extends BaseController
         $options = DocumentServices::getOptions($type, $types);
         // dd($options);
         return $this->json(['data' => $options]);
+    }
+
+
+    // listing email 
+    /**
+     * @Route("/listing-email", name="vuetify_doc_listing_email", methods={"GET", "POST"}, options={"expose"=true}))
+     */
+    public function listingEmailAction(
+        Request $request,
+        \Knp\Component\Pager\PaginatorInterface $paginator
+    ) {
+        
+        // if ($this->checkRole('homeDocumentList')) {
+            $permission = $this->getPermission();
+            date_default_timezone_set('Asia/Bangkok');
+            $orderKey = "index";
+            $orderSet = "ASC";
+            $limit = 25;
+            $offset = 0;
+            $nameParent = [];
+
+            $document = new \Pimcore\Model\Document\Listing();
+            $document->setUnpublished(true);
+            $conditionQuery = 'id != 1 AND type = "email"';
+            $conditionParams = [];
+
+            $id = $request->get('folderId') ? $request->get('folderId') : '';
+            $parentId = 1;
+            if ($id) {
+                $parentInfo = Document::getById($id);
+                $pathParent = $parentInfo->getPath() . $parentInfo->getKey();
+                $nameParent = explode('/', $pathParent);
+                $result = array_filter($nameParent, function ($nameParent) {
+                    return !empty($nameParent);
+                });
+                $nameParent = [];
+                $previousSubstring = '';
+                foreach ($result as $key => $val) {
+                    $idChill = '';
+                    $substring = '';
+    
+                    if (strpos($parentInfo->getPath(), $val) !== false) {
+                        $substring = $previousSubstring . '/' . $val;
+                        
+                        $doc = Document::getByPath($substring);
+                        if ($doc) {
+                            $idChill = $doc->getId();
+                        }
+                    }
+                    $nameParent[] = [
+                        'id' => $idChill,
+                        'name' => $val,
+                        'end' =>  $key == array_key_last($result),
+                    ];
+                    $previousSubstring = $substring;
+                }
+
+                $parentId = $id;
+                $conditionQuery .= ' AND parentId = :parentId';
+                $conditionParams['parentId'] = $parentId;
+            }
+
+            if ($request->getMethod() == "POST") {
+                $keySort = $request->get('orderKey');
+                if ($keySort) {
+                    if ($keySort == "name") $keySort = "key";
+                    if ($keySort == "status") $keySort = "published";
+                    $orderKey = $keySort;
+                }
+                $typeSort = $request->get('order');
+                if ($typeSort) {
+                    $orderSet = $typeSort;
+                }
+
+                $numberItem = $request->get('limit');
+                if ($numberItem) {
+                    $limit = (int)$numberItem;
+                    $page = $request->get('page');
+                    if ($page) {
+                        $offset = ((int)$page - 1) * $limit;
+                    }
+                }
+
+                $search = $request->get('search');
+                if ($search) {
+                    foreach (json_decode($search, true) as $key => $value) {
+                        if ($key == "name") $key = "key";
+                        if ($key == "status") {
+                            if ($value && $value != "-1") {
+                                $conditionQuery .= ' AND published = :published';
+                                $conditionParams['published'] = $value;
+                            }
+                            continue;
+                        }
+                        if (is_array($value)) {
+                            if (array_key_exists('type', $value)) {
+                                if ($value['type'] == "picker") {
+                                    $startDate = strtotime(date('Y-m-d', $value['date']) . '00:00:00');
+                                    $endDate = strtotime(date('Y-m-d', $value['date']) . '23:59:59');
+
+                                    $conditionQuery .= ' AND ' . $value['key'] . ' <= :dateTo AND ' . $value['key'] . ' > :dateFrom';
+                                    $conditionParams['dateFrom'] = $startDate;
+                                    $conditionParams['dateTo'] = $endDate;
+
+                                    continue;
+                                }
+                            }
+
+                            continue;
+                        }
+                        $conditionName = "`" . $key . "`" . " LIKE '%" . $value . "%'";
+                        $conditionQuery .= ' AND ' . $conditionName;
+                    }
+                }
+            }
+
+            $document->setCondition($conditionQuery, $conditionParams);
+            $document->setOrderKey($orderKey);
+            $document->setOrder($orderSet);
+            $document->setOffset($offset);
+            $document->setLimit($limit);
+            $document->load();
+            $totalItems = $document->count();
+
+            $data = [];
+            foreach ($document as $doc) {
+                $publicURL = DocumentServices::getThumbnailPath($doc);
+
+                $draft = $this->checkLastest($doc);
+                if ($draft) {
+                    $status = 'Draft';
+                } else {
+                    if ($doc->getPublished()) {
+                        $status = 'Publish';
+                    } else {
+                        $status = 'Draft';
+                    }
+                }
+
+                if ($doc->getId() != 1 || $id) {
+                    $listChills = new \Pimcore\Model\Document\Listing();
+                    $listChills->setCondition("parentId = :parentId", ['parentId' => $doc->getId()]);
+                    $chills = [];
+                    foreach ($listChills as $item) {
+                        $chills[] = $item;
+                    }
+
+                    $data[] = [
+                        'id' => $doc->getId(),
+                        'name' => "<div class='tableCell--titleThumbnail d-flex align-center'><img class='me-2' src=' " .  $publicURL ."'><span>" . $doc->getKey() . "</span></div>",
+                        'type' => '<div class="chip">' . $doc->getType() . '</div>',
+                        'status' => $status,
+                        'createDate' => DocumentServices::getTimeAgo($doc->getCreationDate()),
+                        'modificationDate' => DocumentServices::getTimeAgo($doc->getModificationDate()),
+                        'parent' => $chills ? true : false,
+                        'noMultiEdit' => [
+                            'name' => $chills ? [] : ['name'],
+                        ],
+                        "noAction" =>  $chills ? [] : ['seeMore'],
+                    ];
+                }
+            }
+
+            $chipsColor = [
+                'status' => [
+                    'Publish' => 'primary',
+                    'Draft' => 'red',
+                ],
+            ];
+
+            $listing = [];
+            $listing = $data;
+            // dd($listing);
+            $viewData = ['metaTitle' => 'Document'];
+            return $this->renderWithInertia('Pages/Document/Email', [
+                'listing' => $listing,
+                'totalItems' => $totalItems,
+                // 'permission' => $permission,
+                'nameParent' => $nameParent,
+                'chips' => ['status'],
+                'chipsColor' => $chipsColor,
+            ]);
+        // } else {
+        //     return $this->renderWithInertia('Pages/AccessDiend');
+        // }
     }
 }

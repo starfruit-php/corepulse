@@ -533,7 +533,6 @@ class ObjectController extends FieldController
             return new JsonResponse(['status' => true]);
         }
 
-        $checkFieldSlug = false;
         if ($object) {
             $lang = $request->get('language') ?? $this->getLanguage();
             $data = $this->getData($object, $lang);
@@ -572,11 +571,11 @@ class ObjectController extends FieldController
 
             $sidebar['language'] = $lang;
 
-            $checkFieldSlug =  method_exists($object, 'getSlug');
         }
 
         $urlSlug = method_exists($object, 'getSlug') ? $object->getSlug() ? $object->getSlug()[0]->getSlug() : '' : '';
         $viewData = ['metaTitle' => $classes->getName() . ': ' . $object->getKey()];
+        // dd($viewData);
 
         return $this->renderWithInertia('Pages/Object/Detail', [
             'data' => $data,
@@ -585,7 +584,6 @@ class ObjectController extends FieldController
             'languageOption' => $languageOption,
             'sidebar' => $sidebar,
             "classObject" => $dataJson,
-            'checkFieldSlug' => $checkFieldSlug,
             'urlSlug' => $urlSlug,
         ], $viewData);
     }
