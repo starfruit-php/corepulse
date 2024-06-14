@@ -21,13 +21,33 @@ use Pimcore\Bundle\SeoBundle\Redirect\RedirectHandler;
 class SeoController extends BaseController
 {
     /**
-     * @Route("/", name="seo_index", options={"expose"=true}))
+     * @Route("/sitemap", name="seo_sitemap", options={"expose"=true}))
      */
-    public function index(Request $request)
+    public function sitemap(Request $request)
     {
-        $viewData = ['metaTitle' => 'Seo'];
+        $viewData = ['metaTitle' => 'Sitemap'];
 
-        return $this->renderWithInertia('Pages/Seo/Layout', [], $viewData);
+        return $this->renderWithInertia('Pages/Seo/Sitemap', [], $viewData);
+    }
+
+    /**
+     * @Route("/http-error", name="seo_http_error", options={"expose"=true}))
+     */
+    public function httpError(Request $request)
+    {
+        $viewData = ['metaTitle' => '404 & 301'];
+
+        return $this->renderWithInertia('Pages/Seo/HttpError', [], $viewData);
+    }
+
+    /**
+     * @Route("/indexing", name="seo_indexing", options={"expose"=true}))
+     */
+    public function indexing(Request $request)
+    {
+        $viewData = ['metaTitle' => 'Indexing'];
+
+        return $this->renderWithInertia('Pages/Seo/Indexing', [], $viewData);
     }
 
     /**
@@ -39,8 +59,10 @@ class SeoController extends BaseController
         $object = DataObject::getById($request->get('id'));
 
         try {
+            // lấy thông tin or thêm mới object vào bảng seo
             $seo = Seo::getOrCreate($object, $language);
 
+            //lưu dữ liệu vào bảng seo
             if ($request->get('update')) {
                 $params = $request->request->all();
                 $keyUpdate = ['keyword', 'title', 'slug', 'description', 'image', 'canonicalUrl', 'redirectLink',
@@ -59,15 +81,8 @@ class SeoController extends BaseController
                 $seo->save();
             }
 
-            $scoring = $seo->getScoring();
-
-            $keyData = ['canonicalUrl', 'redirectLink', 'nofollow', 'indexing', 'redirectType', 'destinationUrl', 'schemaBlock', 'image', 'imageAsset'];
-            foreach ($keyData as $item) {
-                $function = 'get' . ucfirst($item);
-                if (method_exists($seo, $function)) {
-                    $scoring['data'][$item] = $seo->$function();
-                }
-            }
+            // lấy danh sách dữ liệu seoscoring
+            $scoring = $seo->getScoring(true);
         } catch (\Throwable $th) {
             $scoring = [];
         }
@@ -154,7 +169,7 @@ class SeoController extends BaseController
         }
 
         $listData = $db->fetchAllAssociative('SELECT id, code,uri,`count`, FROM_UNIXTIME(date, "%Y-%m-%d %h:%i") AS "date" FROM http_error_log ' . $condition . ' ORDER BY ' . $orderKey . ' ' . $order . ' LIMIT ' . $offset . ',' . $limit);
-        // $listData =$db->fetchAllAssociative('SELECT * FROM http_error_log ' . $condition . ' ORDER BY ' . $orderKey . ' ' . $order . ' LIMIT ' . $offset . ',' . $limit);
+
         $totalItems = $db->fetchOne('SELECT count(*) FROM http_error_log ' . $condition);
 
         $fields = [];
@@ -163,7 +178,7 @@ class SeoController extends BaseController
                 'key' => $value,
                 'tooltip' => '',
                 'title' => $value,
-                'removable' => false,
+                'removable' => true,
                 'searchType' => 'Input',
             ];
         }
@@ -338,7 +353,7 @@ class SeoController extends BaseController
 
         $sitesList = new Site\Listing();
         $sitesObjects = $sitesList->load();
-        
+
         $sites = [];
         if (!$excludeMainSite) {
             $sites[] = [
