@@ -815,7 +815,7 @@ class ObjectController extends FieldController
         $classId = $request->get("object");
         $objectKey = $request->get('objectKey');
 
-        $string = '\\Pimcore\\Model\\DataObject\\' . ucfirst($classId);
+        $string = '\\Pimcore\\Model\\DataObject\\' . ucfirst(str_replace(' ', '', $classId));
         $object = new $string;
 
         try {
