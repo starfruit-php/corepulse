@@ -10,6 +10,7 @@ use Pimcore\Model\Asset;
 use Pimcore\Model\Asset\Image\Thumbnail;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\HttpFoundation\Request;
+use Pimcore\Localization\LocaleServiceInterface;
 
 class ImageController extends BaseController
 {
@@ -374,5 +375,21 @@ class ImageController extends BaseController
         }
 
         return new JsonResponse($datas);
+    }
+
+    private LocaleServiceInterface $localeService;
+
+    public function __construct(LocaleServiceInterface $localeService)
+    {
+        $this->localeService = $localeService;
+    }
+      /**
+     * @Route("/get-country-map", name="get_country_map", methods={"GET", "POST"}, options={"expose"=true}))
+     */
+    public function getCountry(Request $request)
+    {
+        $countries = $this->localeService->getDisplayRegions();
+        // dd($countries);
+        return new JsonResponse($countries);
     }
 }

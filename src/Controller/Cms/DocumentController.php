@@ -138,12 +138,12 @@ class DocumentController extends BaseController
 
                             continue;
                         }
-                        $conditionName = "`" . $key . "`" . " LIKE '%" . $value . "%'";
+                        $conditionName = "LOWER(`" . $key . "`)" . " LIKE LOWER('%" . $value . "%')";
                         $conditionQuery .= ' AND ' . $conditionName;
                     }
                 }
             }
-
+            // dd($conditionQuery, $conditionParams);
             $document->setCondition($conditionQuery, $conditionParams);
             $document->setOrderKey($orderKey);
             $document->setOrder($orderSet);
@@ -791,76 +791,80 @@ class DocumentController extends BaseController
 
         $document = Document::getById((int)$data['id']);
 
-        try {
-            if ($document) {
-                $errors = [];
-                if ($document->getType() == 'page') {
-                    $document->setTitle($data['title']);
-                    $document->setDescription($data['description']);
-                    // $document->setPrettyUrl($data['prettyUrl']);
-                    // $document->setStaticGeneratorEnabled($data['enabled']);
-                    // if ($data['lifetime'] && ($data['lifetime'] != "null")) {
-                    //     $document->setStaticGeneratorLifetime($data['lifetime']);
-                    // }
+        $retry = 0;
 
-                    if ($data['imageSeo']) {
-                        $asset = Asset::getByPath($data['imageSeo']);
-                        if ($asset) {
-                            $seo = \Starfruit\BuilderBundle\Model\Seo::getOrCreate($document);
-                            if (method_exists($seo, 'setImageAsset')) {
-                                $seo->setImageAsset($asset->getId());
-                                $seo->save();
+        while ($retry < 2) {
+            try {
+                if ($document) {
+                    $errors = [];
+                    if ($document->getType() == 'page') {
+                        $document->setTitle($data['title']);
+                        $document->setDescription($data['description']);
+    
+                        if ($data['imageSeo']) {
+                            $asset = Asset::getByPath($data['imageSeo']);
+                            if ($asset) {
+                                $seo = \Starfruit\BuilderBundle\Model\Seo::getOrCreate($document);
+                                if (method_exists($seo, 'setImageAsset')) {
+                                    $seo->setImageAsset($asset->getId());
+                                    $seo->save();
+                                }
                             }
                         }
                     }
-                }
-                if ($document->getType() == 'link' && isset($data['href'])) {
-                    $repornse = FieldServices::setHref($document, $data['href']);
-
-                    if (isset($repornse['status']) && ($repornse['status'] == 500)){
-                        return new JsonResponse(['error' => $repornse['messsage']]);
-                    }
-                } else {
-                    $document->setController($data['controller']);
-                    $document->setTemplate($data['template']);
-                }
-                $document->save();
-
-                $arrNoSaveInFor = ['title', 'description', 'prettyUrl', 'controller', 'template', 'enabled', 'lifetime', 'id', 'href', 'linktype', 'internalType', 'internal', 'imageSeo'];
-                $arrss = [];
-
-                // dd($data);
-                foreach ($data as $key => $value) {
-                    if (!in_array($key, $arrNoSaveInFor)) {
-                        $decode = json_decode($value);
-                        $arrKey = explode('_', $key);
-                        
-                        $function = is_array($arrKey) ? 'set'. ucwords($arrKey[0]) :  'set'. ucwords($arrKey);
-                        // $arrss[] =  $arrKey;
-                        $repornse = FieldServices::{$function}($document, $decode, $value);
-
+                    if ($document->getType() == 'link' && isset($data['href'])) {
+                        $repornse = FieldServices::setHref($document, $data['href']);
+    
                         if (isset($repornse['status']) && ($repornse['status'] == 500)){
-                            $errors[] =  $repornse['messsage'];
+                            return new JsonResponse(['error' => $repornse['messsage']]);
+                        }
+                    } else {
+                        $document->setController($data['controller']);
+                        $document->setTemplate($data['template']);
+                    }
+                    $document->save();
+    
+                    $arrNoSaveInFor = ['title', 'description', 'prettyUrl', 'controller', 'template', 'enabled', 'lifetime', 'id', 'href', 'linktype', 'internalType', 'internal', 'imageSeo'];
+                    $arrss = [];
+    
+                    // dd($data);
+                    foreach ($data as $key => $value) {
+                        if (!in_array($key, $arrNoSaveInFor)) {
+                            $decode = json_decode($value);
+                            $arrKey = explode('_', $key);
+                            
+                            $function = is_array($arrKey) ? 'set'. ucwords($arrKey[0]) :  'set'. ucwords($arrKey);
+                            // $arrss[] =  $arrKey;
+                            $repornse = FieldServices::{$function}($document, $decode, $value);
+    
+                            if (isset($repornse['status']) && ($repornse['status'] == 500)){
+                                $errors[] =  $repornse['messsage'];
+                            }
                         }
                     }
+    
+                    if ($errors) {
+                        $messError = '';
+                        foreach ($errors as $item) {
+                            $messError = $messError + $item + '||';
+                        }
+                        return new JsonResponse(['error' => $messError]);
+                    }
+                    return new JsonResponse(['success' => 'Update successfully']);
+                } else {
+                    return new JsonResponse(['error' => 'Update failed']);
+                }
+            } catch (\Throwable $th) {
+                if ($retry == 0) {
+                    $retry++;
+                    
+                    continue; 
                 }
 
-                if ($errors) {
-                    $messError = '';
-                    foreach ($errors as $item) {
-                        $messError = $messError + $item + '||';
-                    }
-                    return new JsonResponse(['error' => $messError]);
-                }
-                return new JsonResponse(['success' => 'Update successfully']);
-            } else {
-                return new JsonResponse(['error' => 'Update failed']);
+                return new JsonResponse(['warning' => $th->getMessage()]);
             }
-        } catch (\Throwable $th) {
-            return new JsonResponse(['warning' => $th->getMessage()]);
         }
     
-        return new JsonResponse();
     }
 
     public function abcAction()
