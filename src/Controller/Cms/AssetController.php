@@ -125,7 +125,7 @@ class AssetController extends BaseController
 
                             continue;
                         }
-                        $conditionName = $key . " LIKE '%" . $value . "%'";
+                        $conditionName = "LOWER(`" . $key . "`)" . " LIKE LOWER('%" . $value . "%')";
                         $conditionQuery .= ' AND ' . $conditionName;
                     }
                 }
