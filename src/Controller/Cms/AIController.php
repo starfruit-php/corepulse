@@ -62,7 +62,7 @@ i want you to create the outline for the content of the keyword I’ve provided.
 
             $result = [];
 
-            if ($type = 'outline') {
+            if ($type == 'outline') {
                 $sections = explode("\n\n", $contentRes);
 
                 foreach ($sections as $section) {

@@ -26,6 +26,7 @@ use Symfony\Bridge\Twig\Attribute\Template;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Pimcore\Model\Element;
 use Pimcore\Model\DataObject\Concrete;
+use Pimcore\Model\Document\DocType;
 
 /**
  * @Route("/document")
@@ -695,6 +696,26 @@ class DocumentController extends BaseController
                         }
                     }
                 }
+
+                // get document type
+                $listDocType = new DocType\Listing();
+                if ($type = $document->getType()) {
+                    if (!Document\Service::isValidType($type)) {
+                        throw new BadRequestHttpException('Invalid type: ' . $type);
+                    }
+                    $listDocType->setFilter(static function (DocType $docType) use ($type) {
+                        return $docType->getType() === $type;
+                    });
+                }
+                $docTypes = [];
+                $lisDocType = [];
+                foreach ($listDocType->getDocTypes() as $type) {
+                    $docTypes[] = [
+                        'id' => $type->getObjectVars()['id'],
+                        'name' => $type->getObjectVars()['name'],
+                    ];
+                    $lisDocType[] = $type->getObjectVars();
+                }
                 // dd($seoImage, $document);
                 $data = [
                     'id' => $document->getId() ?? '',
@@ -730,7 +751,11 @@ class DocumentController extends BaseController
                     'schedulesItem' => $schedulesItem,
                     'dataAllItem' => $dataAllItem,
                     'listAreaBlock' => $areaBlocksItem,
+                    'docTypes' => $docTypes,
+                    'docType' => '',
+                    'lisDocType' => $lisDocType,
                 ];
+                // dd($data);
 
                 $nameParent = [];
                 // lấy thông tin đường dẫn đến folder
@@ -820,7 +845,10 @@ class DocumentController extends BaseController
                         }
                     } else {
                         $document->setController($data['controller']);
-                        $document->setTemplate($data['template']);
+                        if ($data['template']) {
+                            $template = $data['template'] != "null" ? $data['template'] : '';
+                            $document->setTemplate($template);
+                        }
                     }
                     $document->save();
     
