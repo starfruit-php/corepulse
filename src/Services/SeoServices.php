@@ -2,49 +2,77 @@
 
 namespace CorepulseBundle\Services;
 
-use Pimcore\Model\DataObject\Service as DataObjectService;
-use Starfruit\BuilderBundle\Model\Seo;
+use CorepulseBundle\Services\APIService;
+use Pimcore\Db;
 
 class SeoServices
 {
-    CONST SUCCESS_ICON = '';
-    CONST ERROR_ICON = '';
-
-    static public function scoringData($object, $language)
+    static public function checkApi($key)
     {
-        // try {
-            $seo = Seo::getOrCreate($object, $language);
+        $content = [
+            [
+                "role" => "user",
+                "content" => "Say this is a test!"
+            ]
+        ];
 
-            // $keyword = 'Hợp đồng điện tử';
-            // $seo->setKeyword($keyword);
-            // $seo->save();
-
-            $scoring = $seo->getScoring();
-            dd($scoring);
-        // } catch (\Throwable $th) {
-        //     $scoring = [];
-        // }
-    }
-
-    public function basicData($content)
-    {
-        $data = [];
-
-        $countWord = $content['countWord'];
-        if ($countWord > 1500) {
-            $data['countWord'] = [
-                'title' => '',
-                'icon' => self::SUCCESS_ICON,
-            ];
-        } else {
-            $data['countWord'] = [
-                'title' => '',
-                'icon' => self::ERROR_ICON,
-            ];
+        $connect = self::sendCompletions($content, $key);
+        if ($connect && isset($connect['error'])) {
+            return false;
         }
 
+        $item = self::getApiKey();
+        if (!$item) {
+            Db::get()->insert(
+                'vuetify_settings',
+                [
+                    'config' => $key,
+                    'type' => 'setting-ai',
+                ]
+            );
+        } else {
+            Db::get()->update(
+                'vuetify_settings',
+                [
+                    'config' => $key,
+                ],
+                [
+                    'type' => 'setting-ai',
+                ]
+            );
+        }
 
+        return true;
+    }
 
-        return $data;
+    static public function getApiKey()
+    {
+        $item = Db::get()->fetchAssociative('SELECT * FROM `vuetify_settings` WHERE `type` = "setting-ai"', []);
+
+        if ($item && isset($item['config'])) {
+            return $item['config'];
+        }
+
+        return null;
+    }
+
+    static public function sendCompletions($content, $key = null)
+    {
+        if (!$key) {
+            $key = self::getApiKey();
+        }
+
+        $url = 'https://api.openai.com/v1/chat/completions';
+        $header = [
+            'Content-Type' => 'application/json',
+            'Authorization' => 'Bearer ' . $key,
+        ];
+        $params = [
+            "model" => "gpt-3.5-turbo",
+            "messages" => $content,
+            "temperature" => 0.7
+        ];
+
+        return APIService::post($url, 'POST', $params, $header);
     }
 }

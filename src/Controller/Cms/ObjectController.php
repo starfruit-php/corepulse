@@ -191,7 +191,7 @@ class ObjectController extends FieldController
                         continue;
                     }
                     if ($field == "nameObject") {
-                        $listing->addConditionParam("LOWER(`key`) likee LOWER('%" . $keyword . "%')");
+                        $listing->addConditionParam("LOWER(`key`) like LOWER('%" . $keyword . "%')");
                         continue;
                     }
                     if (is_array($keyword)) {

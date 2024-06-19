@@ -31,7 +31,7 @@ class SeoController extends BaseController
     }
 
     /**
-     * @Route("/http-error", name="seo_http_error", options={"expose"=true}))
+     * @Route("/404-301", name="seo_http_error", options={"expose"=true}))
      */
     public function httpError(Request $request)
     {
@@ -347,39 +347,39 @@ class SeoController extends BaseController
         ]);
     }
 
-    public function siteOption(Request $request)
-    {
-        $excludeMainSite = $request->get('excludeMainSite');
+    // public function siteOption(Request $request)
+    // {
+    //     $excludeMainSite = $request->get('excludeMainSite');
 
-        $sitesList = new Site\Listing();
-        $sitesObjects = $sitesList->load();
+    //     $sitesList = new Site\Listing();
+    //     $sitesObjects = $sitesList->load();
 
-        $sites = [];
-        if (!$excludeMainSite) {
-            $sites[] = [
-                'id' => 0,
-                'rootId' => 1,
-                'domains' => '',
-                'rootPath' => '/',
-                'domain' => $this->translator->trans('main_site', [], 'admin'),
-            ];
-        }
+    //     $sites = [];
+    //     if (!$excludeMainSite) {
+    //         $sites[] = [
+    //             'id' => 0,
+    //             'rootId' => 1,
+    //             'domains' => '',
+    //             'rootPath' => '/',
+    //             'domain' => $this->translator->trans('main_site', [], 'admin'),
+    //         ];
+    //     }
 
-        foreach ($sitesObjects as $site) {
-            if ($site->getRootDocument()) {
-                if ($site->getMainDomain()) {
-                    $sites[] = [
-                        'id' => $site->getId(),
-                        'rootId' => $site->getRootId(),
-                        'domains' => implode(',', $site->getDomains()),
-                        'rootPath' => $site->getRootPath(),
-                        'domain' => $site->getMainDomain(),
-                    ];
-                }
-            } else {
-                // site is useless, parent doesn't exist anymore
-                $site->delete();
-            }
-        }
-    }
+    //     foreach ($sitesObjects as $site) {
+    //         if ($site->getRootDocument()) {
+    //             if ($site->getMainDomain()) {
+    //                 $sites[] = [
+    //                     'id' => $site->getId(),
+    //                     'rootId' => $site->getRootId(),
+    //                     'domains' => implode(',', $site->getDomains()),
+    //                     'rootPath' => $site->getRootPath(),
+    //                     'domain' => $site->getMainDomain(),
+    //                 ];
+    //             }
+    //         } else {
+    //             // site is useless, parent doesn't exist anymore
+    //             $site->delete();
+    //         }
+    //     }
+    // }
 }
