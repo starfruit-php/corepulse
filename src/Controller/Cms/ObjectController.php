@@ -575,7 +575,7 @@ class ObjectController extends FieldController
 
         $urlSlug = method_exists($object, 'getSlug') ? $object->getSlug() ? $object->getSlug()[0]->getSlug() : '' : '';
         $viewData = ['metaTitle' => $classes->getName() . ': ' . $object->getKey()];
-        // dd($viewData);
+        // dd($data);
 
         return $this->renderWithInertia('Pages/Object/Detail', [
             'data' => $data,

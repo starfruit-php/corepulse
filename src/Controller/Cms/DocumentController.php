@@ -176,22 +176,27 @@ class DocumentController extends BaseController
                         $chills[] = $item;
                     }
 
-                    $data[] = [
-                        'id' => $doc->getId(),
-                        'name' => "<div class='tableCell--titleThumbnail d-flex align-center'><img class='me-2' src=' " .  $publicURL ."'><span>" . $doc->getKey() . "</span></div>",
-                        'type' => '<div class="chip">' . $doc->getType() . '</div>',
-                        'status' => $status,
-                        'createDate' => DocumentServices::getTimeAgo($doc->getCreationDate()),
-                        'modificationDate' => DocumentServices::getTimeAgo($doc->getModificationDate()),
-                        'parent' => $chills ? true : false,
-                        'noMultiEdit' => [
-                            'name' => $chills ? [] : ['name'],
-                        ],
-                        "noAction" =>  $chills ? [] : ['seeMore'],
-                    ];
+                    $checkName = strpos($doc->getKey(), 'email');
+                    if ($checkName === false) {
+                        $data[] = [
+                            'id' => $doc->getId(),
+                            'name' => "<div class='tableCell--titleThumbnail d-flex align-center'><img class='me-2' src=' " .  $publicURL ."'><span>" . $doc->getKey() . "</span></div>",
+                            'type' => '<div class="chip">' . $doc->getType() . '</div>',
+                            'status' => $status,
+                            'createDate' => DocumentServices::getTimeAgo($doc->getCreationDate()),
+                            'modificationDate' => DocumentServices::getTimeAgo($doc->getModificationDate()),
+                            'parent' => $chills ? true : false,
+                            'noMultiEdit' => [
+                                'name' => $chills ? [] : ['name'],
+                            ],
+                            "noAction" =>  $chills ? [] : ['seeMore'],
+                            'checkName' => $checkName,
+                        ];
+                    }
+
                 }
             }
-
+            // dd($data);
             if ($parentId == 1) {
                 $home = Document::getById($parentId);
                 $infoHome = [];
