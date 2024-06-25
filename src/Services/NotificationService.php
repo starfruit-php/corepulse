@@ -7,7 +7,7 @@ use CorepulseBundle\Model\User;
 use CorepulseBundle\Model\Notification;
 use CorepulseBundle\Model\Role;
 
-class NotificationServices
+class NotificationService
 {
     private User $user;
 

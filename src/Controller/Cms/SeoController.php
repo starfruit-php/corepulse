@@ -14,6 +14,8 @@ use Pimcore\Model\Document;
 use Pimcore\Model\Site;
 use Pimcore\Db;
 use Pimcore\Bundle\SeoBundle\Redirect\RedirectHandler;
+use Starfruit\BuilderBundle\Sitemap\Setting;
+use Starfruit\BuilderBundle\Config\ObjectConfig;
 
 /**
  * @Route("/seo")
@@ -28,6 +30,25 @@ class SeoController extends BaseController
         $viewData = ['metaTitle' => 'Sitemap'];
 
         return $this->renderWithInertia('Pages/Seo/Sitemap', [], $viewData);
+    }
+
+    /**
+     * @Route("/sitemap/config", name="seo_sitemap_config", options={"expose"=true}))
+     */
+    public function sitemapConfig(Request $request)
+    {
+        if ($request->get('update')) {
+            $keys = $request->get('keys');
+            Setting::setKeys($keys);
+        }
+
+        $settingClass = Setting::getKeys();
+
+        $data = [
+            'classConfig' => $settingClass,
+            'documentConfig' => '',
+        ];
+        return new JsonResponse($data);
     }
 
     /**
