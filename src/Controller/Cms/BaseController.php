@@ -13,6 +13,7 @@ use CorepulseBundle\Controller\Cms\Traits\BuildInertiaDefaultPropsTrait;
 use CorepulseBundle\Model\User;
 use ValidatorBundle\Validator\Validator;
 use Pimcore\Templating\Renderer\EditableRenderer;
+use Symfony\Component\Process\Process;
 
 abstract class BaseController extends AbstractController
 {
@@ -165,5 +166,16 @@ abstract class BaseController extends AbstractController
     public function getLanguage()
     {
         return \Pimcore\Tool::getDefaultLanguage();
+    }
+
+    public function runProcess($command)
+    {
+        try {
+            $process = new Process(explode(' ', 'php ' . str_replace("\\", '/', PIMCORE_PROJECT_ROOT) . '/bin/console ' . $command), null, null, null, 900);
+
+            $process->run();
+        } catch (\Throwable $e) {
+
+        }
     }
 }

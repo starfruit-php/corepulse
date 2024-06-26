@@ -40,6 +40,12 @@ class SeoController extends BaseController
         if ($request->get('update')) {
             $keys = $request->get('keys');
             Setting::setKeys($keys);
+
+            // $settingDomain = 'builder:option-setting --main-domain=' . $request->getSchemeAndHttpHost();
+            // $this->runProcess($settingDomain);
+
+            $comand = 'builder:sitemap:generate';
+            $this->runProcess($comand);
         }
 
         $settingClass = Setting::getKeys();
@@ -72,7 +78,7 @@ class SeoController extends BaseController
     }
 
     /**
-     * @Route("/object/data", name="seo_object_data", options={"expose"=true}))
+     * @Route("/object-data", name="seo_object_data", options={"expose"=true}))
      */
     public function objectData(Request $request): JsonResponse
     {
@@ -109,6 +115,27 @@ class SeoController extends BaseController
         }
 
         return new JsonResponse($scoring);
+    }
+
+     /**
+     * @Route("/document-page", name="seo_document_page", options={"expose"=true}))
+     */
+    public function documentPage(Request $request): JsonResponse
+    {
+        $listing = new Document\Listing();
+        $listing->setCondition('type = "page"');
+
+        $data = [];
+        foreach ($listing as $key => $value) {
+            $title = $value->getId() == 1 ? 'Home' : $value->getKey();
+            $data[] = [
+                'title' => $title,
+                'value' => $value->getId(),
+                'key' => $title,
+            ];
+        }
+
+        return new JsonResponse($data);
     }
 
     /**
@@ -215,7 +242,7 @@ class SeoController extends BaseController
     }
 
     /**
-     * @Route("/seo-monitor-detail", name="seo_monitor_detail", options={"expose"=true}))
+     * @Route("/seo-monitor/detail", name="seo_monitor_detail", options={"expose"=true}))
      */
     public function seoMonitorDetail(Request $request): JsonResponse
     {
@@ -232,7 +259,7 @@ class SeoController extends BaseController
     }
 
     /**
-     * @Route("/seo-monitor-truncate", name="seo_monitor_truncate", methods={"POST"}, options={"expose"=true}))
+     * @Route("/seo-monitor/truncate", name="seo_monitor_truncate", methods={"POST"}, options={"expose"=true}))
      */
     public function seoMonitorTruncate(Request $request): JsonResponse
     {
@@ -245,7 +272,7 @@ class SeoController extends BaseController
     }
 
     /**
-     * @Route("/seo-monitor-delete", name="seo_monitor_delete", methods={"POST"}, options={"expose"=true}))
+     * @Route("/seo-monitor/delete", name="seo_monitor_delete", methods={"POST"}, options={"expose"=true}))
      */
     public function seoMonitorDelete(Request $request): JsonResponse
     {
@@ -326,15 +353,23 @@ class SeoController extends BaseController
         }
 
         $fields = [];
-        $columns = ['type', 'source', 'sourceSite', 'target', 'targetSite', 'statusCode', 'priority', 'regex', 'passThroughParameters', 'active', 'expiry'];
+        $headers = [];
+        $columns = ['type', 'source', 'target', 'statusCode', 'active', 'expiry', 'sourceSite', 'targetSite', 'priority', 'regex', 'passThroughParameters'];
         foreach ($columns as $key => $value) {
-            $fields[] = [
+            $item = [
                 'key' => $value,
                 'tooltip' => '',
                 'title' => $value,
-                'removable' => true,
+                'removable' => false,
                 'searchType' => 'Input',
             ];
+
+            if ($key < 6) {
+                $item['removable'] = true;
+                $headers[] = $item;
+            }
+
+            $fields[] = $item;
         }
 
         $result = [
@@ -342,13 +377,122 @@ class SeoController extends BaseController
             "totalItems" => $list->getTotalCount(),
             "fields" => $fields,
             "limit" => $limit,
+            "headers" => $headers,
         ];
 
         return new JsonResponse($result);
     }
 
     /**
-     * @Route("/seo-redirect-delete", name="seo_redirect_delete", methods={"POST"}, options={"expose"=true}))
+     * @Route("/seo-redirect/detail", name="seo_redirect_detail", options={"expose"=true}))
+     */
+    public function seoRedirectDetail(Request $request): JsonResponse
+    {
+        if ($request->get('action') === 'Update') {
+            $data = $request->request->all();
+            unset($data['action']);
+
+            // save redirect
+            $redirect = Redirect::getById($data['id']);
+
+            if (!$redirect) {
+                return new JsonResponse([
+                    'success' => false,
+                    'message' => 'Redirect not found',
+                ]);
+            }
+
+            if ($data['target']) {
+                if ($doc = Document::getByPath($data['target'])) {
+                    $data['target'] = $doc->getId();
+                }
+            }
+
+            if (!$data['regex'] && $data['source']) {
+                $data['source'] = str_replace('+', ' ', $data['source']);
+            }
+
+            $redirect->setValues($data);
+
+            $redirect->save();
+
+            $redirectTarget = $redirect->getTarget();
+            if (is_numeric($redirectTarget)) {
+                if ($doc = Document::getById((int)$redirectTarget)) {
+                    $redirect->setTarget($doc->getRealFullPath());
+                }
+            }
+
+            return new JsonResponse([
+                'success' => true,
+                'message' => 'Update redirect success',
+            ]);
+        }
+        if ($request->get('action') == 'Create') {
+            $data = $request->request->all();
+            unset($data['action']);
+
+            $redirect = new Redirect();
+
+            if (!empty($data['target'])) {
+                if ($doc = Document::getByPath($data['target'])) {
+                    $data['target'] = $doc->getId();
+                }
+            }
+
+            if (isset($data['regex']) && !$data['regex'] && isset($data['source']) && $data['source']) {
+                $data['source'] = str_replace('+', ' ', $data['source']);
+            }
+
+            $redirect->setValues($data);
+
+            $redirect->save();
+
+            $redirectTarget = $redirect->getTarget();
+            if (is_numeric($redirectTarget)) {
+                if ($doc = Document::getById((int)$redirectTarget)) {
+                    $redirect->setTarget($doc->getRealFullPath());
+                }
+            }
+
+            return new JsonResponse([
+                'success' => true,
+                'message' => 'Create new redirect success',
+            ]);
+        }
+        
+        return new JsonResponse([]);
+    }
+
+    /**
+     * @Route("/seo-redirect/type-option", name="seo_redirect_type_option", options={"expose"=true}))
+     */
+    public function seoRedirectTypeOption(Request $request): JsonResponse
+    {
+        $data = [
+            [
+                'key' => 'Path: /foo',
+                'value' => 'path'
+            ],
+            [
+                'key' => 'Auto create',
+                'value' => 'auto_create'
+            ],
+            [
+                'key' => 'Path and Query: /foo?key=value',
+                'value' => 'path_query'
+            ],
+            [
+                'key' => 'Entire URI: https://host.com/foo?key=value',
+                'value' => 'entire_uri'
+            ],
+        ];
+
+        return new JsonResponse($data);
+    }
+
+    /**
+     * @Route("/seo-redirect/delete", name="seo_redirect_delete", methods={"POST"}, options={"expose"=true}))
      */
     public function seoRedirectDelete(Request $request): JsonResponse
     {
@@ -367,40 +511,4 @@ class SeoController extends BaseController
             'success' => true,
         ]);
     }
-
-    // public function siteOption(Request $request)
-    // {
-    //     $excludeMainSite = $request->get('excludeMainSite');
-
-    //     $sitesList = new Site\Listing();
-    //     $sitesObjects = $sitesList->load();
-
-    //     $sites = [];
-    //     if (!$excludeMainSite) {
-    //         $sites[] = [
-    //             'id' => 0,
-    //             'rootId' => 1,
-    //             'domains' => '',
-    //             'rootPath' => '/',
-    //             'domain' => $this->translator->trans('main_site', [], 'admin'),
-    //         ];
-    //     }
-
-    //     foreach ($sitesObjects as $site) {
-    //         if ($site->getRootDocument()) {
-    //             if ($site->getMainDomain()) {
-    //                 $sites[] = [
-    //                     'id' => $site->getId(),
-    //                     'rootId' => $site->getRootId(),
-    //                     'domains' => implode(',', $site->getDomains()),
-    //                     'rootPath' => $site->getRootPath(),
-    //                     'domain' => $site->getMainDomain(),
-    //                 ];
-    //             }
-    //         } else {
-    //             // site is useless, parent doesn't exist anymore
-    //             $site->delete();
-    //         }
-    //     }
-    // }
 }
