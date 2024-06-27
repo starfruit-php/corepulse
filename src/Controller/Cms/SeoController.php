@@ -58,6 +58,14 @@ class SeoController extends BaseController
     }
 
     /**
+     * @Route("/config", name="seo_config", options={"expose"=true}))
+     */
+    public function config(Request $request): JsonResponse
+    {
+        
+    }
+
+    /**
      * @Route("/404-301", name="seo_http_error", options={"expose"=true}))
      */
     public function httpError(Request $request)
@@ -460,7 +468,7 @@ class SeoController extends BaseController
                 'message' => 'Create new redirect success',
             ]);
         }
-        
+
         return new JsonResponse([]);
     }
 
