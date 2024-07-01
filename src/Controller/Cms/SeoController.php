@@ -62,7 +62,7 @@ class SeoController extends BaseController
      */
     public function config(Request $request): JsonResponse
     {
-        
+
     }
 
     /**
