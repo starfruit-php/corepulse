@@ -198,9 +198,9 @@ class FieldController extends BaseController
 
             $listing = new $modelName();
             if ($listing) {
-                if ($model != 'Asset') {
-                    $listing->setUnpublished(true);
-                }
+                // if ($model != 'Asset') {
+                //     $listing->setUnpublished(true);
+                // }
 
                 if ($model !== self::KEY_OBJECT && $type != 'All') {
                     $listing->setCondition('type = ?', [$type]);

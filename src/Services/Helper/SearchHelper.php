@@ -7,30 +7,102 @@ use Pimcore\Model\DataObject\ClassDefinition;
 
 class SearchHelper
 {
-    public static function getTree($model, $parentId = '', $key = '', $limit = 0)
+    public static function dataConfig() {
+        $dataConfig = [];
+
+        $objectSetting = Db::get()->fetchAssociative('SELECT * FROM `vuetify_settings` WHERE `type` = "object"', []);
+        if ($objectSetting !== null && $objectSetting) {
+            // lấy danh sách bảng
+            $query = 'SELECT * FROM `classes`';
+            $classListing = Db::get()->fetchAllAssociative($query);
+            $dataObjectSetting = json_decode($objectSetting['config']) ?? [];
+
+            foreach ($classListing as $class) {
+                if (in_array($class['id'], $dataObjectSetting)) {
+                    $classDefinition = ClassDefinition::getById($class['id']);
+
+                    //lọc các field được cấu hình search
+                    $visibleSearchConfig = array_filter($classDefinition->getFieldDefinitions(), function($item) {
+                        return $item->visibleSearch === true;
+                    });
+
+                    $visibleSearch = [];
+                    foreach($visibleSearchConfig as $item) {
+                        if ($item instanceof \Pimcore\Model\DataObject\ClassDefinition\Data\Localizedfields) {
+                            $children = $item->children;
+                            foreach ($children as $child) {
+                                if ($child->visibleSearch && self::validSearchField($child)) {
+                                    $visibleSearch[] = $child->name;
+                                }
+                            }
+                        } else {
+                            if (self::validSearchField($item)) {
+
+                                $visibleSearch[] = $item->name;
+                            }
+                        }
+                    }
+
+                    if (!empty($visibleSearch)) {
+                        $dataConfig[] = [
+                            "visibleSearch" => $visibleSearch,
+                            "id" => $class["id"],
+                            "name" => $class["name"],
+                        ];
+                    }
+                }
+            }
+        }
+
+        return $dataConfig;
+    }
+
+    public static function validSearchField($item) {
+        if ( $item instanceof \Pimcore\Model\DataObject\ClassDefinition\Data\Input
+            || $item instanceof \Pimcore\Model\DataObject\ClassDefinition\Data\Numeric
+            || $item instanceof \Pimcore\Model\DataObject\ClassDefinition\Data\Select
+            || $item instanceof \Pimcore\Model\DataObject\ClassDefinition\Data\Wysiwyg
+            || $item instanceof \Pimcore\Model\DataObject\ClassDefinition\Data\Email
+            || $item instanceof \Pimcore\Model\DataObject\ClassDefinition\Data\Lastname
+            || $item instanceof \Pimcore\Model\DataObject\ClassDefinition\Data\Firstname
+            || $item instanceof \Pimcore\Model\DataObject\ClassDefinition\Data\Textarea) return true;
+        return false;
+    }
+
+    public static function getTree($model, $keyword = null, $config = [], $limit = 0)
     {
         $data = [];
-        $conditionQuery = "id is NOT null";
+        $conditionQuery = "";
         $conditionParams = [];
 
-        if ($parentId) {
-            $conditionQuery = ' AND parentId = :parentId';
-            $conditionParams['parentId'] = $parentId;
-        }
-
-        if ($key) {
-            $key = strtolower($key);
-
-            if ($model != 'asset') {
-                $conditionQuery .= " AND (LOWER(`key`) LIKE :key OR LOWER(`path`) LIKE :key)";
-            } else {
-                $conditionQuery .= " AND (LOWER(`filename`) LIKE :key OR LOWER(`path`) LIKE :key)";
-            }
-
-            $conditionParams['key'] = "%" . $key . "%";
-        }
-
         $modelName = '\\Pimcore\\Model\\' . ucfirst($model) . '\Listing';
+
+        if ($keyword) {
+            $keyword = strtolower($keyword);
+
+            switch ($model) {
+                case 'asset':
+                    $conditionQuery .= "LOWER(`filename`) LIKE :key OR LOWER(`path`) LIKE :key";
+                    $conditionParams['key'] = "%" . $keyword . "%";
+                    break;
+                case 'document':
+                    $conditionQuery .= "LOWER(`key`) LIKE :key OR LOWER(`path`) LIKE :key";
+                    $conditionParams['key'] = "%" . $keyword . "%";
+                    break;
+                default:
+                    if (!empty($config)) {
+                        $modelName = '\\Pimcore\\Model\\DataObject\\' . ucfirst($model) . '\Listing';
+
+                        $conditionQuery .= "LOWER(`key`) LIKE :key OR LOWER(`path`) LIKE :key";
+                        foreach ($config as $conf) {
+                            $conditionQuery .= " OR LOWER(`" . $conf . "`) LIKE :" . $conf;
+                            $conditionParams[$conf] = "%" . $keyword . "%";
+                        }
+                        $conditionParams['key'] = "%" . $keyword . "%";
+                    }
+                    break;
+            }
+        }
 
         $listing = new $modelName();
         $listing->setCondition($conditionQuery, $conditionParams);

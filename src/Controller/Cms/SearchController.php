@@ -21,7 +21,17 @@ class SearchController extends BaseController
      */
     public function searchAction(Request $request)
     {
-        $listkey = ['document', 'asset', 'dataObject'];
+        $searchHelper = $_COOKIE['searchHelper'];
+
+        if (!$searchHelper) {
+            $dataConfig = SearchHelper::dataConfig();
+            setcookie("searchHelper", json_encode($dataConfig), time() + (600 * 30), "/");
+        } else {
+            $dataConfig = json_decode($searchHelper, true);
+        }
+        
+        // $listkey = ['document', 'asset', 'dataobject'];
+        $listkey = ['document', 'asset'];
         $checkCMS = $request->get('cms', '');
         $search = $request->get('search', '');
         $type = $request->get('type', []);
@@ -32,8 +42,13 @@ class SearchController extends BaseController
             $listkey = $type;
         }
 
+        foreach ($dataConfig as $item) {
+            $data = SearchHelper::getTree($item['name'], $search, $item['visibleSearch'],$limit);
+            $datas = array_merge($data, $datas);
+        }
+
         foreach ($listkey as $item) {
-            $data = SearchHelper::getTree($item, '', $search, $limit);
+            $data = SearchHelper::getTree($item, $search, null, $limit);
             $datas = array_merge($data, $datas);
         }
 
