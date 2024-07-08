@@ -2,6 +2,7 @@
 
 namespace CorepulseBundle\Controller\Cms;
 
+use CorepulseBundle\Services\SeoServices;
 use Pimcore\Model\DataObject;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\HttpFoundation\Request;
@@ -11,11 +12,11 @@ use Starfruit\BuilderBundle\Model\Seo;
 use Symfony\Component\HttpFoundation\Response;
 use Pimcore\Bundle\SeoBundle\Model\Redirect;
 use Pimcore\Model\Document;
-use Pimcore\Model\Site;
 use Pimcore\Db;
 use Pimcore\Bundle\SeoBundle\Redirect\RedirectHandler;
 use Starfruit\BuilderBundle\Sitemap\Setting;
 use Starfruit\BuilderBundle\Config\ObjectConfig;
+use Starfruit\BuilderBundle\Model\Option;
 
 /**
  * @Route("/seo")
@@ -58,11 +59,20 @@ class SeoController extends BaseController
     }
 
     /**
-     * @Route("/config", name="seo_config", options={"expose"=true}))
+     * @Route("/setting", name="seo_setting", options={"expose"=true}))
      */
-    public function config(Request $request): JsonResponse
+    public function settingConfig(Request $request): JsonResponse
     {
 
+        $setting = SeoServices::getSetting();
+
+        if ($request->getMethod() == Request::METHOD_POST) {
+            $setting = SeoServices::saveSetting($setting, $request->request->all());
+        }
+
+        $data = json_decode($setting->getContent(), true);
+
+        return new JsonResponse($data);
     }
 
     /**
@@ -81,6 +91,29 @@ class SeoController extends BaseController
     public function indexing(Request $request)
     {
         $viewData = ['metaTitle' => 'Indexing'];
+        // $httpClientConfig = new \GuzzleHttp\Client([
+        //     'proxy' => 'cbs2.localhost',
+        //     'verify' => false,
+        // ]);
+
+        // $path = PIMCORE_PROJECT_ROOT . '/public/voltaic-cocoa-335508-fef2163d3409.json';
+
+        // $client = new \Google\Client();
+        // $client->setAuthConfig($path);
+
+        // $client->addScope('https://www.googleapis.com/auth/indexing');
+
+        // $httpClient = $client->authorize();
+        // $endpoint = 'https://indexing.googleapis.com/v3/urlNotifications:publish';
+
+        // $content = '{
+        // "url": "http://cbs2.localhost/cms/seo/indexing/san-pham",
+        // "type": "URL_UPDATED"
+        // }';
+
+        // $response = $httpClient->post($endpoint, [ 'body' => $content ]);
+
+        // $status_code = $response->getStatusCode();
 
         return $this->renderWithInertia('Pages/Seo/Indexing', [], $viewData);
     }
@@ -100,29 +133,95 @@ class SeoController extends BaseController
             //lưu dữ liệu vào bảng seo
             if ($request->get('update')) {
                 $params = $request->request->all();
-                $keyUpdate = ['keyword', 'title', 'slug', 'description', 'image', 'canonicalUrl', 'redirectLink',
-                'nofollow', 'indexing', 'redirectType', 'destinationUrl', 'schemaBlock', 'image', 'imageAsset'];
-
-                foreach ($params as $key => $value) {
-                    $function = 'set' . ucfirst($key);
-
-                    if (in_array($key, $keyUpdate) && method_exists($seo, $function)) {
-                        if ($key == 'nofollow' || $key == 'indexing' || $key == 'redirectLink') {
-                           $value = filter_var($value, FILTER_VALIDATE_BOOLEAN);
-                        }
-                        $seo->$function($value);
-                    }
-                }
-                $seo->save();
+                $seo = SeoServices::saveData($seo, $params);
             }
+
+            // $ogData = [
+            //     'og:title' => 'meta title',
+            //     'og:description' => 'meta description'
+            // ];
+
+            // $twitterMetaData = [
+            //     'twitter:title' => 'twitter title',
+            //     'twitter:description' => 'twitter description'
+            // ];
+
+            // $customMetaData = [];
+
+            // get
+            $metaData = $seo->getMetaDatas();
 
             // lấy danh sách dữ liệu seoscoring
             $scoring = $seo->getScoring(true);
+            $data = array_merge($scoring, $metaData);
         } catch (\Throwable $th) {
-            $scoring = [];
+            $data = [];
         }
 
-        return new JsonResponse($scoring);
+        return new JsonResponse($data);
+    }
+
+    /**
+     * @Route("/meta-data-type", name="seo_meta_data_type", options={"expose"=true}))
+     */
+    public function metaDataType(Request $request): JsonResponse
+    {
+        $data = [
+            'ogMeta' => [
+                [
+                    'key' => 'Meta Title',
+                    'value' => 'og:title',
+                ],
+                [
+                    'key' => 'Meta Description',
+                    'value' => 'og:description',
+                ],
+                [
+                    'key' => 'Meta Type',
+                    'value' => 'og:type',
+                ],
+                [
+                    'key' => 'Meta Image',
+                    'value' => 'og:image',
+                ],
+                [
+                    'key' => 'Meta Url',
+                    'value' => 'og:url',
+                ],
+                [
+                    'key' => 'Meta Image Alt',
+                    'value' => 'og:image:alt',
+                ],
+            ],
+            'twitterMeta' => [
+                [
+                    'key' => 'Twitter Title',
+                    'value' => 'twitter:title',
+                ],
+                [
+                    'value' => 'twitter:description',
+                    'key' => 'Twitter Description',
+                ],
+                [
+                    'key' => 'Twitter Card',
+                    'value' => 'twitter:card',
+                ],
+                [
+                    'key' => 'Twitter Site',
+                    'value' => 'twitter:site',
+                ],
+                [
+                    'key' => 'Twitter Image',
+                    'value' => 'twitter:image',
+                ],
+                [
+                    'key' => 'Twitter Image Alt',
+                    'value' => 'twitter:image:alt',
+                ],
+            ]
+        ];
+
+        return new JsonResponse($data);
     }
 
      /**

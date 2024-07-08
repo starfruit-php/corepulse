@@ -5,6 +5,7 @@ namespace CorepulseBundle\Services;
 use CorepulseBundle\Services\APIService;
 use Pimcore\Db;
 use Starfruit\BuilderBundle\Tool\LanguageTool;
+use Starfruit\BuilderBundle\Model\Option;
 
 class SeoServices
 {
@@ -120,5 +121,66 @@ class SeoServices
         }
 
         return $content;
+    }
+
+    static public function saveData($seo, $params)
+    {
+        $keyUpdate = ['keyword', 'title', 'slug', 'description', 'image', 'canonicalUrl', 'redirectLink',
+        'nofollow', 'indexing', 'redirectType', 'destinationUrl', 'schemaBlock', 'image', 'imageAsset'];
+
+        foreach ($params as $key => $value) {
+            $function = 'set' . ucfirst($key);
+
+            if (in_array($key, $keyUpdate) && method_exists($seo, $function)) {
+                if ($key == 'nofollow' || $key == 'indexing' || $key == 'redirectLink') {
+                   $value = filter_var($value, FILTER_VALIDATE_BOOLEAN);
+                }
+                $seo->$function($value);
+            }
+        }
+        $seo->save();
+
+        return $seo;
+    }
+
+    static public function getSetting()
+    {
+        $setting = Option::getByName('seo_setting');
+        if (!$setting) {
+            $data = [
+                'type' => null,
+                'defaultValue' => null,
+                'customValue' => null,
+            ];
+    
+            $setting = new Option();
+            $setting->setName('seo_setting');
+            $setting->setContent(json_encode($data));
+            $setting->save();
+        }
+
+        return $setting;
+    }
+
+    static public function saveSetting($setting, $params = [])
+    {
+        if (!empty($params)) {
+            $data = [
+                'type' => null,
+                'defaultValue' => null,
+                'customValue' => null,
+            ];
+
+            foreach ($data as $key => $value) {
+                if (isset($params[$key])) {
+                    $data[$key] = $params[$key];
+                }
+            }
+            
+            $setting->setContent(json_encode($data));
+            $setting->save();
+        }
+
+        return $setting;
     }
 }
