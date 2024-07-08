@@ -423,7 +423,7 @@ class DocumentController extends BaseController
             date_default_timezone_set('Asia/Bangkok');
             $id = $request->get('id');
             $document = Document::getById($id);
-            // dd($document);
+            // dd($document);  
             if ($document->getType() != 'folder') {
              
                 $previousVersion = self::getVersionDoc($document);

@@ -19,6 +19,9 @@ use Pimcore\Model\Document\Editable\Relations;
 use Pimcore\Model\Document\Editable\Select;
 use Pimcore\Model\Document\Editable\Multiselect;
 use Pimcore\Model\Document\Editable\Date;
+use Pimcore\Model\Document\Editable\Textarea;
+use Pimcore\Model\Document\Editable\Numeric;
+use Pimcore\Model\Document\Editable\Checkbox;
 
 use function PHPSTORM_META\type;
 
@@ -34,11 +37,19 @@ class FieldServices
         if ($document) {
             if ($decode) {
                 $getData = $document->getEditable($decode->name);
-                if ($getData) {
+                if (!$getData) {           
+                    $getData = new Checkbox;
+                    $getData->setDocument($document);
+                    $getData->setName($decode->name);
+                }
                     $getData->setDataFromResource($decode->value);
+
+                    $array = $document->getEditables();
+                    array_push($array, $getData);
+                    $document->setEditables($array);
+
                     $document->save();
                     return ['status' => 200, 'messsage' => 'Success'];
-                }
             } else {
                 return ['status' => 500, 'messsage' => 'Error occurs when saved field Checkbox'];
             }
@@ -57,11 +68,19 @@ class FieldServices
         if ($document) {
             if ($decode) {
                 $getData = $document->getEditable($decode->name);
-                if ($getData) {
-                    $getData->setDataFromResource($decode->value);
-                    $document->save();
-                    return ['status' => 200, 'messsage' => 'Success'];
+                if (!$getData) {           
+                    $getData = new Input;
+                    $getData->setDocument($document);
+                    $getData->setName($decode->name);
                 }
+                $getData->setDataFromResource($decode->value);
+
+                $array = $document->getEditables();
+                array_push($array, $getData);
+                $document->setEditables($array);
+
+                $document->save();
+                return ['status' => 200, 'messsage' => 'Success'];
             } else {
                 return ['status' => 500, 'messsage' => 'Error occurs when saved field Input'];
             }
@@ -80,11 +99,19 @@ class FieldServices
         if ($document) {
             if ($decode) {
                 $getData = $document->getEditable($decode->name);
-                if ($getData) {
+                if (!$getData) {
+                    $getData = new Wysiwyg;
+                    $getData->setDocument($document);
+                    $getData->setName($decode->name);
+                }
                     $getData->setDataFromResource($decode->value);
+
+                    $array = $document->getEditables();
+                    array_push($array, $getData);
+                    $document->setEditables($array);
+
                     $document->save();
                     return ['status' => 200, 'messsage' => 'Success'];
-                }
             } else {
                 return ['status' => 500, 'messsage' => 'Error occurs when saved field Wysiwyg'];
             }
@@ -103,11 +130,19 @@ class FieldServices
         if ($document) {
             if ($decode) {
                 $getData = $document->getEditable($decode->name);
-                if ($getData) {
-                    $getData->setDataFromResource($decode->value);
-                    $document->save();
-                    return ['status' => 200, 'messsage' => 'Success'];
+                if (!$getData) {
+                    $getData = new Select;
+                    $getData->setDocument($document);
+                    $getData->setName($decode->name);
                 }
+                $getData->setDataFromResource($decode->value);
+
+                $array = $document->getEditables();
+                array_push($array, $getData);
+                $document->setEditables($array);
+
+                $document->save();
+                return ['status' => 200, 'messsage' => 'Success'];
             } else {
                 return ['status' => 500, 'messsage' => 'Error occurs when saved field Select'];
             }
@@ -126,11 +161,21 @@ class FieldServices
         if ($document) {
             if ($decode) {
                 $getData = $document->getEditable($decode->name);
-                if ($getData) {
+                if (!$getData) {
+                    $getData = new Textarea;
+                    $getData->setDocument($document);
+                    $getData->setName($decode->name);
+                }
+
                     $getData->setDataFromResource($decode->value);
+
+                    $array = $document->getEditables();
+                    array_push($array, $getData);
+                    $document->setEditables($array);
+
                     $document->save();
                     return ['status' => 200, 'messsage' => 'Success'];
-                }
+
             } else {
                 return ['status' => 500, 'messsage' => 'Error occurs when saved field Textarea'];
             }
@@ -153,11 +198,20 @@ class FieldServices
         if ($document) {
             if ($decode) {
                 $getData = $document->getEditable($decode->name);
-                if ($getData) {
+                if (!$getData) {
+                    $getData = new Numeric;
+                    $getData->setDocument($document);
+                    $getData->setName($decode->name);
+                }
+
                     $getData->setDataFromResource($decode->value);
+
+                    $array = $document->getEditables();
+                    array_push($array, $getData);
+                    $document->setEditables($array);
+
                     $document->save();
                     return ['status' => 200, 'messsage' => 'Success'];
-                }
             } else {
                 return ['status' => 500, 'messsage' => 'Error occurs when saved field Numeric'];
             }
@@ -176,11 +230,19 @@ class FieldServices
         if ($document) {
             if ($decode) {
                 $getData = $document->getEditable($decode->name);
-                if ($getData) {
+                if (!$getData) {
+                    $getData = new Multiselect;
+                    $getData->setDocument($document);
+                    $getData->setName($decode->name);
+                }
                     $getData->setDataFromEditmode($decode->value);
+
+                    $array = $document->getEditables();
+                    array_push($array, $getData);
+                    $document->setEditables($array);
+
                     $document->save();
                     return ['status' => 200, 'messsage' => 'Success'];
-                }
             } else {
                 return ['status' => 500, 'messsage' => 'Error occurs when saved field Multiselect'];
             }
@@ -199,11 +261,20 @@ class FieldServices
         if ($document) {
             if ($decode) {
                 $getData = $document->getEditable($decode->name);
-                if ($getData) {
+                if (!$getData) {
+                    $getData = new Date;
+                    $getData->setDocument($document);
+                    $getData->setName($decode->name);
+                }
+
                     $getData->setDataFromEditmode($decode->value);
+                    
+                    $array = $document->getEditables();
+                    array_push($array, $getData);
+                    $document->setEditables($array);
+
                     $document->save();
                     return ['status' => 200, 'messsage' => 'Success'];
-                }
             } else {
                 return ['status' => 500, 'messsage' => 'Error occurs when saved field Date'];
             }
@@ -664,7 +735,10 @@ class FieldServices
 
                                         $newBlock->save();
                                         // $newArr[] =  $newBlock;
-                                        array_push($document->getEditables(), $newBlock);
+                                        $array = $document->getEditables();
+                                        array_push($array, $getData);
+                                        $document->setEditables($array);
+                                        // array_push($document->getEditables(), $newBlock);
                                     }
                                 }
                             }

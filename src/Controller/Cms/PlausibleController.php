@@ -740,5 +740,14 @@ class PlausibleController extends BaseController
         return $this->schema ??= $db->createSchemaManager()->introspectSchema();
     }
 
+        /**
+     * @Route("/add-column-table-plausible", methods={"POST", "GET"})
+     */
+    public function addColumn(Request $request, Connection $db): Response
+    {
 
+        Db::get()->query("ALTER TABLE corepulse_plausible ADD COLUMN linkPublic varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL");
+
+        return new Response('Oke', Response::HTTP_OK);
+    }
 }
