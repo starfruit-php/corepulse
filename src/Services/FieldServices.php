@@ -166,8 +166,7 @@ class FieldServices
                     $getData->setDocument($document);
                     $getData->setName($decode->name);
                 }
-
-                    $getData->setDataFromResource($decode->value);
+                    $getData->setDataFromResource(html_entity_decode($decode->value));
 
                     $array = $document->getEditables();
                     array_push($array, $getData);
