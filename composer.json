@@ -21,18 +21,27 @@
         "starfruitjsc/validator-bundle": ">=1.0",
         "symfony/serializer-pack": ">=1.3",
         "rompetomp/inertia-bundle": ">=2.4",
-        "pentatrion/vite-bundle": ">=6.3"
+        "pentatrion/vite-bundle": ">=6.3",
+        "google/apiclient": "^2.15.0",
+        "starfruit/builder-bundle": ">=0.7.0"
     },
     "autoload": {
         "psr-4": {
             "CorepulseBundle\\": "src/"
         }
     },
+    "scripts": {
+      "pre-autoload-dump": "Google\\Task\\Composer::cleanup"
+    },
     "extra": {
         "pimcore": {
             "bundles": [
                 "CorepulseBundle\\CorepulseBundle"
             ] 
-        }
+        },
+        "google/apiclient-services": [
+            "SearchConsole",
+            "Indexing"
+        ]
     }
 }

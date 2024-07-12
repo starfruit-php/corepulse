@@ -17,6 +17,7 @@ use Pimcore\Bundle\SeoBundle\Redirect\RedirectHandler;
 use Starfruit\BuilderBundle\Sitemap\Setting;
 use Starfruit\BuilderBundle\Config\ObjectConfig;
 use Starfruit\BuilderBundle\Model\Option;
+use CorepulseBundle\Model\Indexing;
 
 /**
  * @Route("/seo")
@@ -63,7 +64,6 @@ class SeoController extends BaseController
      */
     public function settingConfig(Request $request): JsonResponse
     {
-
         $setting = SeoServices::getSetting();
 
         if ($request->getMethod() == Request::METHOD_POST) {
@@ -91,31 +91,157 @@ class SeoController extends BaseController
     public function indexing(Request $request)
     {
         $viewData = ['metaTitle' => 'Indexing'];
-        // $httpClientConfig = new \GuzzleHttp\Client([
-        //     'proxy' => 'cbs2.localhost',
-        //     'verify' => false,
-        // ]);
 
-        // $path = PIMCORE_PROJECT_ROOT . '/public/voltaic-cocoa-335508-fef2163d3409.json';
+        $path = PIMCORE_PROJECT_ROOT . '/public/my-project-6535-1695018206754-6ad0f23f6399.json';
 
-        // $client = new \Google\Client();
-        // $client->setAuthConfig($path);
+        $client = new \Google\Client();
+        $client->setAuthConfig($path);
 
-        // $client->addScope('https://www.googleapis.com/auth/indexing');
+        $client->addScope(\Google\Service\SearchConsole::WEBMASTERS);
 
-        // $httpClient = $client->authorize();
-        // $endpoint = 'https://indexing.googleapis.com/v3/urlNotifications:publish';
-
-        // $content = '{
-        // "url": "http://cbs2.localhost/cms/seo/indexing/san-pham",
-        // "type": "URL_UPDATED"
-        // }';
-
-        // $response = $httpClient->post($endpoint, [ 'body' => $content ]);
-
-        // $status_code = $response->getStatusCode();
+        $service = new \Google\Service\SearchConsole($client);
 
         return $this->renderWithInertia('Pages/Seo/Indexing', [], $viewData);
+    }
+
+    /**
+     * @Route("/indexing/create-submit", name="seo_indexing_create_submit", options={"expose"=true}))
+     */
+    public function indexingCreateSubmit(Request $request)
+    {
+        $data = [];
+
+        $messageError = $this->validate([
+            'url' => 'required',
+        ]);
+
+        if ($messageError) {
+            $data = [
+                'success' => false,
+                'message' => $messageError['key'] . ' ' . $messageError['message'],
+            ];
+        }
+
+        $data = SeoServices::submitIndex($request->get('url'));
+
+        return new JsonResponse($data);
+    }
+
+     /**
+     * @Route("/indexing/listing", name="seo_indexing_listing", options={"expose"=true}))
+     */
+    public function indexingListing(Request $request, PaginatorInterface $paginator)
+    {
+        $limit = (int)$request->get('limit', 10);
+        $page = (int)$request->get('page', 1);
+        $orderKey = $request->get('orderKey');
+        $order = $request->get('order');
+        $search = $request->get('search');
+
+        $listing = new Indexing\Listing();
+
+        if (!$orderKey) {
+            $orderKey = 'updateAt';
+        }
+
+        if (!$order) {
+            $order = 'desc';
+        }
+
+        $listing->setOrderKey($orderKey);
+        $listing->setOrder($order);
+
+        $condition = '';
+        if ($search) {
+            $search = json_decode($search, true);
+
+            $search = array_filter($search, function($value) {
+                return $value !== "" && $value !== " ";
+            });
+
+            $conditionParts = [];
+            foreach ($search as $key => $value) {
+                $conditionParts[] = $key . ' LIKE ' . $listing->quote('%' . $value . '%');
+            }
+
+            $condition =  implode(' OR ', $conditionParts);
+        }
+
+        $listing->setCondition($condition);
+
+        $listing->load();
+
+        $listing = $paginator->paginate(
+            $listing,
+            $page,
+            $limit
+        );
+
+        $totalItems = $listing->getPaginationData()["totalCount"];
+
+        $listData = [];
+        foreach ($listing as $item) {
+            $listData[] = [
+                'time' => $item->getTime() ? $item->getTime() : date('Y-m-d H:i:s', (int)$item->getUpdateAt()),
+                'url' => $item->getUrl(),
+                'type' => $item->getType(),
+                'response' => $item->getResponse(),
+            ];
+        }
+
+        $fields = [];
+        $columns = ['time', 'url', 'type', 'response'];
+        foreach ($columns as $key => $value) {
+            $fields[] = [
+                'key' => $value,
+                'tooltip' => '',
+                'title' => $value,
+                'removable' => true,
+                'searchType' => 'Input',
+            ];
+        }
+
+        $result = [
+            "listing" => $listData,
+            "totalItems" => $totalItems,
+            "fields" => $fields,
+            "limit" => $limit,
+        ];
+
+        return new JsonResponse($result);
+    }
+
+    /**
+     * @Route("/indexing/setting", name="seo_indexing_setting", options={"expose"=true}))
+     */
+    public function indexingSetting(Request $request)
+    {
+        $messageError = $this->validate([
+            'file' => 'file:maxSize,5M,mimeTypes,application/json',
+        ]);
+
+        if ($messageError) {
+            $data = [
+                'success' => false,
+                'message' => $messageError['key'] . ' ' . $messageError['message'],
+            ];
+            return new JsonResponse($data);
+        }
+
+        $jsonFile = $request->get('json') ? $request->get('json') : '{}';
+        $file = $request->files->get('file');
+        if ($file) {
+            $data = SeoServices::setIndexSetting($file);
+        } elseif ($jsonFile) {
+            $data = SeoServices::setIndexSetting($jsonFile, 'json');
+        } else {
+            $data = [
+                'success' => false,
+                'message' => 'Setting is not found',
+            ];
+        }
+
+        return new JsonResponse($data);
     }
 
     /**

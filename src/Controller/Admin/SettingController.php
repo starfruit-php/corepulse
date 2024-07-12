@@ -131,31 +131,15 @@ class SettingController extends BaseController
             }
 
             // update logo and backgroud
-            //logo
-            if ($request->get('logo')) {
-                $file = $request->get('logo');
-                $loginSetting['config']['logo'] = $file;
+            $fields = ['logo', 'background', 'color', 'title', 'colorLight', 'footer'];
+
+            foreach ($fields as $field) {
+                if ($request->get($field)) {
+                    $value = $request->get($field);
+                    $loginSetting['config'][$field] = $value;
+                }
             }
-            //backgroud
-            if ($request->get('background')) {
-                $file = $request->get('background');
-                $loginSetting['config']['background'] = $file;
-            }
-            //color
-            if ($request->get('color')) {
-                $file = $request->get('color');
-                $loginSetting['config']['color'] = $file;
-            }
-            //title
-            if ($request->get('title')) {
-                $file = $request->get('title');
-                $loginSetting['config']['title'] = $file;
-            }
-            //colorlight
-            if ($request->get('colorLight')) {
-                $file = $request->get('colorLight');
-                $loginSetting['config']['colorLight'] = $file;
-            }
+
             // save data
             if ($request->get('logo') || $request->get('background') || $request->get('color')) {
                 Db::get()->update(

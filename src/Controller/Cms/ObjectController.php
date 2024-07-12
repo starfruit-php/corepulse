@@ -573,7 +573,7 @@ class ObjectController extends FieldController
 
         }
 
-        $urlSlug = method_exists($object, 'getSlug') ? $object->getSlug() ? $object->getSlug()[0]->getSlug() : '' : '';
+        $urlSlug = method_exists($object, 'getSlug') ? ( $object->getSlug() ? $object->getSlug()[0]->getSlug() : '' ) : '';
         $viewData = ['metaTitle' => $classes->getName() . ': ' . $object->getKey()];
         // dd($data);
 

@@ -21,7 +21,7 @@ class SearchController extends BaseController
      */
     public function searchAction(Request $request)
     {
-        $searchHelper = $_COOKIE['searchHelper'];
+        $searchHelper = isset($_COOKIE['searchHelper']) ? $_COOKIE['searchHelper'] : null;
 
         if (!$searchHelper) {
             $dataConfig = SearchHelper::dataConfig();
@@ -29,7 +29,7 @@ class SearchController extends BaseController
         } else {
             $dataConfig = json_decode($searchHelper, true);
         }
-        
+
         // $listkey = ['document', 'asset', 'dataobject'];
         $listkey = ['document', 'asset'];
         $checkCMS = $request->get('cms', '');

@@ -9,6 +9,7 @@ use Pimcore\Model\Asset;
 use Pimcore\Model\Asset\Image\Thumbnail;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\HttpFoundation\Request;
+use CorepulseBundle\Services\Helper\SearchHelper;
 
 class ImageController extends BaseController
 {
@@ -237,5 +238,65 @@ class ImageController extends BaseController
             ];
         }
         return new JsonResponse(['data' => $folders]);
+    }
+
+    /**
+     * @Route("/tree-listing-asset-admin", name="tree_listing_asset_admin", methods={"GET", "POST"}, options={"expose"=true}))
+     */
+    public function treeListingAction(Request $request)
+    {
+        $datas = [];
+        $root = $request->get('root');
+        $listing = new Asset\Listing();
+        $listing->setCondition('`parentId` = 0 OR `parentId` = 1 AND type = "folder"');
+        $listing->setOrderKey('mimetype');
+        $listing->setOrder('ASC');
+
+        foreach ($listing as $item) {
+            $data = [];
+            foreach ($item->getChildren() as $children) {
+                if ($children->getType() == "folder") {
+                    $data[] = (string)$children->getId();
+                }
+            }
+
+            $publicURL = AssetServices::getThumbnailPath($item);
+
+            if ($item->getId() == 1) {
+                $datas['home'] = [
+                    'id' => 1,
+                    'key' =>  "Home",
+                    'type' => $item->getType(),
+                    'children' => [],
+                    'icon' => "mdi-home",
+                    'image' => "/bundles/pimcoreadmin/img/flat-color-icons/home-gray.svg",
+                    'publish' => true,
+                    'classId' => $item->getType() != 'folder' ? $item->getType() : 'tree-folder',
+                ];
+            }
+
+            $datas['nodes'][(string)$item->getId()] = [
+                'id' => $item->getId(),
+                'key' => $item->getFileName() ? $item->getFileName() : "Home",
+                'type' => $item->getType(),
+                'children' => $data,
+                'icon' => SearchHelper::getIcon($item->getType()),
+                'image' => $publicURL,
+                'publish' => true,
+                'classId' => $item->getType() != 'folder' ? $item->getType() : 'tree-folder',
+            ];
+        }
+        // dd($datas);
+        $datas['config'] = [
+            'roots' => $datas['nodes'][1]['children'],
+            'keyboardNavigation' => false,
+            'dragAndDrop' => false,
+            'checkboxes' => false,
+            'editable' => false,
+            'disabled' => false,
+            'padding' => 35,
+        ];
+
+        return new JsonResponse($datas);
     }
 }

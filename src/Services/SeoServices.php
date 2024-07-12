@@ -6,6 +6,7 @@ use CorepulseBundle\Services\APIService;
 use Pimcore\Db;
 use Starfruit\BuilderBundle\Tool\LanguageTool;
 use Starfruit\BuilderBundle\Model\Option;
+use CorepulseBundle\Model\Indexing;
 
 class SeoServices
 {
@@ -152,7 +153,7 @@ class SeoServices
                 'defaultValue' => null,
                 'customValue' => null,
             ];
-    
+
             $setting = new Option();
             $setting->setName('seo_setting');
             $setting->setContent(json_encode($data));
@@ -176,11 +177,207 @@ class SeoServices
                     $data[$key] = $params[$key];
                 }
             }
-            
+
             $setting->setContent(json_encode($data));
             $setting->save();
         }
 
         return $setting;
+    }
+
+    static public function setIndexSetting($file, $type = 'file')
+    {
+        $upload = false;
+        $data = [
+            'success' => false,
+            'message' => null,
+        ];
+
+        if (!is_uploaded_file($file)) {
+            $jsonFile = file_get_contents($file);
+            $filePath = PIMCORE_PROJECT_ROOT . '/public/' . $file->getClientOriginalName();
+        } else {
+            if (!file_exists($file)) {
+                $data['message'] = sprintf('File "%s" does not exist', $file);
+                return $data;
+            }
+
+            $jsonFile = file_get_contents($file);
+            $filePath = PIMCORE_PROJECT_ROOT . '/public/' . $file->getClientOriginalName();
+            $upload = true;
+        }
+
+        $configFile = json_decode($jsonFile, true);
+        if (!$configFile) {
+            $data['message'] = 'Invalid JSON for auth config';
+            return $data;
+        }
+
+        try {
+            $client = new \Google\Client();
+            $client->setAuthConfig($configFile);
+            $client->addScope(\Google\Service\Indexing::INDEXING);
+            $service = new \Google\Service\Indexing($client);
+
+            $setting = Option::getByName('indexing-setting') ?: new Option();
+            $setting->setName('indexing-setting');
+            $setting->setContent(json_encode(['type' => $type, 'data' => $filePath]));
+            $setting->save();
+
+            $data = [
+                'success' => true,
+                'message' => 'Indexing setting success.',
+            ];
+
+            if ($upload) {
+                if (!move_uploaded_file($file, $filePath)) {
+                    $data = [
+                        'success' => false,
+                        'message' => 'Indexing setting error.',
+                    ];
+                }
+            }
+        } catch (\Throwable $th) {
+            $data['message'] = $th->getMessage();
+        }
+
+        return $data;
+    }
+
+    static public function getIndexSetting()
+    {
+        $data = null;
+        $setting = Option::getByName('indexing-setting');
+        if ($setting) {
+            $content = json_decode($setting->getContent(), true);
+            $data = $content['data'];
+            if ($content['type'] == 'json') {
+                $data = json_decode($data, true);
+            }
+        }
+
+        return $data;
+    }
+
+    static public function connectGoogleIndex()
+    {
+        $client = new \Google\Client();
+        $client->setAuthConfig(self::getIndexSetting());
+
+        $client->addScope(\Google\Service\Indexing::INDEXING);
+
+        $httpClient = $client->authorize();
+        
+        return $httpClient;
+    }
+
+    static public function submitIndex($url, $type = 'create')
+    {
+        $data = [];
+
+        $domain = Option::getMainDomain();
+        $domain = 'https://cbs.starfruit.com.vn';
+
+        $httpClient = self::connectGoogleIndex();
+
+        $endpoint = 'https://indexing.googleapis.com/v3/urlNotifications:publish';
+
+        $typeUrl = 'URL_UPDATED';
+        if ($type == 'delete') {
+            $typeUrl = "URL_DELETED";
+        }
+
+        $content = json_encode([
+            "url" => $domain . $url,
+            "type" => $typeUrl
+        ]);
+
+        $response = $httpClient->post($endpoint, [ 'body' => $content ]);
+       
+        $data = self::getResponData($response, $content);
+        // $data = self::getResponData($httpClient->get('https://indexing.googleapis.com/v3/urlNotifications/metadata?url=' . urlencode($domain . $url)), $content);
+        
+        if (isset($data['status'])) {
+            $data["url"] = $domain . $url;
+            $data["type"] = $data['status'];
+        } else {
+            $data['success'] = true;
+            $data['message'] = 'Submit indexing success';
+            $data["type"] = $type;
+        }
+
+        self::saveIndex($data);
+
+        return $data;
+    }
+
+    static public function getResponData($response, $content)
+    {
+        $statusCode = $response->getStatusCode();
+        $body = $response->getBody()->getContents();
+        $bodyData = json_decode($body, true);
+
+        if (isset($bodyData['error'])) {
+            $data = $bodyData['error'];
+        } else {
+            $metadata = isset($bodyData['urlNotificationMetadata']) ? $bodyData['urlNotificationMetadata'] : [];
+
+            $key = 'latestUpdate';
+    
+            if (isset($metadata['latestUpdate']) && isset($metadata['latestRemove'])) {
+                $latestUpdateTime = new \DateTime($metadata['latestUpdate']['notifyTime']);
+                $latestRemoveTime = new \DateTime($metadata['latestRemove']['notifyTime']);
+    
+                if ($latestUpdateTime < $latestRemoveTime ) {
+                    $key = 'latestRemove';
+                }
+            } else if (isset($metadata['latestRemove'])) {
+                $key = 'latestRemove';
+            }
+    
+            $data = self::responArray($metadata[$key]);
+        }
+       
+        $data['response'] = $statusCode;
+        
+        return $data;
+    }
+
+    static public function responArray($item)
+    {
+        $localTimezone = new \DateTimeZone(date_default_timezone_get());
+
+        $notifyDateTime = new \DateTime($item["notifyTime"], new \DateTimeZone('UTC'));
+        $notifyDateTime->setTimezone($localTimezone);
+
+        $time = $notifyDateTime->format('Y-m-d H:i:s');
+
+        $data = [
+            'url' => $item['url'],
+            'type' => $item['type'],
+            'time' => $time,
+        ];
+
+        return $data;
+    }
+
+    static public function saveIndex($params)
+    {
+        $object = isset($params['url']) ? Indexing::getByUrl($params['url']) : '';
+        if (!$object) {
+            $object = new Indexing();
+        }
+
+        foreach ($params as $key => $value) {
+            $function = 'set' . ucfirst($key);
+    
+            if (method_exists($object, $function)) {
+                $object->$function($value);
+            }
+        }
+
+        $object->save();
+
+        return $object;
     }
 }
