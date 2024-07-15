@@ -92,16 +92,7 @@ class SeoController extends BaseController
     {
         $viewData = ['metaTitle' => 'Indexing'];
 
-        $path = PIMCORE_PROJECT_ROOT . '/public/my-project-6535-1695018206754-6ad0f23f6399.json';
-
-        $client = new \Google\Client();
-        $client->setAuthConfig($path);
-
-        $client->addScope(\Google\Service\SearchConsole::WEBMASTERS);
-
-        $service = new \Google\Service\SearchConsole($client);
-
-        return $this->renderWithInertia('Pages/Seo/Indexing', [], $viewData);
+        return $this->renderWithInertia('Pages/Seo/Indexing',[], $viewData);
     }
 
     /**
@@ -182,6 +173,7 @@ class SeoController extends BaseController
         $listData = [];
         foreach ($listing as $item) {
             $listData[] = [
+                'id' => $item->getId(),
                 'time' => $item->getTime() ? $item->getTime() : date('Y-m-d H:i:s', (int)$item->getUpdateAt()),
                 'url' => $item->getUrl(),
                 'type' => $item->getType(),
@@ -212,34 +204,60 @@ class SeoController extends BaseController
     }
 
     /**
+     * @Route("/indexing/delete", name="seo_indexing_delete", methods={"POST"}, options={"expose"=true}))
+     */
+    public function indexingDelete(Request $request): JsonResponse
+    {
+        if ($request->get('all')) {
+            $ids = $request->get('id');
+            foreach($ids as $id) {
+                $option = Indexing::getById($id);
+                if ($option) {
+                    $option->delete();
+                }
+            }
+        } else {
+            $option = Indexing::getById($request->get('id'));
+            if ($option) {
+                $option->delete();
+            }
+        }
+
+        return new JsonResponse([
+            'success' => true,
+        ]);
+    }
+
+    /**
      * @Route("/indexing/setting", name="seo_indexing_setting", options={"expose"=true}))
      */
     public function indexingSetting(Request $request)
     {
-        $messageError = $this->validate([
-            'file' => 'file:maxSize,5M,mimeTypes,application/json',
-        ]);
+        if ($request->getMethod() == Request::METHOD_POST) {
+            $jsonFile = $request->get('json') ? $request->get('json') : '';
+            $file = $request->files->get('file');
+            $classes = $request->get('classes');
 
-        if ($messageError) {
-            $data = [
-                'success' => false,
-                'message' => $messageError['key'] . ' ' . $messageError['message'],
-            ];
+            $params = [];
+
+            if ($file) {
+                $params['file'] = $file;
+            }
+
+            if ($jsonFile) {
+                $params['json'] = $jsonFile;
+            }
+            
+            if ($classes) {
+                $params['classes'] = $classes;     
+            }
+
+            $data = SeoServices::setIndexSetting($params);
+
             return new JsonResponse($data);
         }
 
-        $jsonFile = $request->get('json') ? $request->get('json') : '{}';
-        $file = $request->files->get('file');
-        if ($file) {
-            $data = SeoServices::setIndexSetting($file);
-        } elseif ($jsonFile) {
-            $data = SeoServices::setIndexSetting($jsonFile, 'json');
-        } else {
-            $data = [
-                'success' => false,
-                'message' => 'Setting is not found',
-            ];
-        }
+        $data = SeoServices::getIndexSetting(true);
 
         return new JsonResponse($data);
     }

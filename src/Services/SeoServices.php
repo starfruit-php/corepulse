@@ -7,6 +7,7 @@ use Pimcore\Db;
 use Starfruit\BuilderBundle\Tool\LanguageTool;
 use Starfruit\BuilderBundle\Model\Option;
 use CorepulseBundle\Model\Indexing;
+use Starfruit\BuilderBundle\Sitemap\Setting;
 
 class SeoServices
 {
@@ -185,78 +186,141 @@ class SeoServices
         return $setting;
     }
 
-    static public function setIndexSetting($file, $type = 'file')
+    static public function setIndexSetting($params)
     {
-        $upload = false;
+        $documents = [];
+        $classes = [];
+        $jsonFile = $dataSave = $type = $upload = '';
+
         $data = [
             'success' => false,
             'message' => null,
         ];
-
-        if (!is_uploaded_file($file)) {
-            $jsonFile = file_get_contents($file);
-            $filePath = PIMCORE_PROJECT_ROOT . '/public/' . $file->getClientOriginalName();
-        } else {
-            if (!file_exists($file)) {
-                $data['message'] = sprintf('File "%s" does not exist', $file);
+        
+        if (isset($params['file'])) {
+            $upload = $params['file'];
+            if (!file_exists($upload)) {
+                $data['message'] = sprintf('File "%s" does not exist', $upload);
                 return $data;
             }
 
-            $jsonFile = file_get_contents($file);
-            $filePath = PIMCORE_PROJECT_ROOT . '/public/' . $file->getClientOriginalName();
-            $upload = true;
+            $jsonFile = file_get_contents($upload);
+
+            $dataSave = PIMCORE_PROJECT_ROOT . '/public/' . $upload->getClientOriginalName();
+            $type = 'file';
+        } else if (isset($params['json'])) {
+            $dataSave = $jsonFile = $upload =  $params['json'];
+            $type = 'json';
         }
 
-        $configFile = json_decode($jsonFile, true);
-        if (!$configFile) {
-            $data['message'] = 'Invalid JSON for auth config';
-            return $data;
+        if (isset($params['classes'])) {
+            $classes = json_decode($params['classes']);
         }
 
-        try {
+        if ($jsonFile) {
+            $configData = json_decode($jsonFile, true);
+            if (!$configData) {
+                $data['message'] = 'Invalid JSON for auth config';
+                return $data;
+            }
+
             $client = new \Google\Client();
-            $client->setAuthConfig($configFile);
+            $client->setAuthConfig($configData);
             $client->addScope(\Google\Service\Indexing::INDEXING);
             $service = new \Google\Service\Indexing($client);
 
-            $setting = Option::getByName('indexing-setting') ?: new Option();
-            $setting->setName('indexing-setting');
-            $setting->setContent(json_encode(['type' => $type, 'data' => $filePath]));
-            $setting->save();
-
-            $data = [
-                'success' => true,
-                'message' => 'Indexing setting success.',
-            ];
-
-            if ($upload) {
-                if (!move_uploaded_file($file, $filePath)) {
+            if ($type = 'file') {
+                if (!move_uploaded_file($upload, $dataSave)) {
                     $data = [
                         'success' => false,
                         'message' => 'Indexing setting error.',
                     ];
+
+                    return $data;
                 }
             }
-        } catch (\Throwable $th) {
-            $data['message'] = $th->getMessage();
         }
+        
+        $paramsSave = [
+            'type' => $type, 
+            'data' => $dataSave,
+            'classes' => $classes,
+            'documents' => $documents,
+        ];
+        
+        $setting = Option::getByName('indexing-setting');
+        if (!$setting) {
+            $setting = new Option();
+            $setting->setName('indexing-setting');
+        } else {
+            if (!$type) {
+                $oldContent = $setting->getContent() ? json_decode($setting->getContent(), true) : [];
+                if (isset($oldContent['type'])) {
+                    $paramsSave['type'] = $oldContent['type'];
+                    $paramsSave['data'] = $oldContent['data'];
+                }
+            }
+        }
+        
+        $setting->setContent(json_encode($paramsSave));
+        $setting->save();
+        
+        $data = [
+            'success' => true,
+            'message' => 'Indexing setting success.',
+        ];
 
         return $data;
     }
 
-    static public function getIndexSetting()
+    static public function getIndexSetting($action = false)
     {
         $data = null;
+
+        $settingClass = Setting::getKeys();
+
+        $content = [];
         $setting = Option::getByName('indexing-setting');
         if ($setting) {
             $content = json_decode($setting->getContent(), true);
-            $data = $content['data'];
-            if ($content['type'] == 'json') {
-                $data = json_decode($data, true);
-            }
-        }
 
+            if ($action) {
+                if (count($settingClass) !== count($content['classes'], true)) {
+                    $content['classes'] = $settingClass;
+                }
+
+                if ($content['type'] == 'file') {
+                    $content['data'] = basename($content['data']);
+                }
+
+                return $content;
+            } else {
+                $data = $content['data'];
+                if ($content['type'] == 'json') {
+                    $data = json_decode($data, true);
+                }
+            }
+        } else {
+            if ($action) {
+                $content = [
+                    "type" => "json", 
+                    "data" => null,
+                    "classes" => $settingClass,
+                ];
+            }
+            
+            return $content;
+        }
+        
         return $data;
+    }
+
+    static public function setIndexClasses() 
+    {
+        $setting = Option::getByName('indexing-classes') ?: new Option();
+        $setting->setName('indexing-setting');
+        $setting->setContent(json_encode());
+        $setting->save();
     }
 
     static public function connectGoogleIndex()
