@@ -8,7 +8,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Input\InputOption;
 
-use CorepulseBundle\Service\DatabaseService;
+use CorepulseBundle\Services\DatabaseServices;
 
 class SetupCommand extends AbstractCommand
 {
@@ -37,10 +37,10 @@ class SetupCommand extends AbstractCommand
 
         if ((bool) $update) {
             $this->writeInfo("RUN: Update Corepulse tables");
-            DatabaseService::updateTables();
+            DatabaseServices::updateTables();
         } else {
             $this->writeInfo("RUN: Create Corepulse tables");
-            DatabaseService::createTables();
+            DatabaseServices::createTables();
         }
 
         $this->writeInfo("RUN: Clear all cache");

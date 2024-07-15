@@ -1,10 +1,10 @@
 <?php
 
-namespace CorepulseBundle\Service;
+namespace CorepulseBundle\Services;
 
 use Pimcore\Db;
 
-class DatabaseService
+class DatabaseServices
 {
     const COREPULSE_INDEXING_TABLE = 'corepulse_indexing';
     const COREPULSE_NOTIFICATION_TABLE = 'corepulse_notification';
@@ -25,9 +25,9 @@ class DatabaseService
     {
         $query = "CREATE TABLE IF NOT EXISTS " . self::COREPULSE_INDEXING_TABLE . " (
             `id` int(11) NOT NULL AUTO_INCREMENT,
-            `url` COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-            `type` COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-            `response` COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+            `url` varchar(255) DEFAULT NULL,
+            `type` varchar(255) DEFAULT NULL,
+            `response` varchar(255) DEFAULT NULL,
             `createAt` timestamp DEFAULT current_timestamp(),
             `updateAt` timestamp DEFAULT current_timestamp() ON UPDATE current_timestamp(),
             PRIMARY KEY (`id`)
@@ -38,7 +38,7 @@ class DatabaseService
 
     public static function createCorepulseNotification()
     {
-        $query = "CREATE TABLE IF NOT EXISTS " . self::COREPULSE_NOTIFICATION_TABLE . " (
+        $query = " CREATE TABLE IF NOT EXISTS " . self::COREPULSE_NOTIFICATION_TABLE . " (
             `id` int(11) NOT NULL AUTO_INCREMENT,
             `title` varchar(255)  DEFAULT NULL,
             `description` varchar(255)  DEFAULT NULL,
@@ -59,13 +59,13 @@ class DatabaseService
 
     public static function updateCorepulseIndexing()
     {
-        $query = "ALTER TABLE " . self::COREPULSE_INDEXING_TABLE . "
+        $query = " ALTER TABLE " . self::COREPULSE_INDEXING_TABLE . "
             ADD COLUMN IF NOT EXISTS `id` int(11) NOT NULL AUTO_INCREMENT,
-            ADD COLUMN IF NOT EXISTS `url` COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-            ADD COLUMN IF NOT EXISTS `type` COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-            ADD COLUMN IF NOT EXISTS `response` COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+            ADD COLUMN IF NOT EXISTS `url` varchar(255) DEFAULT NULL,
+            ADD COLUMN IF NOT EXISTS `type` varchar(255) DEFAULT NULL,
+            ADD COLUMN IF NOT EXISTS `response` varchar(255) DEFAULT NULL,
             ADD COLUMN IF NOT EXISTS `createAt` timestamp DEFAULT current_timestamp(),
-            ADD COLUMN IF NOT EXISTS `updateAt` timestamp DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+            ADD COLUMN IF NOT EXISTS `updateAt` timestamp DEFAULT current_timestamp() ON UPDATE current_timestamp();
         ";
 
         Db::get()->executeQuery($query);
