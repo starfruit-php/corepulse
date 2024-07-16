@@ -75,14 +75,6 @@ class ObjectController extends BaseController
 
     /**
      * @Route("/create-table", name="api_object_create_table", methods={"GET"}, options={"expose"=true})
-     *
-     * {mô tả api}
-     *
-     * @param Cache $cache
-     *
-     * @return JsonResponse
-     *
-     * @throws \Exception
      */
     public function createTable(
         Request $request,
@@ -115,17 +107,9 @@ class ObjectController extends BaseController
         return $this->sendResponse($response);
     }
     /**
-     * @Route("/test", name="api_object_test", methods={"GET"}, options={"expose"=true})
-     *
-     * {mô tả api}
-     *
-     * @param Cache $cache
-     *
-     * @return JsonResponse
-     *
-     * @throws \Exception
+     * @Route("/update-table-by-object", name="api_object_update-table", methods={"GET"}, options={"expose"=true})
      */
-    public function test(
+    public function updateTableByObject(
         Request $request,
         PaginatorInterface $paginator)
     {
@@ -153,16 +137,9 @@ class ObjectController extends BaseController
             return $this->sendError($e->getMessage(), 500);
         }
     }
+
     /**
      * @Route("/listing", name="api_object_list", methods={"GET"}, options={"expose"=true})
-     *
-     * {mô tả api}
-     *
-     * @param Cache $cache
-     *
-     * @return JsonResponse
-     *
-     * @throws \Exception
      */
     public function listingAction(
         Request $request,
@@ -272,14 +249,6 @@ class ObjectController extends BaseController
     }
     /**
      * @Route("/listing-by-object", name="api_object_listing", methods={"GET"}, options={"expose"=true})
-     *
-     * {mô tả api}
-     *
-     * @param Cache $cache
-     *
-     * @return JsonResponse
-     *
-     * @throws \Exception
      */
     public function listingByObject(
         Request $request,
@@ -465,14 +434,6 @@ class ObjectController extends BaseController
 
     /**
      * @Route("/detail", name="api_object_detail", methods={"GET"}, options={"expose"=true})
-     *
-     * {mô tả api}
-     *
-     * @param Cache $cache
-     *
-     * @return JsonResponse
-     *
-     * @throws \Exception
      */
     public function detailAction(
         Request $request,
