@@ -380,7 +380,7 @@ class SeoController extends BaseController
                     'key' => 'Twitter Image Alt',
                     'value' => 'twitter:image:alt',
                 ],
-            ]
+            ],
         ];
 
         return new JsonResponse($data);
@@ -579,7 +579,7 @@ class SeoController extends BaseController
         if ($limit < 0) {
             $limit = 10000;
         }
-        
+
         if ($page) {
             $offset = ($page - 1) * $limit;
         }
