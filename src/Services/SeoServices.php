@@ -350,7 +350,7 @@ class SeoServices
         $data = [];
 
         $domain = Option::getMainDomain();
-        $domain = 'https://cbs.starfruit.com.vn';
+        // $domain = 'https://cbs.starfruit.com.vn';
 
         $httpClient = self::connectGoogleIndex();
 
