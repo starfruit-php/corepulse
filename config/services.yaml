@@ -17,17 +17,17 @@ services:
     tags: ["controller.service_arguments"]
 
   CorepulseBundle\Command\:
-    resource: '../src/Command'
-    tags: ['console.command']
-    
+    resource: "../src/Command"
+    tags: ["console.command"]
+
   CorepulseBundle\Installer:
     public: true
     arguments:
-        $bundle: "@=service('kernel').getBundle('PimcoreAdminBundle')"
+      $bundle: "@=service('kernel').getBundle('PimcoreAdminBundle')"
 
   CorepulseBundle\Model\:
-      resource: '../src/Model'
-      public: true
+    resource: "../src/Model"
+    public: true
 
   CorepulseBundle\Security\:
     resource: "../src/Security"
@@ -48,9 +48,17 @@ services:
     arguments:
       - CorepulseBundle\Security\Hasher\CorepulseUserPasswordHasher
       - ["password"]
-  # add more services, or override services that need manual wiring
-  #    CorepulseBundle\ExampleClass:
-  #        arguments:
-  #            - "@service_id"
-  #            - "plain_value"
-  #            - "%parameter%"
+    # add more services, or override services that need manual wiring
+    #    CorepulseBundle\ExampleClass:
+    #        arguments:
+    #            - "@service_id"
+    #            - "plain_value"
+    #            - "%parameter%"
+  CorepulseBundle\EventListener\Indexing\SubmitListener:
+    tags:
+      - { name: kernel.event_listener, event: pimcore.dataobject.postAdd, method: postObjectAdd }
+      - { name: kernel.event_listener, event: pimcore.dataobject.postUpdate, method: postObjectUpdate }
+      - { name: kernel.event_listener, event: pimcore.dataobject.preDelete, method: postObjectDelete }
+      - { name: kernel.event_listener, event: pimcore.document.postAdd, method: postDocumentAdd }
+      - { name: kernel.event_listener, event: pimcore.document.postUpdate, method: postDocumentUpdate }
+      - { name: kernel.event_listener, event: pimcore.document.preDelete, method: postDocumentDelete }

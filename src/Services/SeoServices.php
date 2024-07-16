@@ -196,7 +196,7 @@ class SeoServices
             'success' => false,
             'message' => null,
         ];
-        
+
         if (isset($params['file'])) {
             $upload = $params['file'];
             if (!file_exists($upload)) {
@@ -215,6 +215,10 @@ class SeoServices
 
         if (isset($params['classes'])) {
             $classes = json_decode($params['classes']);
+        }
+
+        if (isset($params['documents'])) {
+            $documents = json_decode($params['documents']);
         }
 
         if ($jsonFile) {
@@ -240,14 +244,14 @@ class SeoServices
                 }
             }
         }
-        
+
         $paramsSave = [
-            'type' => $type, 
+            'type' => $type,
             'data' => $dataSave,
             'classes' => $classes,
             'documents' => $documents,
         ];
-        
+
         $setting = Option::getByName('indexing-setting');
         if (!$setting) {
             $setting = new Option();
@@ -261,10 +265,10 @@ class SeoServices
                 }
             }
         }
-        
+
         $setting->setContent(json_encode($paramsSave));
         $setting->save();
-        
+
         $data = [
             'success' => true,
             'message' => 'Indexing setting success.',
@@ -278,6 +282,7 @@ class SeoServices
         $data = null;
 
         $settingClass = Setting::getKeys();
+        $settingDocument = Setting::getPages();
 
         $content = [];
         $setting = Option::getByName('indexing-setting');
@@ -285,8 +290,12 @@ class SeoServices
             $content = json_decode($setting->getContent(), true);
 
             if ($action) {
-                if (count($settingClass) !== count($content['classes'], true)) {
+                if (count($settingClass) !== count($content['classes'])) {
                     $content['classes'] = $settingClass;
+                }
+
+                if (count($settingDocument) !== count($content['documents'])) {
+                    $content['documents'] = $settingDocument;
                 }
 
                 if ($content['type'] == 'file') {
@@ -303,19 +312,20 @@ class SeoServices
         } else {
             if ($action) {
                 $content = [
-                    "type" => "json", 
+                    "type" => "json",
                     "data" => null,
                     "classes" => $settingClass,
+                    "documents" => $settingDocument,
                 ];
             }
-            
+
             return $content;
         }
-        
+
         return $data;
     }
 
-    static public function setIndexClasses() 
+    static public function setIndexClasses()
     {
         $setting = Option::getByName('indexing-classes') ?: new Option();
         $setting->setName('indexing-setting');
@@ -331,7 +341,7 @@ class SeoServices
         $client->addScope(\Google\Service\Indexing::INDEXING);
 
         $httpClient = $client->authorize();
-        
+
         return $httpClient;
     }
 
@@ -357,10 +367,10 @@ class SeoServices
         ]);
 
         $response = $httpClient->post($endpoint, [ 'body' => $content ]);
-       
+
         $data = self::getResponData($response, $content);
         // $data = self::getResponData($httpClient->get('https://indexing.googleapis.com/v3/urlNotifications/metadata?url=' . urlencode($domain . $url)), $content);
-        
+
         if (isset($data['status'])) {
             $data["url"] = $domain . $url;
             $data["type"] = $data['status'];
@@ -387,23 +397,23 @@ class SeoServices
             $metadata = isset($bodyData['urlNotificationMetadata']) ? $bodyData['urlNotificationMetadata'] : [];
 
             $key = 'latestUpdate';
-    
+
             if (isset($metadata['latestUpdate']) && isset($metadata['latestRemove'])) {
                 $latestUpdateTime = new \DateTime($metadata['latestUpdate']['notifyTime']);
                 $latestRemoveTime = new \DateTime($metadata['latestRemove']['notifyTime']);
-    
+
                 if ($latestUpdateTime < $latestRemoveTime ) {
                     $key = 'latestRemove';
                 }
             } else if (isset($metadata['latestRemove'])) {
                 $key = 'latestRemove';
             }
-    
+
             $data = self::responArray($metadata[$key]);
         }
-       
+
         $data['response'] = $statusCode;
-        
+
         return $data;
     }
 
@@ -434,7 +444,7 @@ class SeoServices
 
         foreach ($params as $key => $value) {
             $function = 'set' . ucfirst($key);
-    
+
             if (method_exists($object, $function)) {
                 $object->$function($value);
             }

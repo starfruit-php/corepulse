@@ -43,6 +43,9 @@ class SeoController extends BaseController
             $keys = $request->get('keys');
             Setting::setKeys($keys);
 
+            $pages = $request->get('pages');
+            Setting::setPages($pages);
+
             // $settingDomain = 'builder:option-setting --main-domain=' . $request->getSchemeAndHttpHost();
             // $this->runProcess($settingDomain);
 
@@ -51,10 +54,11 @@ class SeoController extends BaseController
         }
 
         $settingClass = Setting::getKeys();
+        $settingDocument = Setting::getPages();
 
         $data = [
             'classConfig' => $settingClass,
-            'documentConfig' => '',
+            'documentConfig' => $settingDocument,
         ];
         return new JsonResponse($data);
     }
@@ -113,6 +117,11 @@ class SeoController extends BaseController
             ];
         }
 
+        $type = $request->get('type');
+        if (!$type) {
+            $type = 'create';
+        }
+
         $data = SeoServices::submitIndex($request->get('url'));
 
         return new JsonResponse($data);
@@ -137,6 +146,10 @@ class SeoController extends BaseController
 
         if (!$order) {
             $order = 'desc';
+        }
+
+        if ($limit < 0) {
+            $limit = 10000;
         }
 
         $listing->setOrderKey($orderKey);
@@ -174,7 +187,7 @@ class SeoController extends BaseController
         foreach ($listing as $item) {
             $listData[] = [
                 'id' => $item->getId(),
-                'time' => $item->getTime() ? $item->getTime() : date('Y-m-d H:i:s', (int)$item->getUpdateAt()),
+                'time' => $item->getTime() ? $item->getTime() : $item->getUpdateAt(),
                 'url' => $item->getUrl(),
                 'type' => $item->getType(),
                 'response' => $item->getResponse(),
@@ -237,6 +250,7 @@ class SeoController extends BaseController
             $jsonFile = $request->get('json') ? $request->get('json') : '';
             $file = $request->files->get('file');
             $classes = $request->get('classes');
+            $documents = $request->get('documents');
 
             $params = [];
 
@@ -247,9 +261,13 @@ class SeoController extends BaseController
             if ($jsonFile) {
                 $params['json'] = $jsonFile;
             }
-            
+
             if ($classes) {
-                $params['classes'] = $classes;     
+                $params['classes'] = $classes;
+            }
+
+            if ($documents) {
+                $params['documents'] = $documents;
             }
 
             $data = SeoServices::setIndexSetting($params);
@@ -437,6 +455,10 @@ class SeoController extends BaseController
 
         $offset = 0;
 
+        if ($limit < 0) {
+            $limit = 10000;
+        }
+
         if ($page) {
             $offset = ($page - 1) * $limit;
         }
@@ -554,6 +576,10 @@ class SeoController extends BaseController
         $search = $request->get('search');
         $offset = 0;
 
+        if ($limit < 0) {
+            $limit = 10000;
+        }
+        
         if ($page) {
             $offset = ($page - 1) * $limit;
         }
