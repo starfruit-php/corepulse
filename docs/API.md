@@ -22,4 +22,5 @@ security:
 Push token from `Login API` to request header name `CMS-TOKEN` to authenticate other APIs
 
 ## Document
-Updating
+
+See [Postman documents](https://documenter.getpostman.com/view/37008304/2sA3kRK4aa)
