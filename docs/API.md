@@ -17,5 +17,9 @@ security:
         - { path: ^/corepulse/cms/api, roles: ROLE_COREPULSE_USER }
 ```
 
+## Authenticate
+
+Push token from `Login API` to request header name `CMS-TOKEN` to authenticate other APIs
+
 ## Document
 Updating
