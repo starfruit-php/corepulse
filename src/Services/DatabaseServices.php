@@ -19,6 +19,7 @@ class DatabaseServices
     {
         self::createTables();
         self::updateCorepulseIndexing();
+        self::updateCorepulseUser();
     }
 
     public static function createCorepulseIndexing()
@@ -67,6 +68,14 @@ class DatabaseServices
             ADD COLUMN IF NOT EXISTS `createAt` timestamp DEFAULT current_timestamp(),
             ADD COLUMN IF NOT EXISTS `updateAt` timestamp DEFAULT current_timestamp() ON UPDATE current_timestamp();
         ";
+
+        Db::get()->executeQuery($query);
+    }
+
+    public static function updateCorepulseUser()
+    {
+        $query = "ALTER TABLE `corepulse_users`
+            ADD COLUMN IF NOT EXISTS `authToken` longtext DEFAULT NULL";
 
         Db::get()->executeQuery($query);
     }

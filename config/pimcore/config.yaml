@@ -27,3 +27,9 @@ corepulse:
         path: vuetify_logout
         target: vuetify_login
         invalidate_session: false
+  api_firewall:
+    provider: corepulse_cms_provider
+    stateless: true
+    pattern: ^/corepulse/cms/api(/.*)?$
+    custom_authenticators:
+      - CorepulseBundle\Security\UserAuthenticator

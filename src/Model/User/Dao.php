@@ -30,7 +30,7 @@ class Dao extends AbstractDao
     }
 
     /**
-     * get user by id
+     * get user by username
      *
      * @throws \Exception
      */
@@ -44,6 +44,26 @@ class Dao extends AbstractDao
 
         if (!$data) {
             throw new NotFoundException("Object with the Username " . $this->model->getUsername() . " doesn't exists");
+        }
+
+        $this->assignVariablesToModel($data);
+    }
+
+    /**
+     * get user by auth token
+     *
+     * @throws \Exception
+     */
+    public function getByAuthToken(?string $authToken = null): void
+    {
+        if ($authToken !== null) {
+            $this->model->setAuthToken($authToken);
+        }
+
+        $data = $this->db->fetchAssociative('SELECT * FROM ' . $this->tableName . ' WHERE authToken = ?', [$this->model->getAuthToken()]);
+
+        if (!$data) {
+            throw new NotFoundException("Object with the authToken " . $this->model->getAuthToken() . " doesn't exists");
         }
 
         $this->assignVariablesToModel($data);

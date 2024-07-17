@@ -13,6 +13,6 @@ vuetify_admin:
   prefix: /admin
 
 vuetify_api:
-  resource: "../../src/Controller/Api"
+  resource: "../../src/Controller/Api/*"
   type: annotation
-  prefix: /api
+  prefix: /corepulse/cms/api
