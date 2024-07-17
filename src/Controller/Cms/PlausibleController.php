@@ -208,6 +208,11 @@ class PlausibleController extends BaseController
                 $plausibleSet['apiKey'] = $apiKey;
             }
 
+            if ($request->get('link')) {
+                $link = $request->get('link');
+                $plausibleSet['link'] = $link;
+            }
+
             if ($request->get('domain') || $request->get('siteId') || $request->get('apiKey')) {
                 if ($item) {
                     Db::get()->update(
@@ -222,6 +227,7 @@ class PlausibleController extends BaseController
                             'domain' => $plausibleSet['domain'],
                             'siteId' => $plausibleSet['siteId'],
                             'apiKey' => $plausibleSet['apiKey'],
+                            'link' => $plausibleSet['link'],
                         ]
                     );
                 }

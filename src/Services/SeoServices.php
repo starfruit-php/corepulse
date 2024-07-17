@@ -349,38 +349,43 @@ class SeoServices
     {
         $data = [];
 
-        $domain = Option::getMainDomain();
-        // $domain = 'https://cbs.starfruit.com.vn';
+        try {
+            $domain = Option::getMainDomain();
+            // $domain = 'https://cbs.starfruit.com.vn';
 
-        $httpClient = self::connectGoogleIndex();
+            $httpClient = self::connectGoogleIndex();
 
-        $endpoint = 'https://indexing.googleapis.com/v3/urlNotifications:publish';
+            $endpoint = 'https://indexing.googleapis.com/v3/urlNotifications:publish';
 
-        $typeUrl = 'URL_UPDATED';
-        if ($type == 'delete') {
-            $typeUrl = "URL_DELETED";
+            $typeUrl = 'URL_UPDATED';
+            if ($type == 'delete') {
+                $typeUrl = "URL_DELETED";
+            }
+
+            $content = json_encode([
+                "url" => $domain . $url,
+                "type" => $typeUrl
+            ]);
+
+            $response = $httpClient->post($endpoint, [ 'body' => $content ]);
+
+            $data = self::getResponData($response, $content);
+            // $data = self::getResponData($httpClient->get('https://indexing.googleapis.com/v3/urlNotifications/metadata?url=' . urlencode($domain . $url)), $content);
+
+            if (isset($data['status'])) {
+                $data["url"] = $domain . $url;
+                $data["type"] = $data['status'];
+            } else {
+                $data['success'] = true;
+                $data['message'] = 'Submit indexing success';
+                $data["type"] = $type;
+            }
+
+            self::saveIndex($data);
+        } catch (\Throwable $th) {
+            $data['message'] = $th->getMessage();
         }
 
-        $content = json_encode([
-            "url" => $domain . $url,
-            "type" => $typeUrl
-        ]);
-
-        $response = $httpClient->post($endpoint, [ 'body' => $content ]);
-
-        $data = self::getResponData($response, $content);
-        // $data = self::getResponData($httpClient->get('https://indexing.googleapis.com/v3/urlNotifications/metadata?url=' . urlencode($domain . $url)), $content);
-
-        if (isset($data['status'])) {
-            $data["url"] = $domain . $url;
-            $data["type"] = $data['status'];
-        } else {
-            $data['success'] = true;
-            $data['message'] = 'Submit indexing success';
-            $data["type"] = $type;
-        }
-
-        self::saveIndex($data);
 
         return $data;
     }

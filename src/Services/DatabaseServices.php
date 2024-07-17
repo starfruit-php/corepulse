@@ -8,6 +8,8 @@ class DatabaseServices
 {
     const COREPULSE_INDEXING_TABLE = 'corepulse_indexing';
     const COREPULSE_NOTIFICATION_TABLE = 'corepulse_notification';
+    const COREPULSE_PLAUSIBLE_TABLE = 'corepulse_plausible';
+
 
     public static function createTables()
     {
@@ -20,6 +22,7 @@ class DatabaseServices
         self::createTables();
         self::updateCorepulseIndexing();
         self::updateCorepulseUser();
+        self::updateCorepulsePlausible();
     }
 
     public static function createCorepulseIndexing()
@@ -76,6 +79,21 @@ class DatabaseServices
     {
         $query = "ALTER TABLE `corepulse_users`
             ADD COLUMN IF NOT EXISTS `authToken` longtext DEFAULT NULL";
+
+        Db::get()->executeQuery($query);
+    }
+
+    public static function updateCorepulsePlausible()
+    {
+        $query = " ALTER TABLE " . self::COREPULSE_PLAUSIBLE_TABLE . "
+            ADD COLUMN IF NOT EXISTS `id` int(11) NOT NULL AUTO_INCREMENT,
+            ADD COLUMN IF NOT EXISTS `domain` varchar(255) DEFAULT NULL,
+            ADD COLUMN IF NOT EXISTS `siteId` varchar(255) DEFAULT NULL,
+            ADD COLUMN IF NOT EXISTS `apiKey` varchar(255) DEFAULT NULL,
+            ADD COLUMN IF NOT EXISTS `username` varchar(190) NOT NULL,
+            ADD COLUMN IF NOT EXISTS `password` varchar(255) NOT NULL,
+            ADD COLUMN IF NOT EXISTS `link` varchar(255) DEFAULT NULL;
+        ";
 
         Db::get()->executeQuery($query);
     }
