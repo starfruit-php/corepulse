@@ -23,7 +23,7 @@ return [
 3. Install bundle:
 
 ```bash
-	./bin/console pimcore:bundle:install CorepulseBundle
+    ./bin/console pimcore:bundle:install CorepulseBundle
 ```
 
 4. Update `config/packages/security.yaml` file:
@@ -32,16 +32,17 @@ return [
 security:
     ...
     firewalls:
-		corepulse_cms: '%corepulse_admin.firewall_settings%'
+        corepulse_cms: '%corepulse_admin.firewall_settings%'
     ...
 
     access_control:
         ...
         - { path: ^/cms/login, roles: PUBLIC_ACCESS }
-		- { path: ^/cms, roles: ROLE_COREPULSE_USER }
+        - { path: ^/cms, roles: ROLE_COREPULSE_USER }
 ```
 
 5. Setup default in Pimcore admin UI first then enjoy with https://your-domain/cms
+
 ![Setup default in Pimcore admin UI](/docs/img/setup-first.png "Setup default in Pimcore admin UI")
 
 ## Update
