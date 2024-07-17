@@ -22,6 +22,7 @@ class Configuration implements ConfigurationInterface
         $rootNode
             ->children()
                 ->variableNode('security_firewall')->end()
+                ->variableNode('api_firewall')->end()
                 ->arrayNode('sidebar')
                     ->children()
                         ->booleanNode('home')

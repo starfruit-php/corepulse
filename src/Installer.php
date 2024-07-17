@@ -45,6 +45,7 @@ class Installer extends SettingsStoreAwareInstaller
             `defaultAdmin` tinyint(1) DEFAULT 0,
             `admin` tinyint(1) DEFAULT 0,
             `active` tinyint(1) DEFAULT 0,
+            `authToken` longtext DEFAULT NULL,
             `createAt` timestamp NULL DEFAULT current_timestamp(),
             `updateAt` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
             PRIMARY KEY (`id`),

@@ -14,7 +14,6 @@ use Symfony\Component\Security\Core\User\UserInterface;
  */
 class User extends AbstractModel implements UserInterface, PasswordAuthenticatedUserInterface, EquatableInterface
 {
-
     public ?int $id = null;
 
     public ?string $username = null;
@@ -39,6 +38,8 @@ class User extends AbstractModel implements UserInterface, PasswordAuthenticated
 
     public ?array $roles = [];
 
+    public ?string $authToken = null;
+
     public function getClass()
     {
         return 'CorepulseUser'; // You can customize this to return the actual class name or perform other logic.
@@ -46,7 +47,6 @@ class User extends AbstractModel implements UserInterface, PasswordAuthenticated
 
     public function isEqualTo(UserInterface $user): bool
     {
-        // dd($this->defaultAdmin, $user->getDefaultAdmin());
         if ($this->password !== $user->getPassword()) {
             return false;
         }
@@ -112,6 +112,19 @@ class User extends AbstractModel implements UserInterface, PasswordAuthenticated
             return $obj;
         } catch (NotFoundException $ex) {
             \Pimcore\Logger::warn("User with username $username not found");
+        }
+
+        return null;
+    }
+
+    public static function getByAuthToken(string $authToken): ?self
+    {
+        try {
+            $obj = new self;
+            $obj->getDao()->getByAuthToken($authToken);
+            return $obj;
+        } catch (NotFoundException $ex) {
+            \Pimcore\Logger::warn("User with authToken $authToken not found");
         }
 
         return null;
@@ -226,6 +239,16 @@ class User extends AbstractModel implements UserInterface, PasswordAuthenticated
     public function getRole(): ?string
     {
         return $this->role;
+    }
+
+    public function setAuthToken(?string $authToken): void
+    {
+        $this->authToken = $authToken;
+    }
+
+    public function getAuthToken(): ?string
+    {
+        return $this->authToken;
     }
 
     public function getDataJson()
