@@ -7,6 +7,8 @@ use Pimcore\Event\Model\DocumentEvent;
 use CorepulseBundle\Services\SeoServices;
 use Starfruit\BuilderBundle\Config\ObjectConfig;
 use Starfruit\BuilderBundle\Tool\LanguageTool;
+use Pimcore\Model\DataObject\Folder;
+use Pimcore\Model\Document\Page;
 
 class SubmitListener
 {
@@ -58,20 +60,22 @@ class SubmitListener
 
     private function generateObject($object, $type)
     {
-        $setting = SeoServices::getIndexSetting(true);
-        if ($setting['data']) {
-            $className = $object->getClassName();
-            $action = array_filter($setting['classes'], function($item) use ($className) {
-                return $item['name'] == $className;
-            });
+        if (!($object instanceof Folder)) {
+            $setting = SeoServices::getIndexSetting(true);
+            if ($setting['data']) {
+                $className = $object->getClassName();
+                $action = array_filter($setting['classes'], function($item) use ($className) {
+                    return $item['name'] == $className;
+                });
 
-            if (isset($action) && $first = reset($action)) {
-                if ($first['check']) {
-                    $languages = LanguageTool::getList();
-                    foreach ($languages as $language) {
-                        $objectConfig = new ObjectConfig($object);
-                        $url = $objectConfig->getSlug(['locale' => $language]);
-                        SeoServices::submitIndex($url, $type);
+                if (isset($action) && $first = reset($action)) {
+                    if ($first['check']) {
+                        $languages = LanguageTool::getList();
+                        foreach ($languages as $language) {
+                            $objectConfig = new ObjectConfig($object);
+                            $url = $objectConfig->getSlug(['locale' => $language]);
+                            SeoServices::submitIndex($url, $type);
+                        }
                     }
                 }
             }
@@ -80,20 +84,22 @@ class SubmitListener
 
     private function generateDocument($document, $type)
     {
-        $setting = SeoServices::getIndexSetting(true);
-        if ($setting['data']) {
-            $id = $document->getId();
-            $action = array_filter($setting['documents'], function($item) use ($id) {
-                return $item['id'] == $id;
-            });
+        if ($document instanceof Page) {
+            $setting = SeoServices::getIndexSetting(true);
+            if ($setting['data']) {
+                $id = $document->getId();
+                $action = array_filter($setting['documents'], function($item) use ($id) {
+                    return $item['id'] == $id;
+                });
 
-            if (isset($action) && $first = reset($action)) {
-                if ($first['generateSitemap']) {
-                    $url = $document->getPrettyUrl();
-                    if (!$url) {
-                        $url = $document->getPath() . $document->getKey();
+                if (isset($action) && $first = reset($action)) {
+                    if ($first['generateSitemap']) {
+                        $url = $document->getPrettyUrl();
+                        if (!$url) {
+                            $url = $document->getPath() . $document->getKey();
+                        }
+                        SeoServices::submitIndex($url, $type);
                     }
-                    SeoServices::submitIndex($url, $type);
                 }
             }
         }
