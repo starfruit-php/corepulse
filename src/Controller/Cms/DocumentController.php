@@ -721,12 +721,20 @@ class DocumentController extends BaseController
                     ];
                     $lisDocType[] = $type->getObjectVars();
                 }
-                // dd($seoImage, $document);
+                // dd($document);
                 $data = [
                     'id' => $document->getId() ?? '',
                     'title' => method_exists($document, 'getTitle') ? $document->getTitle() : $document->getKey(),
                     'imageSeo' => $seoImage,
                     'prettyUrl' =>  method_exists($document, 'getPrettyUrl') ?  $document->getPrettyUrl() : '',
+
+                    'subject' =>  method_exists($document, 'getSubject') ?  $document->getSubject() : '',
+                    'from' =>  method_exists($document, 'getFrom') ?  $document->getFrom() : '',
+                    'replyTo' =>  method_exists($document, 'getReplyTo') ?  $document->getReplyTo() : '',
+                    'to' =>  method_exists($document, 'getTo') ?  $document->getTo() : '',
+                    'cc' =>  method_exists($document, 'getCc') ?  $document->getCc() : '',
+                    'bcc' =>  method_exists($document, 'getBcc') ?  $document->getBcc() : '',
+
                     'description' => method_exists($document, 'getDescription') ? $document->getDescription() : '',
                     'controller' => method_exists($document, 'getController') ? $document->getController() : '',
                     'template' => method_exists($document, 'getTemplate') ? $document->getTemplate() : '',
@@ -855,9 +863,37 @@ class DocumentController extends BaseController
                             $document->setTemplate($template);
                         }
                     }
+
+                    if ($document->getType() == 'email') {
+                        $document->setSubject($data['subject']);
+                        $document->setFrom($data['from']);
+                        $document->setReplyTo($data['replyTo']);
+                        $document->setTo($data['to']);
+                        $document->setCc($data['cc']);
+                        $document->setBcc($data['bcc']);
+                    }
+
                     $document->save();
     
-                    $arrNoSaveInFor = ['title', 'description', 'prettyUrl', 'controller', 'template', 'enabled', 'lifetime', 'id', 'href', 'linktype', 'internalType', 'internal', 'imageSeo'];
+                    $arrNoSaveInFor = [
+                        'title', 
+                        'description', 
+                        'prettyUrl', 
+                        'controller', 
+                        'template', 
+                        'enabled', 
+                        'lifetime', 
+                        'id', 
+                        'href', 
+                        'linktype', 
+                        'internalType', 
+                        'internal', 
+                        'imageSeo', 
+                        'subject',
+                        'from',
+                        'replyTo',
+                        'to', 'cc', 'bcc',
+                    ];
                     $arrss = [];
     
                     // dd($data);
