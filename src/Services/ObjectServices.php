@@ -266,6 +266,13 @@ class ObjectServices
     static private function image($object, $fieldType, $fieldName, $fieldValue, $lang)
     {
         if ($fieldValue) {
+            if (substr($fieldValue, 0, 4) == "http") {
+                $prefix = \Pimcore::getContainer()->getParameter('pimcore.config')['assets']['frontend_prefixes']['source'];
+                if ($prefix) {
+                    $fieldValue = substr($fieldValue, strlen($prefix)); 
+                }
+            }
+
             $image = Asset\Image::getByPath($fieldValue);
             if ($image) {
                 $function = 'set' . ucfirst($fieldName);
