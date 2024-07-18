@@ -7,6 +7,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 
 class ExportController extends BaseController
 {
@@ -23,7 +24,7 @@ class ExportController extends BaseController
         $header = [];
 
         if (is_array($data)) {
-
+           
             foreach ($data as $key => $value) {
                 $data[$key] = json_decode($value);
             }
@@ -45,7 +46,7 @@ class ExportController extends BaseController
 
                 $filterData[] = $result;
             }
-
+            
             array_unshift($filterData, $header);
 
             $spreadsheet = self::getExcel($filterData);
@@ -56,7 +57,7 @@ class ExportController extends BaseController
             // Lưu tệp Excel
             $writer = new Xlsx($spreadsheet);
             $writer->save('php://output');
-
+            // dd($response);
             return $response;
         }
 
@@ -77,7 +78,8 @@ class ExportController extends BaseController
 
             foreach ($row as $colIndex => $value) {
                 $i++;
-                $sheet->setCellValueByColumnAndRow($i, (int)$rowIndex + 1, $value);
+                $cellCoordinate = Coordinate::stringFromColumnIndex($i) . ($rowIndex + 1);
+                $sheet->setCellValue($cellCoordinate, $value);
             }
         }
 
