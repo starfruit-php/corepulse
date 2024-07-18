@@ -77,6 +77,10 @@ class ExportController extends BaseController
             $i = 0;
 
             foreach ($row as $colIndex => $value) {
+                if (is_array($value)) {
+                    // dd($value);
+                    $value = json_encode($value);
+                }
                 $i++;
                 $cellCoordinate = Coordinate::stringFromColumnIndex($i) . ($rowIndex + 1);
                 $sheet->setCellValue($cellCoordinate, $value);
