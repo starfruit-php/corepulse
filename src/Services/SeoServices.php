@@ -145,6 +145,30 @@ class SeoServices
         return $seo;
     }
 
+    static public function saveMetaData($seo, $params)
+    {
+        $ogMeta = [];
+        $twitterMeta = [];
+        $customMeta = [];
+
+        if (isset($params['ogMeta'])) {
+            $ogMeta = $params['ogMeta'];
+        }
+
+        if (isset($params['twitterMeta'])) {
+            $twitterMeta = $params['twitterMeta'];
+        }
+
+        if (isset($params['customMeta'])) {
+            $customMeta = $params['customMeta'];
+        }
+
+        $seo->setMetaDatas($ogMeta, $twitterMeta, $customMeta);
+        $seo->save();
+
+        return $seo;
+    }
+
     static public function getSetting()
     {
         $setting = Option::getByName('seo_setting');

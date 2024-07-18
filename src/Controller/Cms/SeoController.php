@@ -298,19 +298,14 @@ class SeoController extends BaseController
                 $seo = SeoServices::saveData($seo, $params);
             }
 
-            // $ogData = [
-            //     'og:title' => 'meta title',
-            //     'og:description' => 'meta description'
-            // ];
+            if ($request->get('saveMetaData')) {
+                $params = [
+                    'ogMeta' => $request->get('ogMeta') ? json_decode($request->get('ogMeta'), true) : [],
+                    'twitterMeta' => $request->get('twitterMeta') ? json_decode($request->get('twitterMeta'), true) : [],
+                ];
+                $seo = SeoServices::saveMetaData($seo, $params);
+            }
 
-            // $twitterMetaData = [
-            //     'twitter:title' => 'twitter title',
-            //     'twitter:description' => 'twitter description'
-            // ];
-
-            // $customMetaData = [];
-
-            // get
             $metaData = $seo->getMetaDatas();
 
             // lấy danh sách dữ liệu seoscoring
