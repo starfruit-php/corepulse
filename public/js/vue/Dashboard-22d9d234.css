@@ -1,0 +1,1 @@
+.total-arr{gap:20px;width:100%}.total-info{border-right:1px solid black;padding-right:20px}.total-info:last-child{border-right:none}.total-info .title{font-weight:700;text-transform:uppercase;cursor:pointer}.total-info .title.active{color:var(--color-primary);text-decoration:underline}.total-info p{font-weight:700}
