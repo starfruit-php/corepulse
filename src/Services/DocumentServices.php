@@ -480,15 +480,17 @@ class DocumentServices
         }
         if ($v->type == 'image') {
             $path = $v->value;
-            if (substr($path, 0, 4) == "http") {
-                $prefix = \Pimcore::getContainer()->getParameter('pimcore.config')['assets']['frontend_prefixes']['source'];
-                if ($prefix) {
-                    $path = substr($path, strlen($prefix)); 
+            if ($path) {
+                if (substr($path, 0, 4) == "http") {
+                    $prefix = \Pimcore::getContainer()->getParameter('pimcore.config')['assets']['frontend_prefixes']['source'];
+                    if ($prefix) {
+                        $path = substr($path, strlen($prefix)); 
+                    }
                 }
-            }
-            $asset = Asset::getByPath($path);
-            if ($asset) {
-                $idImage = $blockSave?->setId($asset->getId());
+                $asset = Asset::getByPath($path);
+                if ($asset) {
+                    $idImage = $blockSave?->setId($asset->getId());
+                }
             }
         } 
         

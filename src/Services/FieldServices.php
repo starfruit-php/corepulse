@@ -393,29 +393,31 @@ class FieldServices
                 $jsonValueRelation = $decode->value;
                 if (property_exists($jsonValueRelation, 'src')) {
                     $path = $jsonValueRelation->src;
-
-                    if (substr($path, 0, 4) == "http") {
-                        $prefix = \Pimcore::getContainer()->getParameter('pimcore.config')['assets']['frontend_prefixes']['source'];
-                        if ($prefix) {
-                            $path = substr($path, strlen($prefix)); 
-                        }
-                    }
                     
-                    $asset = Asset::getByPath($path);
-                    if ($asset) {
-                        $getData->setDataFromEditmode([
-                            'id' => (int) $asset->getId(),
-                            "alt" => "",
-                            "cropPercent" => false,
-                            "cropWidth" => 0.0,
-                            "cropHeight" => 0.0,
-                            "cropTop" => 0.0,
-                            "cropLeft" => 0.0,
-                            "hotspots" => [],
-                            "marker" => [],
-                            "thumbnail" => null
-                        ]);
-                    }
+                    if ($path) {
+                        if (substr($path, 0, 4) == "http") {
+                            $prefix = \Pimcore::getContainer()->getParameter('pimcore.config')['assets']['frontend_prefixes']['source'];
+                            if ($prefix) {
+                                $path = substr($path, strlen($prefix)); 
+                            }
+                        }
+                        
+                        $asset = Asset::getByPath($path);
+                        if ($asset) {
+                            $getData->setDataFromEditmode([
+                                'id' => (int) $asset->getId(),
+                                "alt" => "",
+                                "cropPercent" => false,
+                                "cropWidth" => 0.0,
+                                "cropHeight" => 0.0,
+                                "cropTop" => 0.0,
+                                "cropLeft" => 0.0,
+                                "hotspots" => [],
+                                "marker" => [],
+                                "thumbnail" => null
+                            ]);
+                        }
+                    } 
                 }
                 $document->save();
                 return ['status' => 200, 'messsage' => 'Success'];
@@ -721,6 +723,7 @@ class FieldServices
                         $dataBlocks = [];
 
                         $getData = $document->getEditable($key);
+                        // dd($value);
                         foreach ($value as $l => $val) {
                             $i++;
                             $dataBlocks[] = $i;
