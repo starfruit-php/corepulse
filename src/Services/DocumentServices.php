@@ -480,7 +480,7 @@ class DocumentServices
         }
         if ($v->type == 'image') {
             $path = $v->value;
-            if ($path) {
+            if (!empty($path)) {
                 if (substr($path, 0, 4) == "http") {
                     $prefix = \Pimcore::getContainer()->getParameter('pimcore.config')['assets']['frontend_prefixes']['source'];
                     if ($prefix) {
