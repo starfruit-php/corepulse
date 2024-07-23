@@ -21,7 +21,7 @@ class CacheController extends BaseController
     {
         $cache = Cache::clearAll();
 
-        return $cache;
+        return new JsonResponse(['data' => $cache]);
     }
 
 }
