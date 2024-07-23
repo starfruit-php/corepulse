@@ -1,6 +1,6 @@
 {
-  "_lodash-5eda4636.js": {
-    "file": "lodash-5eda4636.js",
+  "_lodash-9254cdc1.js": {
+    "file": "lodash-9254cdc1.js",
     "imports": [
       "js/app.js"
     ]
@@ -77,7 +77,7 @@
       "js/components/Pages/User/Listing.vue",
       "js/components/Pages/Version/Version.vue"
     ],
-    "file": "app-5e05fc26.js",
+    "file": "app-9e2ea079.js",
     "isEntry": true,
     "src": "js/app.js"
   },
@@ -89,7 +89,7 @@
     "css": [
       "LoginSetting-8d973995.css"
     ],
-    "file": "LoginSetting-83475c75.js",
+    "file": "LoginSetting-615ca67a.js",
     "imports": [
       "js/app.js"
     ],
@@ -97,7 +97,7 @@
     "src": "js/components/Admin/LoginSetting.vue"
   },
   "js/components/Admin/ObjectSetting.vue": {
-    "file": "ObjectSetting-a455686d.js",
+    "file": "ObjectSetting-09bf7d22.js",
     "imports": [
       "js/app.js"
     ],
@@ -105,7 +105,7 @@
     "src": "js/components/Admin/ObjectSetting.vue"
   },
   "js/components/Admin/ObjectSettingDetail.vue": {
-    "file": "ObjectSettingDetail-0086682f.js",
+    "file": "ObjectSettingDetail-ef73f88e.js",
     "imports": [
       "js/app.js"
     ],
@@ -120,7 +120,7 @@
     "css": [
       "Login-678c1ea3.css"
     ],
-    "file": "Login-e0c6acbb.js",
+    "file": "Login-7e1530d9.js",
     "imports": [
       "js/app.js"
     ],
@@ -128,7 +128,7 @@
     "src": "js/components/Auth/Login.vue"
   },
   "js/components/Pages/AccessDiend.vue": {
-    "file": "AccessDiend-d9167c30.js",
+    "file": "AccessDiend-459d076c.js",
     "imports": [
       "js/components/Pages/Layout/Layout.vue",
       "js/app.js"
@@ -137,7 +137,7 @@
     "src": "js/components/Pages/AccessDiend.vue"
   },
   "js/components/Pages/Asset/Asset.vue": {
-    "file": "Asset-ec6ef909.js",
+    "file": "Asset-7c8aaad1.js",
     "imports": [
       "js/app.js",
       "js/components/Pages/Layout/Layout.vue",
@@ -154,7 +154,7 @@
     "css": [
       "AssetDetail-47a87114.css"
     ],
-    "file": "AssetDetail-ee9d5b61.js",
+    "file": "AssetDetail-1d1aa851.js",
     "imports": [
       "js/components/Pages/Layout/Layout.vue",
       "js/app.js"
@@ -163,7 +163,7 @@
     "src": "js/components/Pages/Asset/AssetDetail.vue"
   },
   "js/components/Pages/Asset/ModalAsset/ModalEditName.vue": {
-    "file": "ModalEditName-608b421f.js",
+    "file": "ModalEditName-64a9e0ab.js",
     "imports": [
       "js/app.js"
     ],
@@ -178,7 +178,7 @@
     "css": [
       "Layout-e67393fe.css"
     ],
-    "file": "Layout-c7567681.js",
+    "file": "Layout-bb768d5e.js",
     "imports": [
       "js/components/Pages/Layout/Layout.vue",
       "js/app.js"
@@ -194,7 +194,7 @@
     "css": [
       "LayoutDocument-353b2404.css"
     ],
-    "file": "LayoutDocument-71070112.js",
+    "file": "LayoutDocument-6ca86bbd.js",
     "imports": [
       "js/components/Pages/Layout/Layout.vue",
       "js/app.js",
@@ -212,7 +212,7 @@
     "css": [
       "Dashboard-22d9d234.css"
     ],
-    "file": "Dashboard-45012ddb.js",
+    "file": "Dashboard-a5a04d91.js",
     "imports": [
       "js/components/Pages/Layout/Layout.vue",
       "js/app.js"
@@ -228,7 +228,7 @@
     "css": [
       "Detail-96774b8a.css"
     ],
-    "file": "Detail-8bc45a10.js",
+    "file": "Detail-8be3af10.js",
     "imports": [
       "js/components/Pages/Layout/Layout.vue",
       "js/app.js",
@@ -250,7 +250,7 @@
     "css": [
       "Email-3677cc9c.css"
     ],
-    "file": "Email-0206d3b9.js",
+    "file": "Email-be502e4f.js",
     "imports": [
       "js/components/Pages/Layout/Layout.vue",
       "js/app.js",
@@ -267,7 +267,7 @@
     "css": [
       "Email-3677cc9c.css"
     ],
-    "file": "Listing-f399df51.js",
+    "file": "Listing-647053b1.js",
     "imports": [
       "js/components/Pages/Layout/Layout.vue",
       "js/app.js",
@@ -277,7 +277,7 @@
     "src": "js/components/Pages/Document/Listing.vue"
   },
   "js/components/Pages/Document/ModalDoc/DataDocField.vue": {
-    "file": "DataDocField-13b321ed.js",
+    "file": "DataDocField-e9f8293f.js",
     "imports": [
       "js/app.js"
     ],
@@ -285,7 +285,7 @@
     "src": "js/components/Pages/Document/ModalDoc/DataDocField.vue"
   },
   "js/components/Pages/Document/ModalDoc/ModalAddNew.vue": {
-    "file": "ModalAddNew-6c8b0242.js",
+    "file": "ModalAddNew-c2c6280e.js",
     "imports": [
       "js/components/Pages/Document/ModalDoc/ModalCreatePage.vue",
       "js/app.js"
@@ -301,7 +301,7 @@
     "css": [
       "ModalAreaBlock-5aca4b62.css"
     ],
-    "file": "ModalAreaBlock-2100bb5a.js",
+    "file": "ModalAreaBlock-fce720b8.js",
     "imports": [
       "js/components/Pages/Document/ModalDoc/ModalFeaturette.vue",
       "js/app.js",
@@ -318,7 +318,7 @@
     "css": [
       "ModalBlockEditable-649c32a5.css"
     ],
-    "file": "ModalBlockEditable-0ae4ecc7.js",
+    "file": "ModalBlockEditable-49742f88.js",
     "imports": [
       "js/components/Pages/Document/ModalDoc/ModalVideo.vue",
       "js/app.js"
@@ -327,7 +327,7 @@
     "src": "js/components/Pages/Document/ModalDoc/ModalBlockEditable.vue"
   },
   "js/components/Pages/Document/ModalDoc/ModalCreatePage.vue": {
-    "file": "ModalCreatePage-2142e658.js",
+    "file": "ModalCreatePage-05f40770.js",
     "imports": [
       "js/app.js"
     ],
@@ -342,7 +342,7 @@
     "css": [
       "ModalFeaturette-839bd6e7.css"
     ],
-    "file": "ModalFeaturette-44eff2a9.js",
+    "file": "ModalFeaturette-63ed36d4.js",
     "imports": [
       "js/components/Pages/Document/ModalDoc/ModalVideo.vue",
       "js/app.js"
@@ -358,7 +358,7 @@
     "css": [
       "ModalScheduled-0c2b7dda.css"
     ],
-    "file": "ModalScheduled-e5779f0c.js",
+    "file": "ModalScheduled-fe98eedc.js",
     "imports": [
       "js/components/Pages/Document/ModalDoc/ModalVideo.vue",
       "js/app.js"
@@ -367,7 +367,7 @@
     "src": "js/components/Pages/Document/ModalDoc/ModalScheduled.vue"
   },
   "js/components/Pages/Document/ModalDoc/ModalVideo.vue": {
-    "file": "ModalVideo-f2c6d022.js",
+    "file": "ModalVideo-5aa2e24f.js",
     "imports": [
       "js/app.js"
     ],
@@ -375,7 +375,7 @@
     "src": "js/components/Pages/Document/ModalDoc/ModalVideo.vue"
   },
   "js/components/Pages/Document/ModalDoc/ModalViewPath.vue": {
-    "file": "ModalViewPath-627330da.js",
+    "file": "ModalViewPath-e97c28c5.js",
     "imports": [
       "js/app.js"
     ],
@@ -390,7 +390,7 @@
     "css": [
       "rawDisplay-6d547b68.css"
     ],
-    "file": "rawDisplay-f9b4d4ce.js",
+    "file": "rawDisplay-7ae1783b.js",
     "imports": [
       "js/app.js"
     ],
@@ -405,7 +405,7 @@
     "css": [
       "Layout-b1e1231a.css"
     ],
-    "file": "Layout-cef4cae2.js",
+    "file": "Layout-b980779b.js",
     "imports": [
       "js/app.js"
     ],
@@ -413,7 +413,7 @@
     "src": "js/components/Pages/Layout/Layout.vue"
   },
   "js/components/Pages/Notification/Layout.vue": {
-    "file": "Layout-7255463a.js",
+    "file": "Layout-f3bbd6fd.js",
     "imports": [
       "js/components/Pages/Layout/Layout.vue",
       "js/app.js"
@@ -422,7 +422,7 @@
     "src": "js/components/Pages/Notification/Layout.vue"
   },
   "js/components/Pages/Notification/Listing.vue": {
-    "file": "Listing-121670af.js",
+    "file": "Listing-1aab40e1.js",
     "imports": [
       "js/components/Pages/Layout/Layout.vue",
       "js/app.js"
@@ -431,9 +431,9 @@
     "src": "js/components/Pages/Notification/Listing.vue"
   },
   "js/components/Pages/Object/Create.vue": {
-    "file": "Create-61b9b6af.js",
+    "file": "Create-2f3ab1a3.js",
     "imports": [
-      "_lodash-5eda4636.js",
+      "_lodash-9254cdc1.js",
       "js/components/Pages/Layout/Layout.vue",
       "js/app.js"
     ],
@@ -448,7 +448,7 @@
     "css": [
       "Detail-deaec77b.css"
     ],
-    "file": "Detail-53ac1b42.js",
+    "file": "Detail-e7ffd193.js",
     "imports": [
       "js/app.js",
       "js/components/Pages/Layout/Layout.vue"
@@ -457,7 +457,7 @@
     "src": "js/components/Pages/Object/Detail.vue"
   },
   "js/components/Pages/Object/Listing.vue": {
-    "file": "Listing-cec74074.js",
+    "file": "Listing-eb472b32.js",
     "imports": [
       "js/components/Pages/Layout/Layout.vue",
       "js/app.js"
@@ -466,7 +466,7 @@
     "src": "js/components/Pages/Object/Listing.vue"
   },
   "js/components/Pages/Plausible/ModalPlau/ModalMetric.vue": {
-    "file": "ModalMetric-2e69a5de.js",
+    "file": "ModalMetric-d2856bb3.js",
     "imports": [
       "js/app.js"
     ],
@@ -474,7 +474,7 @@
     "src": "js/components/Pages/Plausible/ModalPlau/ModalMetric.vue"
   },
   "js/components/Pages/Plausible/ModalPlau/ModalPoperty.vue": {
-    "file": "ModalPoperty-6a61a7df.js",
+    "file": "ModalPoperty-8a9efd82.js",
     "imports": [
       "js/app.js"
     ],
@@ -482,7 +482,7 @@
     "src": "js/components/Pages/Plausible/ModalPlau/ModalPoperty.vue"
   },
   "js/components/Pages/Plausible/Setting.vue": {
-    "file": "Setting-373f2985.js",
+    "file": "Setting-e89c67e4.js",
     "imports": [
       "js/app.js",
       "js/components/Pages/Layout/Layout.vue"
@@ -498,7 +498,7 @@
     "css": [
       "Widget-0a2abc45.css"
     ],
-    "file": "Widget-e2635767.js",
+    "file": "Widget-b27ad8ab.js",
     "imports": [
       "js/components/Pages/Layout/Layout.vue",
       "js/app.js",
@@ -509,7 +509,7 @@
     "src": "js/components/Pages/Plausible/Widget.vue"
   },
   "js/components/Pages/Product/Listing.vue": {
-    "file": "Listing-6cd9d013.js",
+    "file": "Listing-f40b564d.js",
     "imports": [
       "js/components/Pages/Layout/Layout.vue",
       "js/app.js"
@@ -518,7 +518,7 @@
     "src": "js/components/Pages/Product/Listing.vue"
   },
   "js/components/Pages/Profile.vue": {
-    "file": "Profile-d59e2128.js",
+    "file": "Profile-fc64e555.js",
     "imports": [
       "js/app.js",
       "js/components/Pages/Layout/Layout.vue"
@@ -527,7 +527,7 @@
     "src": "js/components/Pages/Profile.vue"
   },
   "js/components/Pages/Report/View.vue": {
-    "file": "View-fdc0688a.js",
+    "file": "View-d8972e12.js",
     "imports": [
       "js/app.js",
       "js/components/Pages/Layout/Layout.vue"
@@ -536,7 +536,7 @@
     "src": "js/components/Pages/Report/View.vue"
   },
   "js/components/Pages/Role/Create.vue": {
-    "file": "Create-9b2d7fd9.js",
+    "file": "Create-8da09a8b.js",
     "imports": [
       "js/components/Pages/Layout/Layout.vue",
       "js/app.js"
@@ -545,7 +545,7 @@
     "src": "js/components/Pages/Role/Create.vue"
   },
   "js/components/Pages/Role/Detail.vue": {
-    "file": "Detail-c546b2bb.js",
+    "file": "Detail-7a4ad897.js",
     "imports": [
       "js/components/Pages/Layout/Layout.vue",
       "js/app.js"
@@ -554,7 +554,7 @@
     "src": "js/components/Pages/Role/Detail.vue"
   },
   "js/components/Pages/Role/Listing.vue": {
-    "file": "Listing-df3ea8e0.js",
+    "file": "Listing-44ea53df.js",
     "imports": [
       "js/components/Pages/Layout/Layout.vue",
       "js/app.js",
@@ -564,7 +564,7 @@
     "src": "js/components/Pages/Role/Listing.vue"
   },
   "js/components/Pages/Role/ModalCreate.vue": {
-    "file": "ModalCreate-8e9e70a1.js",
+    "file": "ModalCreate-b38c82cf.js",
     "imports": [
       "js/app.js"
     ],
@@ -572,7 +572,7 @@
     "src": "js/components/Pages/Role/ModalCreate.vue"
   },
   "js/components/Pages/Role/ModalSelected.vue": {
-    "file": "ModalSelected-b7e008cf.js",
+    "file": "ModalSelected-7e57df60.js",
     "imports": [
       "js/app.js"
     ],
@@ -580,7 +580,7 @@
     "src": "js/components/Pages/Role/ModalSelected.vue"
   },
   "js/components/Pages/Seo/HttpError.vue": {
-    "file": "HttpError-295d9ac9.js",
+    "file": "HttpError-92b412ae.js",
     "imports": [
       "js/components/Pages/Layout/Layout.vue",
       "js/app.js",
@@ -598,7 +598,7 @@
     "css": [
       "Indexing-7ba5f03e.css"
     ],
-    "file": "Indexing-a7746286.js",
+    "file": "Indexing-b4eb3d45.js",
     "imports": [
       "js/components/Pages/Layout/Layout.vue",
       "js/app.js"
@@ -607,7 +607,7 @@
     "src": "js/components/Pages/Seo/Indexing.vue"
   },
   "js/components/Pages/Seo/ModalSeo/ModalRedirectEdit.vue": {
-    "file": "ModalRedirectEdit-b3a3f6b0.js",
+    "file": "ModalRedirectEdit-9491cdf3.js",
     "imports": [
       "js/app.js"
     ],
@@ -615,7 +615,7 @@
     "src": "js/components/Pages/Seo/ModalSeo/ModalRedirectEdit.vue"
   },
   "js/components/Pages/Seo/ModalSeo/ModalView.vue": {
-    "file": "ModalView-78843e95.js",
+    "file": "ModalView-bc4457a0.js",
     "imports": [
       "js/app.js"
     ],
@@ -630,7 +630,7 @@
     "css": [
       "Indexing-7ba5f03e.css"
     ],
-    "file": "Sitemap-8c70dd6d.js",
+    "file": "Sitemap-f774b2d0.js",
     "imports": [
       "js/components/Pages/Layout/Layout.vue",
       "js/app.js"
@@ -639,7 +639,7 @@
     "src": "js/components/Pages/Seo/Sitemap.vue"
   },
   "js/components/Pages/Setting/Setting.vue": {
-    "file": "Setting-afaf10bf.js",
+    "file": "Setting-c8d3afa4.js",
     "imports": [
       "js/app.js",
       "js/components/Pages/Layout/Layout.vue"
@@ -655,7 +655,7 @@
     "css": [
       "Test-bbdca395.css"
     ],
-    "file": "Test-0885fdd6.js",
+    "file": "Test-c922ba01.js",
     "imports": [
       "js/components/Pages/Layout/Layout.vue",
       "js/app.js"
@@ -664,7 +664,7 @@
     "src": "js/components/Pages/Test.vue"
   },
   "js/components/Pages/Translations/Listing.vue": {
-    "file": "Listing-92330825.js",
+    "file": "Listing-44998a81.js",
     "imports": [
       "js/components/Pages/Layout/Layout.vue",
       "js/components/Pages/Translations/ModalTranslations/ModalEdit.vue",
@@ -675,7 +675,7 @@
     "src": "js/components/Pages/Translations/Listing.vue"
   },
   "js/components/Pages/Translations/ModalTranslations/ModalCreate.vue": {
-    "file": "ModalCreate-ae50c23d.js",
+    "file": "ModalCreate-12ff0927.js",
     "imports": [
       "js/app.js"
     ],
@@ -683,7 +683,7 @@
     "src": "js/components/Pages/Translations/ModalTranslations/ModalCreate.vue"
   },
   "js/components/Pages/Translations/ModalTranslations/ModalEdit.vue": {
-    "file": "ModalEdit-f289bfe2.js",
+    "file": "ModalEdit-e2586569.js",
     "imports": [
       "js/app.js"
     ],
@@ -691,7 +691,7 @@
     "src": "js/components/Pages/Translations/ModalTranslations/ModalEdit.vue"
   },
   "js/components/Pages/User/Create.vue": {
-    "file": "Create-22d59549.js",
+    "file": "Create-e3dac93d.js",
     "imports": [
       "js/components/Pages/Layout/Layout.vue",
       "js/app.js"
@@ -700,7 +700,7 @@
     "src": "js/components/Pages/User/Create.vue"
   },
   "js/components/Pages/User/Detail.vue": {
-    "file": "Detail-b266da22.js",
+    "file": "Detail-9be42883.js",
     "imports": [
       "js/components/Pages/Layout/Layout.vue",
       "js/app.js"
@@ -709,7 +709,7 @@
     "src": "js/components/Pages/User/Detail.vue"
   },
   "js/components/Pages/User/Listing.vue": {
-    "file": "Listing-4e596a0a.js",
+    "file": "Listing-c0e0e49e.js",
     "imports": [
       "js/components/Pages/Layout/Layout.vue",
       "js/app.js"
@@ -718,10 +718,10 @@
     "src": "js/components/Pages/User/Listing.vue"
   },
   "js/components/Pages/Version/Version.vue": {
-    "file": "Version-e6bdcd4e.js",
+    "file": "Version-bf1a5a2b.js",
     "imports": [
       "js/components/Pages/Layout/Layout.vue",
-      "_lodash-5eda4636.js",
+      "_lodash-9254cdc1.js",
       "js/app.js"
     ],
     "isDynamicEntry": true,
