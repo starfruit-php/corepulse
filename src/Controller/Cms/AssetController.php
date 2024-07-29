@@ -29,6 +29,15 @@ class AssetController extends BaseController
 
     /**
      *
+     * @Route("/listing-new", name="vuetify_asset_new", methods={"GET","POST"}, options={"expose"=true})
+     */
+    public function assetNew(Request $request)
+    {
+        return $this->renderWithInertia('Pages/Asset/AssetNew');
+    }
+
+    /**
+     *
      * @Route("/listing", name="vuetify_asset", methods={"GET","POST"}, options={"expose"=true})
      */
     public function listing(Request $request)

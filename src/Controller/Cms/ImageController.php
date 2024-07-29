@@ -85,6 +85,10 @@ class ImageController extends BaseController
 
         $pathFolder = $request->get('path');
 
+        $order_by = $request->get('order_by') ? $request->get('order_by') : 'mimetype';
+        $order = $request->get('order') ? $request->get('order') : 'ASC';
+
+
         if ($pathFolder) {
             $item = Asset::getByPath($pathFolder);
             if ($item) {
@@ -130,7 +134,7 @@ class ImageController extends BaseController
             }
         }
 
-        if ($types) {
+        if ($types && ($types != "undefined")) {
             $types = explode(',', $types);
             $conditionTypes = '';
             for ($i = 0; $i < count($types); $i++) {
@@ -144,15 +148,15 @@ class ImageController extends BaseController
             $conditionQuery .= ' AND (' . $conditionTypes . ')';
         }
 
-        if (isset($search) && !empty($search)) {
+        if (isset($search) && !empty($search) && ($search != "undefined")) {
             $conditionQuery .= ' AND LOWER(filename) LIKE LOWER(:search) AND type != "folder"';
             $conditionParams['search'] = '%' . $search . '%';
         }
 
         $listingAsset = new \Pimcore\Model\Asset\Listing();
         $listingAsset->setCondition($conditionQuery, $conditionParams);
-        $listingAsset->setOrderKey('mimetype');
-        $listingAsset->setOrder('ASC');
+        $listingAsset->setOrderKey($order_by);
+        $listingAsset->setOrder($order);
 
         $images = [];
 
