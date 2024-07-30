@@ -54,7 +54,7 @@ class ImportController extends BaseController
         }
         if ($type == "hotel") {
             foreach ($result as $item) {
-                $point = new \Pimcore\Model\DataObject\Data\GeoCoordinates($item['latitude'], $item['longtitude']);
+                $point = new \Pimcore\Model\DataObject\Data\GeoCoordinates((float)$item['latitude'], (float)$item['longtitude']);
 
                 $fullPath = '/Hotel/' .  $item['name'];
                 $hotel = Hotel::getByPath($fullPath);
@@ -100,6 +100,11 @@ class ImportController extends BaseController
 
                 $tour->save();
 
+                $hotelItem = Hotel::getByIdVtTour($item['id'], 1);
+                if ($hotelItem) {
+                    $hotelItem->setVtTour($tour);
+                    $hotelItem->save();
+                }
             }
             return new JsonResponse(['status' => 200, 'message' => 'Your data has been added, please go to the "Tour" folder to check']);
 
