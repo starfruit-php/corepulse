@@ -75,6 +75,7 @@ class DatabaseServices
             ADD COLUMN IF NOT EXISTS `language` varchar(255) DEFAULT NULL,
             ADD COLUMN IF NOT EXISTS `createAt` timestamp DEFAULT current_timestamp(),
             ADD COLUMN IF NOT EXISTS `updateAt` timestamp DEFAULT current_timestamp() ON UPDATE current_timestamp();
+            ADD COLUMN IF NOT EXISTS `time` varchar(255) DEFAULT NULL,
         ";
 
         Db::get()->executeQuery($query);

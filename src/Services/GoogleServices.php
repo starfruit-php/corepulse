@@ -44,10 +44,10 @@ class GoogleServices
 
             $connect = self::connectGoogleIndex($params['value']);
 
-            $setting = Option::getByName('indexing-setting');
+            $setting = Option::getByName('index-setting');
             if (!$setting) {
                 $setting = new Option();
-                $setting->setName('indexing-setting');
+                $setting->setName('index-setting');
             } else {
                 $oldContent = $setting->getContent() ? json_decode($setting->getContent(), true) : [];
                 if (isset($oldContent['type'])) {
@@ -95,7 +95,7 @@ class GoogleServices
         ];
 
         try {
-            $setting = Option::getByName('indexing-setting');
+            $setting = Option::getByName('index-setting');
             if ($setting) {
                 $content = json_decode($setting->getContent(), true);
 
@@ -127,7 +127,7 @@ class GoogleServices
     {
         $data = null;
 
-        $setting = Option::getByName('indexing-setting');
+        $setting = Option::getByName('index-setting');
         if ($setting) {
             $content = json_decode($setting->getContent(), true);
             $data = $content['value'];

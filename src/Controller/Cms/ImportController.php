@@ -77,7 +77,18 @@ class ImportController extends BaseController
 
             }
             return new JsonResponse(['status' => 200, 'message' => 'Your data has been added, please go to the "Hotel" folder to check']);
+        }
 
+        if ($type == "booking_link") {
+            foreach ($result as $item) {
+                $hotelItem = Hotel::getByIdVtTour($item['property_id'], 1);
+
+                if ($hotelItem) {
+                    $hotelItem->setBooking($item['book_now_link']);
+                    $hotelItem->save();
+                }    
+            }
+            return new JsonResponse(['status' => 200, 'message' => 'Your data has been added, please go to the "Hotel" folder to check']);
         }
 
 
@@ -106,7 +117,7 @@ class ImportController extends BaseController
                     $hotelItem->save();
                 }
             }
-            return new JsonResponse(['status' => 200, 'message' => 'Your data has been added, please go to the "Tour" folder to check']);
+            return new JsonResponse(['status' => 200, 'message' => 'You have successfully imported BOOKING data']);
 
         } else {
             if ($type == "scene") {
