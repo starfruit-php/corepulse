@@ -58,7 +58,7 @@ services:
     tags:
       - { name: kernel.event_listener, event: pimcore.dataobject.postAdd, method: postObjectAdd }
       - { name: kernel.event_listener, event: pimcore.dataobject.postUpdate, method: postObjectUpdate }
-      - { name: kernel.event_listener, event: pimcore.dataobject.preDelete, method: postObjectDelete }
+      - { name: kernel.event_listener, event: pimcore.dataobject.postDelete, method: postObjectDelete }
       - { name: kernel.event_listener, event: pimcore.document.postAdd, method: postDocumentAdd }
       - { name: kernel.event_listener, event: pimcore.document.postUpdate, method: postDocumentUpdate }
-      - { name: kernel.event_listener, event: pimcore.document.preDelete, method: postDocumentDelete }
+      - { name: kernel.event_listener, event: pimcore.document.postDelete, method: postDocumentDelete }

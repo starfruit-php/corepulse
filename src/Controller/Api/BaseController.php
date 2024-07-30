@@ -11,18 +11,20 @@ use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Symfony\Component\HttpFoundation\Request;
+use Knp\Component\Pager\PaginatorInterface;
 
 class BaseController extends FrontendController
 {
-
     protected $request;
     protected $translator;
     protected $validator;
+    protected $paginator;
 
     public function __construct(
-        RequestStack $requestStack, 
-        Translator $translator, 
-        ValidatorInterface $validator
+        RequestStack $requestStack,
+        Translator $translator,
+        ValidatorInterface $validator,
+        PaginatorInterface $paginator
         )
     {
         $this->request = $requestStack->getCurrentRequest();
@@ -34,7 +36,7 @@ class BaseController extends FrontendController
         }
 
         $this->validator = new Validator($validator, $this->translator);
-
+        $this->paginator = $paginator;
     }
 
      /**
@@ -42,7 +44,7 @@ class BaseController extends FrontendController
      */
     public function setLocaleRequest()
     {
-      
+
         if ($this->request->get('_locale')) {
             $this->request->setLocale($this->request->get('_locale'));
         }
@@ -79,7 +81,7 @@ class BaseController extends FrontendController
      */
     public function sendError($error, $statusCode = Response::HTTP_BAD_REQUEST)
     {
- 
+
         // log if status code = 500
         if ($statusCode == Response::HTTP_INTERNAL_SERVER_ERROR) {
             // Lưu log vào db hoặc file
@@ -111,6 +113,20 @@ class BaseController extends FrontendController
         return [$page, $limit, $condition];
     }
 
+    /**
+     * Paginator helper.
+     */
+    public function paginator($listing, $page, $limit)
+    {
+        $pagination = $this->paginator->paginate(
+            $listing,
+            $page,
+            $limit,
+        );
+
+        return $pagination;
+    }
+    
     public function helperPaginator($paginator, $listing, $page = 1, $limit = 10)
     {
         $pagination = $paginator->paginate(
@@ -134,7 +150,7 @@ class BaseController extends FrontendController
         }
         return false;
     }
-    
+
     public function getLastest($object)
     {
         $versions = $object->getVersions();

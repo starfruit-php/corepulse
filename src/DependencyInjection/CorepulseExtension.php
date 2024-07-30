@@ -29,6 +29,8 @@ class CorepulseExtension extends Extension implements PrependExtensionInterface
         $loader->load('services.yaml');
         $loader->load('parameters.yaml');
         $container->setParameter('corepulse_admin.sidebar', $config['sidebar'] ?? null);
+        $container->setParameter('corepulse.event_listener.update_indexing', isset($config['event_listener']) && isset($config['event_listener']['update_indexing']) ?  $config['event_listener']['update_indexing'] : null);
+        $container->setParameter('corepulse.event_listener.inspection_index', isset($config['event_listener']) && isset($config['event_listener']['inspection_index']) ?  $config['event_listener']['inspection_index'] : null);
     }
 
     public function prepend(ContainerBuilder $container): void

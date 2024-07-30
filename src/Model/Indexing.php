@@ -19,9 +19,19 @@ class Indexing extends AbstractModel
 
     public ?string $response = null;
 
+    public ?string $updateAt = null;
+
     public ?string $createAt = null;
 
-    public ?string $updateAt = null;
+    public ?string $internalType = null;
+
+    public ?string $internalValue = null;
+
+    public ?string $status = null;
+
+    public ?string $result = null;
+
+    public ?string $language = null;
 
     public function getClass()
     {
@@ -79,6 +89,32 @@ class Indexing extends AbstractModel
             return $obj;
         } catch (NotFoundException $ex) {
             \Pimcore\Logger::warn("indexing with response $response not found");
+        }
+
+        return null;
+    }
+
+    public static function getByInternalValue(string $internalValue): ?self
+    {
+        try {
+            $obj = new self;
+            $obj->getDao()->getByInternalValue($internalValue);
+            return $obj;
+        } catch (NotFoundException $ex) {
+            \Pimcore\Logger::warn("indexing with type $internalValue not found");
+        }
+
+        return null;
+    }
+
+    public static function getByInternalType(string $internalType): ?self
+    {
+        try {
+            $obj = new self;
+            $obj->getDao()->getByInternalType($internalType);
+            return $obj;
+        } catch (NotFoundException $ex) {
+            \Pimcore\Logger::warn("indexing with response $internalType not found");
         }
 
         return null;
@@ -154,20 +190,71 @@ class Indexing extends AbstractModel
         return $this->updateAt;
     }
 
+    public function setInternalType(string $internalType): void
+    {
+        $this->internalType = $internalType;
+    }
+
+    public function getInternalType(): ?string
+    {
+        return $this->internalType;
+    }
+
+    public function setInternalValue(string $internalValue): void
+    {
+        $this->internalValue = $internalValue;
+    }
+
+    public function getInternalValue(): ?string
+    {
+        return $this->internalValue;
+    }
+
+    public function setStatus(string $status): void
+    {
+        $this->status = $status;
+    }
+
+    public function getStatus(): ?string
+    {
+        return $this->status;
+    }
+
+    public function setLanguage(string $language): void
+    {
+        $this->language = $language;
+    }
+
+    public function getLanguage(): ?string
+    {
+        return $this->language;
+    }
+
+    public function setResult(string $result): void
+    {
+        $this->result = $result;
+    }
+
+    public function getResult(): ?string
+    {
+        return $this->result;
+    }
+
     public function getDataJson(): array
     {
         $result = [
             'id' => $this->getId(),
             'url' => $this->getUrl(),
+            'time' => $this->getTime() ? $this->getTime() : $this->getUpdateAt(),
+            'type' => $this->getType(),
+            'response' => $this->getResponse(),
             'createAt' => $this->getCreateAt(),
             'updateAt' => $this->getUpdateAt(),
+            'internalType' => $this->getInternalType(),
+            'internalValue' => $this->getInternalValue(),
+            'status' => $this->getStatus(),
+            'result' => json_decode($this->getResult(), true),
         ];
-
-        $data = $this->getData() ? json_decode($this->getData(), true): [];
-
-        foreach ($data as $key => $value) {
-            $result[$key] = $value;
-        }
 
         return $result;
     }

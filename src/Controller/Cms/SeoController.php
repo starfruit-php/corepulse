@@ -9,15 +9,15 @@ use Symfony\Component\HttpFoundation\Request;
 use Knp\Component\Pager\PaginatorInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Starfruit\BuilderBundle\Model\Seo;
-use Symfony\Component\HttpFoundation\Response;
 use Pimcore\Bundle\SeoBundle\Model\Redirect;
 use Pimcore\Model\Document;
 use Pimcore\Db;
-use Pimcore\Bundle\SeoBundle\Redirect\RedirectHandler;
 use Starfruit\BuilderBundle\Sitemap\Setting;
-use Starfruit\BuilderBundle\Config\ObjectConfig;
-use Starfruit\BuilderBundle\Model\Option;
 use CorepulseBundle\Model\Indexing;
+use CorepulseBundle\Services\APIService;
+use CorepulseBundle\Services\GoogleServices;
+use CorepulseBundle\Services\ReportServices;
+use Firebase\JWT\JWT;
 
 /**
  * @Route("/seo")
@@ -118,11 +118,14 @@ class SeoController extends BaseController
         }
 
         $type = $request->get('type');
-        if (!$type) {
-            $type = 'create';
-        }
+        if (!$type) $type = 'create';
 
-        $data = SeoServices::submitIndex($request->get('url'));
+        $params = [
+            'type' => $type,
+            'url' => $request->get('url'),
+        ];
+
+        $data = GoogleServices::submitIndex($params);
 
         return new JsonResponse($data);
     }
@@ -141,7 +144,7 @@ class SeoController extends BaseController
         $listing = new Indexing\Listing();
 
         if (!$orderKey) {
-            $orderKey = 'updateAt';
+            $orderKey = 'time';
         }
 
         if (!$order) {
@@ -185,13 +188,9 @@ class SeoController extends BaseController
 
         $listData = [];
         foreach ($listing as $item) {
-            $listData[] = [
-                'id' => $item->getId(),
-                'time' => $item->getTime() ? $item->getTime() : $item->getUpdateAt(),
-                'url' => $item->getUrl(),
-                'type' => $item->getType(),
-                'response' => $item->getResponse(),
-            ];
+            $data = $item->getDataJson();
+
+            $listData[] = array_merge($data, $data["result"]["indexStatusResult"]);
         }
 
         $fields = [];
@@ -217,22 +216,134 @@ class SeoController extends BaseController
     }
 
     /**
-     * @Route("/indexing/delete", name="seo_indexing_delete", methods={"POST"}, options={"expose"=true}))
+     * @Route("/indexing/status", name="seo_indexing_status", methods={"GET", "POST"}, options={"expose"=true}))
      */
-    public function indexingDelete(Request $request): JsonResponse
+    public function indexingStatus(Request $request): JsonResponse
     {
+        $listing = new Indexing\Listing();
+        $listing->setOrderKey('time');
+        $listing->setOrder('desc');
+        $listing->setCondition('`result` is not null');
+
+        $data = GoogleServices::filterIndexingStatus($listing);
+
+        return new JsonResponse($data);
+    }
+
+    /**
+     * @Route("/indexing/status/detail", name="seo_indexing_status_detail", methods={"GET", "POST"}, options={"expose"=true}))
+     */
+    public function indexingStatusDetail(Request $request): JsonResponse
+    {
+        $data = [];
+
+        $indexing = Indexing::getById((int)$request->get('id'));
+        if ($indexing) {
+            $data = $indexing->getDataJson();
+        }
+
+        return new JsonResponse($data);
+    }
+
+    /**
+     * @Route("/indexing/submit-type", name="seo_indexing_submit_type", methods={"GET", "POST"}, options={"expose"=true}))
+     */
+    public function indexingSubmitType(Request $request): JsonResponse
+    {
+
+
+        $type = $request->get('type');
+
         if ($request->get('all')) {
+            $boundary = '===============7330845974216740156==';
             $ids = $request->get('id');
-            foreach($ids as $id) {
+            $updateKey = 'URL_UPDATED';
+            $deleteKey = 'URL_DELETED';
+            $contentId = 'corepusleIndexing';
+            $batchRequestData = '';
+            foreach($ids as $key => $id) {
                 $option = Indexing::getById($id);
                 if ($option) {
-                    $option->delete();
+                    switch ($type) {
+                        case 'delete':
+                            $option->delete();
+                            break;
+
+                        case 'update-submit':
+                            $url = $option->getUrl();
+
+                            $batchRequestData .= "--$boundary\r\n";
+                            $batchRequestData .= "Content-Type: application/http\r\nContent-Transfer-Encoding: binary\r\n";
+                            $batchRequestData .= "Content-ID: <$contentId+$key>\r\n\r\n";
+                            $batchRequestData .= "POST /v3/urlNotifications:publish\r\n";
+                            $batchRequestData .= "Content-Type: application/json\r\naccept: application/json\r\n";
+                            $batchRequestData .= "content-length: " . strlen(json_encode(["url" => $url, "type" => $updateKey])) . "\r\n\r\n";
+                            $batchRequestData .= json_encode(["url" => $url, "type" => $updateKey]) . "\r\n";
+                            break;
+
+                        case 'delete-submit':
+                            $url = $option->getUrl();
+
+                            $batchRequestData .= "--$boundary\r\n";
+                            $batchRequestData .= "Content-Type: application/http\r\nContent-Transfer-Encoding: binary\r\n";
+                            $batchRequestData .= "Content-ID: <$contentId+$key>\r\n\r\n";
+                            $batchRequestData .= "POST /v3/urlNotifications:publish\r\n";
+                            $batchRequestData .= "Content-Type: application/json\r\naccept: application/json\r\n";
+                            $batchRequestData .= "content-length: " . strlen(json_encode(["url" => $url, "type" => $deleteKey])) . "\r\n\r\n";
+                            $batchRequestData .= json_encode(["url" => $url, "type" => $deleteKey]) . "\r\n";
+                            break;
+
+                        default:
+                            break;
+                    }
                 }
+            }
+
+            $batchRequestData .= "--$boundary--";
+            if ($type != 'delete') {
+                $token = GoogleServices::getAccessToken();
+
+                $batchRequestHeaders = [
+                    'Content-Length: ' . strlen($batchRequestData),
+                    'Content-Type: multipart/mixed; boundary="' . $boundary . '"',
+                    'Authorization: Bearer ' . $token
+                ];
+                $url = 'https://indexing.googleapis.com/batch';
+
+                $responseBody = APIService::curl($url, 'POST', $batchRequestData, $batchRequestHeaders);
+
+                dd($responseBody);
             }
         } else {
             $option = Indexing::getById($request->get('id'));
             if ($option) {
-                $option->delete();
+                switch ($type) {
+                    case 'delete':
+                        $option->delete();
+                        break;
+
+                    case 'update-submit':
+                        $params = [
+                            'type' => 'update',
+                            'indexing' => $option,
+                        ];
+
+                        $data = GoogleServices::submitIndex($params);
+
+                        break;
+
+                    case 'delete-submit':
+                        $params = [
+                            'type' => 'delete',
+                            'indexing' => $option,
+                        ];
+
+                        $data = GoogleServices::submitIndex($params);
+                        break;
+
+                    default:
+                        break;
+                }
             }
         }
 
@@ -247,35 +358,27 @@ class SeoController extends BaseController
     public function indexingSetting(Request $request)
     {
         if ($request->getMethod() == Request::METHOD_POST) {
-            $jsonFile = $request->get('json') ? $request->get('json') : '';
-            $file = $request->files->get('file');
-            $classes = $request->get('classes');
-            $documents = $request->get('documents');
+            $params = [
+                'type' => $request->get('type'),
+                'value' => $request->get('value'),
+                'classes' => $request->get('classes'),
+                'documents' => $request->get('documents'),
+            ];
 
-            $params = [];
-
-            if ($file) {
-                $params['file'] = $file;
+            if ($request->get('type') == 'file') {
+                $params['value'] = $request->files->get('value');
             }
 
-            if ($jsonFile) {
-                $params['json'] = $jsonFile;
+            if ($request->get('type') == 'json') {
+                $params['value'] = json_decode($request->get('value'), true);
             }
 
-            if ($classes) {
-                $params['classes'] = $classes;
-            }
+            $response = GoogleServices::setConfig($params);
 
-            if ($documents) {
-                $params['documents'] = $documents;
-            }
-
-            $data = SeoServices::setIndexSetting($params);
-
-            return new JsonResponse($data);
+            return new JsonResponse($response);
         }
 
-        $data = SeoServices::getIndexSetting(true);
+        $data =  GoogleServices::getConfig();
 
         return new JsonResponse($data);
     }

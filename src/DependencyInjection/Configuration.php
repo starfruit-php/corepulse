@@ -76,7 +76,17 @@ class Configuration implements ConfigurationInterface
                         ->booleanNode('cache')
                             ->defaultTrue()
                         ->end()
-                        
+
+                    ->end()
+                ->end()
+                ->arrayNode('event_listener')
+                    ->children()
+                        ->booleanNode('update_indexing')
+                            ->defaultFalse()
+                        ->end()
+                        ->booleanNode('inspection_index')
+                            ->defaultFalse()
+                        ->end()
                     ->end()
                 ->end()
             ->end();

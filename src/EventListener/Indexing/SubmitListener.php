@@ -9,6 +9,7 @@ use Starfruit\BuilderBundle\Config\ObjectConfig;
 use Starfruit\BuilderBundle\Tool\LanguageTool;
 use Pimcore\Model\DataObject\Folder;
 use Pimcore\Model\Document\Page;
+use CorepulseBundle\Services\GoogleServices;
 
 class SubmitListener
 {
@@ -60,48 +61,82 @@ class SubmitListener
 
     private function generateObject($object, $type)
     {
-        if (!($object instanceof Folder)) {
-            $setting = SeoServices::getIndexSetting(true);
-            if ($setting['data']) {
-                $className = $object->getClassName();
-                $action = array_filter($setting['classes'], function($item) use ($className) {
-                    return $item['name'] == $className;
-                });
-
-                if (isset($action) && $first = reset($action)) {
-                    if ($first['check']) {
-                        $languages = LanguageTool::getList();
-                        foreach ($languages as $language) {
-                            $objectConfig = new ObjectConfig($object);
-                            $url = $objectConfig->getSlug(['locale' => $language]);
-                            SeoServices::submitIndex($url, $type);
+        if(GoogleServices::eventConfig()) {
+            try {
+                if (!($object instanceof Folder)) {
+                    $setting = GoogleServices::getConfig();
+                    if ($setting['value']) {
+                        $action = $this->action($setting['classes'], 'name', $object->getClassName());
+    
+                        if (isset($action['check']) && $action['check']) {
+                            $languages = LanguageTool::getList();
+                            foreach ($languages as $language) {
+                                $objectConfig = new ObjectConfig($object);
+                                $url = $objectConfig->getSlug(['locale' => $language]);
+    
+                                $params = [
+                                    'url' => $url,
+                                    'type' => $type,
+                                    'objectOrDocument' => $object,
+                                    'language' => $language,
+                                ];
+                                GoogleServices::submitIndex($params);
+                            }
                         }
                     }
                 }
+            } catch (\Throwable $th) {
+                //throw $th;
             }
         }
     }
 
     private function generateDocument($document, $type)
     {
-        if ($document instanceof Page) {
-            $setting = SeoServices::getIndexSetting(true);
-            if ($setting['data']) {
-                $id = $document->getId();
-                $action = array_filter($setting['documents'], function($item) use ($id) {
-                    return $item['id'] == $id;
-                });
+        if(GoogleServices::eventConfig()) {
+            try {
+                if ($document instanceof Page) {
+                    $setting = GoogleServices::getConfig();
+                    if ($setting['value']) {
+                        $action = $this->action($setting['documents'], 'id', $document->getId());
+                        $check = false;
+                        $language = '';
 
-                if (isset($action) && $first = reset($action)) {
-                    if ($first['generateSitemap']) {
-                        $url = $document->getPrettyUrl();
-                        if (!$url) {
-                            $url = $document->getPath() . $document->getKey();
+                        if ((isset($action['generateSitemap']) && $action['generateSitemap']) || $type == 'delete') {
+                            $check = true;
+                            $language = isset($action['language']) ? $action['language'] : '';
                         }
-                        SeoServices::submitIndex($url, $type);
+
+                        if ($check) {
+                            $url = $document->getPrettyUrl();
+                            if (!$url) {
+                                $url = $document->getPath() . $document->getKey();
+                            }
+                            $params = [
+                                'url' => $url,
+                                'type' => $type,
+                                'objectOrDocument' => $document,
+                                'language' => $language,
+                            ];
+                            GoogleServices::submitIndex($params);
+                        }
                     }
                 }
+            } catch (\Throwable $th) {
             }
         }
+    }
+
+    private function action($array, $name, $search)
+    {
+        $action = array_filter($array, function($item) use ($name, $search) {
+            return $item[$name] == $search;
+        });
+
+        if (isset($action) && $first = reset($action)) {
+            return $first;
+        }
+
+        return null;
     }
 }

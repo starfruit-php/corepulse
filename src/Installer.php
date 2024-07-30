@@ -85,9 +85,14 @@ class Installer extends SettingsStoreAwareInstaller
         'corepulse_indexing' => 'CREATE TABLE `corepulse_indexing` (
             `id` int(11) NOT NULL AUTO_INCREMENT,
             `url` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+            `internalType` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+            `internalValue` int(11) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
             `type` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
             `time` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
             `response` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+            `status` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+            `result` longtext DEFAULT NULL,
+            `language` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
             `createAt` timestamp DEFAULT current_timestamp(),
             `updateAt` timestamp DEFAULT current_timestamp() ON UPDATE current_timestamp(),
             PRIMARY KEY (`id`)

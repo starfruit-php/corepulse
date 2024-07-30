@@ -90,6 +90,46 @@ class Dao extends AbstractDao
     }
 
     /**
+     * get indexing by internalValue
+     *
+     * @throws \Exception
+     */
+    public function getByInternalValue(?string $internalValue = null): void
+    {
+        if ($internalValue !== null) {
+            $this->model->setInternalValue($internalValue);
+        }
+
+        $data = $this->db->fetchAssociative('SELECT * FROM ' . $this->tableName . ' WHERE internalValue = ?', [$this->model->getInternalValue()]);
+
+        if (!$data) {
+            throw new NotFoundException("Object with the InternalValue " . $this->model->getInternalValue() . " doesn't exists");
+        }
+
+        $this->assignVariablesToModel($data);
+    }
+
+    /**
+     * get indexing by internalValue
+     *
+     * @throws \Exception
+     */
+    public function getByInternalType(?string $internalType = null): void
+    {
+        if ($internalType !== null) {
+            $this->model->setInternalType($internalType);
+        }
+
+        $data = $this->db->fetchAssociative('SELECT * FROM ' . $this->tableName . ' WHERE internalType = ?', [$this->model->getInternalType()]);
+
+        if (!$data) {
+            throw new NotFoundException("Object with the InternalType " . $this->model->getInternalType() . " doesn't exists");
+        }
+
+        $this->assignVariablesToModel($data);
+    }
+
+    /**
      * save indexing
      */
     public function save(): void
