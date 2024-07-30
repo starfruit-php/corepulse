@@ -25,6 +25,15 @@ class ImportController extends BaseController
         $path = $request->get('path');
         $type = $request->get('type');
 
+        if (!empty($path)) {
+            if (substr($path, 0, 4) == "http") {
+                $prefix = \Pimcore::getContainer()->getParameter('pimcore.config')['assets']['frontend_prefixes']['source'];
+                if ($prefix) {
+                    $path = substr($path, strlen($prefix)); 
+                }
+            }
+        }
+
         $file = Asset::getByPath($path);
         $csvData = $file->getData();
         $lines = explode("\n", $csvData);
@@ -45,6 +54,8 @@ class ImportController extends BaseController
         }
         if ($type == "hotel") {
             foreach ($result as $item) {
+                $point = new \Pimcore\Model\DataObject\Data\GeoCoordinates($item['latitude'], $item['longtitude']);
+
                 $fullPath = '/Hotel/' .  $item['name'];
                 $hotel = Hotel::getByPath($fullPath);
                 if (!$hotel) {
@@ -58,6 +69,8 @@ class ImportController extends BaseController
                 $hotel->setName($item['name']);
                 $hotel->setLocation($item['address']);
                 $hotel->setDescription($item['description']);
+                $hotel->setMap($point);
+
                 $hotel->setPublished(true);
 
                 $hotel->save();
