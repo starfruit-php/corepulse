@@ -27,6 +27,7 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Pimcore\Model\Element;
 use Pimcore\Model\DataObject\Concrete;
 use Pimcore\Model\Document\DocType;
+use Pimcore\Model\Tool;
 
 /**
  * @Route("/document")
@@ -721,7 +722,35 @@ class DocumentController extends BaseController
                     ];
                     $lisDocType[] = $type->getObjectVars();
                 }
-                // dd($document);
+
+                // lấy danh sách mail nếu document có type = mail
+                $listEmail = [];
+                if ($document->getType() == "email") {
+                    $list = new Tool\Email\Log\Listing();
+                    $list->setCondition('documentId = ' . (int)$document->getId());
+                    $list->setLimit(50);
+                    $list->setOffset(0);
+                    $list->setOrderKey('sentDate');
+                    $list->setOrder('DESC');
+                    
+
+                    $data = $list->load();
+                    foreach($data as $item) {
+                        
+                        $listEmail[] = [
+                            'from' => $item->getFrom(),
+                            'to' => $item->getTo(),
+                            'cc' => $item->getCc(),
+                            'bcc' => $item->getBcc(),
+                            'subject' => $item->getSubject(),
+                            'error' => $item->getError(),
+                            'bodyHtml' => $item->getBodyHtml(),
+                            'bodyText' => $item->getBodyText(),
+                            'sentDate' => date("M j, Y  H:i", $item->getSentDate()),
+                        ];
+                    }
+                }
+                // dd($listEmail);
                 $data = [
                     'id' => $document->getId() ?? '',
                     'title' => method_exists($document, 'getTitle') ? $document->getTitle() : $document->getKey(),
@@ -767,6 +796,7 @@ class DocumentController extends BaseController
                     'docTypes' => $docTypes,
                     'docType' => '',
                     'lisDocType' => $lisDocType,
+                    'listEmail' => $listEmail,
                 ];
                 // dd($data);
 

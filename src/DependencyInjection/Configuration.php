@@ -76,6 +76,9 @@ class Configuration implements ConfigurationInterface
                         ->booleanNode('cache')
                             ->defaultTrue()
                         ->end()
+                        ->booleanNode('import')
+                            ->defaultTrue()
+                        ->end()
 
                     ->end()
                 ->end()
