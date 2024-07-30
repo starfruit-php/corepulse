@@ -79,7 +79,7 @@ class ImportController extends BaseController
             return new JsonResponse(['status' => 200, 'message' => 'Your data has been added, please go to the "Hotel" folder to check']);
         }
 
-        if ($type == "booking_link") {
+        if ($type == "booking") {
             foreach ($result as $item) {
                 $hotelItem = Hotel::getByIdVtTour($item['property_id'], 1);
 
@@ -88,7 +88,7 @@ class ImportController extends BaseController
                     $hotelItem->save();
                 }    
             }
-            return new JsonResponse(['status' => 200, 'message' => 'Your data has been added, please go to the "Hotel" folder to check']);
+            return new JsonResponse(['status' => 200, 'message' => 'You have successfully imported BOOKING data']);
         }
 
 
@@ -117,7 +117,7 @@ class ImportController extends BaseController
                     $hotelItem->save();
                 }
             }
-            return new JsonResponse(['status' => 200, 'message' => 'You have successfully imported BOOKING data']);
+            return new JsonResponse(['status' => 200, 'message' => 'Your data has been added, please go to the "Tour" folder to check']);
 
         } else {
             if ($type == "scene") {
@@ -138,6 +138,7 @@ class ImportController extends BaseController
                             $scene->setParent(\Pimcore\Model\DataObject::getByPath($folder));
                         }
 
+                        $scene->setTourId($item['property_id']);
                         $scene->setSceneId($item['id']);
                         $scene->setVtSlug($item['vt_slug']);
                         $scene->setName($item['scene_name']);
