@@ -28,6 +28,8 @@ use Pimcore\Model\Element;
 use Pimcore\Model\DataObject\Concrete;
 use Pimcore\Model\Document\DocType;
 use Pimcore\Model\Tool;
+use Pimcore\Mail;
+use Symfony\Component\Mime\Address;
 
 /**
  * @Route("/document")
@@ -747,6 +749,7 @@ class DocumentController extends BaseController
                             'bodyHtml' => $item->getBodyHtml(),
                             'bodyText' => $item->getBodyText(),
                             'sentDate' => date("M j, Y  H:i", $item->getSentDate()),
+                            'params' => $item->getParams(),
                         ];
                     }
                 }
@@ -1137,6 +1140,65 @@ class DocumentController extends BaseController
         return null;
     }
 
+    /**
+     * @Route("/send-email-test", name="vuetify_send_email_test", methods={"POST", "GET"}, options={"expose"=true}))
+    */
+    public function sendEmailTest(Request $request)
+    {
+        $from = $request->get('from');
+        $to = $request->get('to');
+        $subject = $request->get('subject');
+        $content = $request->get('content');
+        $emailType = $request->get('type');
+        $documentPath = $request->get('documentPath');
+       
+        $mail = new Mail();
+
+        if ($emailType == 'text') {
+            $mail->text($content);
+        } elseif ($emailType == 'html') {
+            $mail->html($content);
+        } elseif ($emailType == 'document') {
+            $doc = \Pimcore\Model\Document::getByPath($documentPath);
+
+            if ($doc instanceof \Pimcore\Model\Document\Email) {
+                $mail->setDocument($doc);
+
+                if ($request->get('mailParamaters')) {
+                    if ($mailParamsArray = json_decode($request->get('mailParamaters'), true)) {
+                        foreach ($mailParamsArray as $mailParam) {
+                            if ($mailParam['key']) {
+                                $mail->setParam($mailParam['key'], $mailParam['value']);
+                            }
+                        }
+                    }
+                }
+            } else {
+                throw new \Exception('Email document not found!');
+            }
+        }
+
+        if ($from) {
+            $addressArray = \Pimcore\Helper\Mail::parseEmailAddressField($from);
+            if ($addressArray) {
+                //use the first address only
+                [$cleanedFromAddress] = $addressArray;
+                $mail->from(new Address($cleanedFromAddress['email'], $cleanedFromAddress['name']));
+            }
+        }
+
+        $toAddresses = \Pimcore\Helper\Mail::parseEmailAddressField($to);
+        foreach ($toAddresses as $cleanedToAddress) {
+            $mail->addTo($cleanedToAddress['email'], $cleanedToAddress['name']);
+        }
+
+        $mail->subject($subject);
+        $mail->setIgnoreDebugMode(true);
+
+        $mail->send();
+
+        return new JsonResponse(['status' => 200, 'message' => 'Email has been sent to the address ' . $to . 'successfully']);
+    }
 
     /**
      * @Route("/get-class", name="vuetify_get_class", methods={"POST", "GET"}, options={"expose"=true}))

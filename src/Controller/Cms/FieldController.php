@@ -148,7 +148,7 @@ class FieldController extends BaseController
                 array_push($structure['children'], self::extractStructure($child, $object, $getValue, $lang));
             }
         } else {
-            $structure['options'] = self::getOptions($structure['type'], $layoutDefinition);
+            $structure['options'] = self::getOptions($structure['type'], $layoutDefinition, $object);
         }
 
         if ($structure['type'] == 'link') {
@@ -225,7 +225,7 @@ class FieldController extends BaseController
         }
     }
 
-    static public function getOptions($type, $layoutDefinition)
+    static public function getOptions($type, $layoutDefinition, $object = null)
     {
         $options = [];
         $allowedFieldTypes = ['manyToOneRelation', 'manyToManyRelation', 'advancedManyToManyRelation'];
@@ -279,7 +279,13 @@ class FieldController extends BaseController
 
         $optionTypes = ['gender', 'select', 'multiselect', 'booleanSelect'];
         if (in_array($type, $optionTypes)) {
-            $options = $layoutDefinition->getOptions();
+            $optionsProviderClass = $layoutDefinition->optionsProviderClass;
+            if ($optionsProviderClass && class_exists($optionsProviderClass) && $object) {
+                $optionProvider = new $optionsProviderClass;
+                $options = $optionProvider->getOptions(compact('object'), $layoutDefinition);
+            } else {
+                $options = $layoutDefinition->getOptions();
+            }
         }
 
         if ($type == 'video') {
