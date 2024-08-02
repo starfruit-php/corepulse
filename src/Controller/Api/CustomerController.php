@@ -49,6 +49,7 @@ class CustomerController extends BaseController
 
             foreach ($listing as $item) {
                 $dataJson = [
+                    'id' => $item->getId(),
                     'email' => $item->getEmail(),
                     'status' => $item->getPublished(),
                     'fullName' => $item->getFullName(),
@@ -66,11 +67,5 @@ class CustomerController extends BaseController
         }
 
         return $this->sendResponse($response);
-
-
-        // dd($customer);
-        // $viewData = [];
-
-        // return $this->renderWithInertia('Pages/Customer/Listing', [], $viewData);
     }
 }

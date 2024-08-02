@@ -28,7 +28,7 @@ class EcommerceController extends BaseController
      */
     public function summary(Request $request, PaginatorInterface $paginator)
     {
-        // $user = $request->get('user');
+        // $user = $request->get('id');
         $user = 118;
         $totalPrice = 0;
 
@@ -45,15 +45,13 @@ class EcommerceController extends BaseController
 
         // Bổ sung dữ liệu ở đây
         $data = [];
-        $data['totalPrice'] = $totalPrice;
+        $data['totalPrice'] = number_format($totalPrice, 0, ".", ".");
         $data['totalOrder'] = $totalOrder;
-        $data['user'] = [
-            'email' => $user->getEmail(),
-            'phone' => $user->getPhone(),
-            'fullName' => $user->getFullName(),
-            'company' => property_exists($user, 'company') ? $user->getCompany() : '',
-            'address' => property_exists($user, 'address') ? $user->getAddress() : '',
-        ];
+        $data['email'] = $user->getEmail();
+        $data['phone'] = $user->getPhone();
+        $data['fullName'] = $user->getFullName();
+        $data['company'] = property_exists($user, 'company') ? $user->getCompany() : '';
+        $data['address'] = property_exists($user, 'address') ? $user->getAddress() : '';
 
         return $this->sendResponse($data);
     }
