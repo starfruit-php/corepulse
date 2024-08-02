@@ -175,7 +175,6 @@ abstract class BaseController extends AbstractController
 
             $process->run();
         } catch (\Throwable $e) {
-
         }
     }
 }

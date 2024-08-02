@@ -32,8 +32,8 @@ class DocumentController extends BaseController
      */
     public function listingAction(
         Request $request,
-        PaginatorInterface $paginator): JsonResponse
-    {
+        PaginatorInterface $paginator
+    ): JsonResponse {
         try {
             $this->setLocaleRequest();
 
@@ -46,7 +46,7 @@ class DocumentController extends BaseController
                 'type' => '',
             ]);
             $messageError = $this->validator->validate($condition, $request);
-            if($messageError) return $this->sendError($messageError);
+            if ($messageError) return $this->sendError($messageError);
 
             $conditionQuery = 'id is not NULL';
             $conditionParams = [];
@@ -76,8 +76,7 @@ class DocumentController extends BaseController
                 $paginationData,
             );
 
-            foreach($list as $item)
-            {
+            foreach ($list as $item) {
                 $data['data'][] = self::listingResponse($item);
             }
 
@@ -88,7 +87,8 @@ class DocumentController extends BaseController
     }
 
     // trả ra dữ liệu 
-    public function listingResponse($item) {
+    public function listingResponse($item)
+    {
         $publicURL = DocumentServices::getThumbnailPath($item);
 
         $draft = $this->checkLastest($item);
@@ -111,7 +111,7 @@ class DocumentController extends BaseController
 
         $json[] = [
             'id' => $item->getId(),
-            'name' => "<div class='tableCell--titleThumbnail d-flex align-center'><img class='me-2' src=' " .  $publicURL ."'><span>" . $item->getKey() . "</span></div>",
+            'name' => "<div class='tableCell--titleThumbnail d-flex align-center'><img class='me-2' src=' " .  $publicURL . "'><span>" . $item->getKey() . "</span></div>",
             'type' => '<div class="chip">' . $item->getType() . '</div>',
             'status' => $status,
             'createDate' => DocumentServices::getTimeAgo($item->getCreationDate()),
