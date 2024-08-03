@@ -189,7 +189,12 @@ class SeoController extends BaseController
         foreach ($listing as $item) {
             $data = $item->getDataJson();
 
-            $listData[] = array_merge($data, $data["result"]["indexStatusResult"]);
+            $indexStatusResult = [];
+            if (isset($data["result"]["indexStatusResult"])) {
+                $indexStatusResult = $data["result"]["indexStatusResult"];
+            }
+
+            $listData[] = array_merge($data, $indexStatusResult);
         }
 
         $fields = [];
@@ -285,7 +290,7 @@ class SeoController extends BaseController
                             $batchRequestData .= "Content-Type: application/json\r\naccept: application/json\r\n";
                             $batchRequestData .= "content-length: " . strlen($requestContent ) . "\r\n\r\n";
                             $batchRequestData .= $requestContent . "\r\n";
-                            
+
                             break;
 
                         case 'delete-submit':
@@ -346,29 +351,29 @@ class SeoController extends BaseController
                         'Authorization: Bearer ' . $token
                     ];
                     $urlSearch = 'https://searchconsole.googleapis.com/batch';
-    
+
                     $searchBody = APIService::curl($urlSearch, 'POST', $batchSearchData, $batchSearchHeaders);
-    
+
                     $converts = explode("--", $searchBody);
-    
+
                     $result = [];
-    
+
                     foreach ($converts as $convert) {
                         if (strpos($convert, "Content-Type: application/http") !== false) {
                             preg_match('/Content-ID: <(.*?)>/', $convert, $contentIdMatches);
                             $contentId = $contentIdMatches[1];
-    
+
                             preg_match('/{(.*)}/s', $convert, $matches);
                             $json = $matches[0];
-    
+
                             $array = json_decode($json, true);
-    
+
                             if ($array) {
                                 $result[$contentId] = $array;
                             }
                         }
                     }
-    
+
                     foreach ($result as $key => $value) {
                         $indexing = $dataOld[$key];
                         $indexing->setResult(json_encode($value['inspectionResult']));
@@ -414,9 +419,9 @@ class SeoController extends BaseController
                             'type' => 'update',
                             'indexing' => $option,
                         ];
-    
+
                         $data = GoogleServices::submitIndex($params);
-    
+
                         break;
 
                     default:

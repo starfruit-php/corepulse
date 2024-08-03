@@ -188,7 +188,7 @@ class GoogleServices
     static public function submitIndex($params)
     {
         $domain = Option::getMainDomain();
-        $domain = 'https://solutions.mobifone.vn';
+        // $domain = 'https://solutions.mobifone.vn';
         $sites = $domain . '/';
 
         $indexing = '';
