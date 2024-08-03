@@ -109,11 +109,19 @@ class GoogleServices
                     $data['value'] = json_encode($content['value']);
                 }
 
-                if (is_array($content['classes']) && count($settingClass) !== count($content['classes'])) {
+                if (is_string($content['classes'])) {
+                    $content['classes'] = $data['classes'] = json_decode($content['classes'], true);
+                }
+
+                if (is_string($content['documents'])) {
+                    $content['documents'] = $data['documents'] = json_decode($content['documents'], true);
+                }
+
+                if (is_array($content['classes']) && count($data['classes']) != count($settingClass)) {
                     $data['classes'] = $settingClass;
                 }
 
-                if (is_array($content['documents']) && count($settingDocument) !== count($content['documents'])) {
+                if (is_array($content['documents']) && count($data['documents']) != count($settingDocument)) {
                     $data['documents'] = $settingDocument;
                 }
             }
@@ -180,7 +188,7 @@ class GoogleServices
     static public function submitIndex($params)
     {
         $domain = Option::getMainDomain();
-        // $domain = 'https://solutions.mobifone.vn';
+        $domain = 'https://solutions.mobifone.vn';
         $sites = $domain . '/';
 
         $indexing = '';

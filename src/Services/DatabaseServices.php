@@ -67,6 +67,7 @@ class DatabaseServices
             ADD COLUMN IF NOT EXISTS `id` int(11) NOT NULL AUTO_INCREMENT,
             ADD COLUMN IF NOT EXISTS `url` varchar(255) DEFAULT NULL,
             ADD COLUMN IF NOT EXISTS `type` varchar(255) DEFAULT NULL,
+            ADD COLUMN IF NOT EXISTS `time` varchar(255) DEFAULT NULL,
             ADD COLUMN IF NOT EXISTS `response` varchar(255) DEFAULT NULL,
             ADD COLUMN IF NOT EXISTS `internalType` varchar(255) DEFAULT NULL,
             ADD COLUMN IF NOT EXISTS `internalValue` int(11) DEFAULT NULL,
@@ -75,7 +76,6 @@ class DatabaseServices
             ADD COLUMN IF NOT EXISTS `language` varchar(255) DEFAULT NULL,
             ADD COLUMN IF NOT EXISTS `createAt` timestamp DEFAULT current_timestamp(),
             ADD COLUMN IF NOT EXISTS `updateAt` timestamp DEFAULT current_timestamp() ON UPDATE current_timestamp();
-            ADD COLUMN IF NOT EXISTS `time` varchar(255) DEFAULT NULL,
         ";
 
         Db::get()->executeQuery($query);
