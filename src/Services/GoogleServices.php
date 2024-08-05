@@ -185,7 +185,7 @@ class GoogleServices
         return [$indexing, $searchConsole, $httpClient];
     }
 
-    static public function submitIndex($params)
+    static public function submitIndex($params, ?bool $action = null)
     {
         $domain = Option::getMainDomain();
         // $domain = 'https://solutions.mobifone.vn';
@@ -255,8 +255,11 @@ class GoogleServices
 
             $data = self::getResponData($response);
 
-            $result = [];
-            if (self::eventConfig('inspection')) {
+            $result = [
+                'indexStatusResult' => [],
+                'mobileUsabilityResult' => [],
+            ];
+            if (self::eventConfig('inspection') || $action) {
                 try {
                     $inspectUrl = new \Google\Service\SearchConsole\InspectUrlIndexRequest();
                     $inspectUrl->setInspectionUrl($url);
@@ -489,5 +492,185 @@ class GoogleServices
         $connect = json_decode($connect, true);
 
         return isset($connect['access_token']) ? $connect['access_token'] : false;
+    }
+
+    static public function submitType($idsOrId, $type)
+    {
+        if (is_array($idsOrId)) {
+            $domain = Option::getMainDomain();
+            // $domain = 'https://solutions.mobifone.vn';
+            $sites = $domain . '/';
+
+            $boundary = '===============7330845974216740156==';
+            $ids = $idsOrId;
+            $updateKey = 'URL_UPDATED';
+            $deleteKey = 'URL_DELETED';
+            $contentId = 'corepusleIndexing';
+            $batchRequestData = '';
+            $batchSearchData = '';
+            $dataOld = [];
+            foreach($ids as $key => $id) {
+                $option = Indexing::getById($id);
+                if ($option) {
+                    switch ($type) {
+                        case 'delete':
+                            $option->delete();
+                            break;
+
+                        case 'update-submit':
+                            $dataOld["response-$contentId+$key"] = $option;
+
+                            $url = $option->getUrl();
+
+                            $requestContent = json_encode(["url" => $url, "type" => $updateKey]);
+                            $batchRequestData .= "--$boundary\r\n";
+                            $batchRequestData .= "Content-Type: application/http\r\nContent-Transfer-Encoding: binary\r\n";
+                            $batchRequestData .= "Content-ID: <$contentId+$key>\r\n\r\n";
+                            $batchRequestData .= "POST /v3/urlNotifications:publish\r\n";
+                            $batchRequestData .= "Content-Type: application/json\r\naccept: application/json\r\n";
+                            $batchRequestData .= "content-length: " . strlen($requestContent ) . "\r\n\r\n";
+                            $batchRequestData .= $requestContent . "\r\n";
+
+                            break;
+
+                        case 'delete-submit':
+                            $dataOld["response-$contentId+$key"] = $option;
+
+                            $url = $option->getUrl();
+
+                            $requestContent = json_encode(["url" => $url, "type" => $deleteKey]);
+                            $batchRequestData .= "--$boundary\r\n";
+                            $batchRequestData .= "Content-Type: application/http\r\nContent-Transfer-Encoding: binary\r\n";
+                            $batchRequestData .= "Content-ID: <$contentId+$key>\r\n\r\n";
+                            $batchRequestData .= "POST /v3/urlNotifications:publish\r\n";
+                            $batchRequestData .= "Content-Type: application/json\r\naccept: application/json\r\n";
+                            $batchRequestData .= "content-length: " . strlen($requestContent ) . "\r\n\r\n";
+                            $batchRequestData .= $requestContent . "\r\n";
+                            break;
+
+                        case 'inspection':
+                            $dataOld["response-$contentId+$key"] = $option;
+
+                            $url = $option->getUrl();
+
+                            $searchContent = json_encode(["inspectionUrl" => $url, "siteUrl" => $sites, "languageCode" => 'vi']);
+                            $batchSearchData .= "--$boundary\r\n";
+                            $batchSearchData .= "Content-Type: application/http\r\nContent-Transfer-Encoding: binary\r\n";
+                            $batchSearchData .= "Content-ID: <$contentId+$key>\r\n\r\n";
+                            $batchSearchData .= "POST /v1/urlInspection/index:inspect\r\n";
+                            $batchSearchData .= "Content-Type: application/json\r\naccept: application/json\r\n";
+                            $batchSearchData .= "content-length: " . strlen($searchContent) . "\r\n\r\n";
+                            $batchSearchData .= $searchContent . "\r\n";
+                            break;
+
+                        default:
+                            break;
+                    }
+                }
+            }
+
+            $batchRequestData .= "--$boundary--";
+            $batchSearchData .= "--$boundary--";
+
+            if ($type != 'delete') {
+                $token = GoogleServices::getAccessToken();
+
+                $batchRequestHeaders = [
+                    'Content-Length: ' . strlen($batchRequestData),
+                    'Content-Type: multipart/mixed; boundary="' . $boundary . '"',
+                    'Authorization: Bearer ' . $token
+                ];
+                $urlRequest = 'https://indexing.googleapis.com/batch';
+
+                $requestBody = APIService::curl($urlRequest, 'POST', $batchRequestData, $batchRequestHeaders);
+
+                if ($type == 'inspection') {
+                    $batchSearchHeaders = [
+                        'Content-Length: ' . strlen($batchSearchData),
+                        'Content-Type: multipart/mixed; boundary="' . $boundary . '"',
+                        'Authorization: Bearer ' . $token
+                    ];
+                    $urlSearch = 'https://searchconsole.googleapis.com/batch';
+
+                    $searchBody = APIService::curl($urlSearch, 'POST', $batchSearchData, $batchSearchHeaders);
+
+                    $converts = explode("--", $searchBody);
+
+                    $result = [];
+
+                    foreach ($converts as $convert) {
+                        if (strpos($convert, "Content-Type: application/http") !== false) {
+                            preg_match('/Content-ID: <(.*?)>/', $convert, $contentIdMatches);
+                            $contentId = $contentIdMatches[1];
+
+                            preg_match('/{(.*)}/s', $convert, $matches);
+                            $json = $matches[0];
+
+                            $array = json_decode($json, true);
+
+                            if ($array) {
+                                $result[$contentId] = $array;
+                            }
+                        }
+                    }
+
+                    foreach ($result as $key => $value) {
+                        $indexing = $dataOld[$key];
+                        $indexing->setResult(json_encode($value['inspectionResult']));
+                        $indexing->setType('update');
+                        $indexing->save();
+                    }
+                } else {
+                    foreach ($dataOld as $key => $value) {
+                        $value->setType($type == 'update-submit' ? 'update' : 'delete');
+                        $value->save();
+                    }
+                }
+            }
+        } else {
+            $id = $idsOrId;
+            $option = Indexing::getById($id);
+            if ($option) {
+                switch ($type) {
+                    case 'delete':
+                        $option->delete();
+                        break;
+
+                    case 'update-submit':
+                        $params = [
+                            'type' => 'update',
+                            'indexing' => $option,
+                        ];
+
+                        $data = GoogleServices::submitIndex($params, true);
+
+                        break;
+
+                    case 'delete-submit':
+                        $params = [
+                            'type' => 'delete',
+                            'indexing' => $option,
+                        ];
+
+                        $data = GoogleServices::submitIndex($params, true);
+                        break;
+
+                    case 'inspection':
+                        $params = [
+                            'type' => 'update',
+                            'indexing' => $option,
+                        ];
+
+                        $data = GoogleServices::submitIndex($params, true);
+
+                        break;
+
+                    default:
+                        break;
+                }
+            }
+        }
+
+        return true;
     }
 }

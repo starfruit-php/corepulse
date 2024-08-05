@@ -102,22 +102,25 @@ class SeoServices
             $language = LanguageTool::getDefault();
         }
         $languageName = \Locale::getDisplayLanguage($language);
+        // $languageName = 'English';
+
+        $keyword = str_replace('"', "", $keyword);
 
         $content = [];
         if ($type == 'sematic') {
             $content = [
                 [
                     'role' => 'user',
-                    'content' => 'I have a blog post about ' . $keyword . '. Can you give me 10 keywords and semantic entities in ' . $languageName . ' that
+                    'content' => "I have a blog post about '$keyword' Can you give me 10 keywords and semantic entities in  $languageName that
                     I can include in the content to make it better and more relevant so that Google understands my content faster and more accurately?
-                    returns me the results in list style html',
+                    returns me the results in list style html",
                 ]
             ];
         } else if ($type == 'outline') {
             $content = [
                 [
                     'role' => 'user',
-                    'content' => "Give the keyword '" . $keyword . "'. Draw on EEAT principles or guidelines to analyze and compare them for depth and detail of content, demonstration of expertise and credibility, and how well they meet user intent. I want you to create an outline for the keyword content I have provided. Should the outline be better than the competitor's or at least as good as theirs? The returned language is" .  $languageName . " and  format in a visual list style by html level only taking the body content h1 h2 h3 ol ul li.",
+                    'content' => "Give the keyword '$keyword' Draw on EEAT principles or guidelines to analyze and compare them for depth and detail of content, demonstration of expertise and credibility, and how well they meet user intent. I want you to create an outline for the keyword content I have provided. Should the outline be better than the competitor's or at least as good as theirs? The returned language is $languageName and  format in a visual list style by html level only taking the body content h1 h2 h3 ol li.",
                 ]
             ];
         }
@@ -153,20 +156,32 @@ class SeoServices
 
         if (isset($params['ogMeta'])) {
             $ogMeta = $params['ogMeta'];
+            $ogMeta = self::revertMetaData($ogMeta);
         }
 
         if (isset($params['twitterMeta'])) {
             $twitterMeta = $params['twitterMeta'];
+            $twitterMeta = self::revertMetaData($twitterMeta);
         }
 
         if (isset($params['customMeta'])) {
             $customMeta = $params['customMeta'];
+            $twitterMeta = self::revertMetaData($twitterMeta);
         }
 
         $seo->setMetaDatas($ogMeta, $twitterMeta, $customMeta);
         $seo->save();
 
         return $seo;
+    }
+
+    static public function revertMetaData($array)
+    {
+        $data = array_reduce($array, function ($carry, $item) {
+            return array_merge($carry, $item);
+        }, []);
+
+        return $data;
     }
 
     static public function getSetting()
