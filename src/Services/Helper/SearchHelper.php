@@ -7,7 +7,8 @@ use Pimcore\Model\DataObject\ClassDefinition;
 
 class SearchHelper
 {
-    public static function dataConfig() {
+    public static function dataConfig()
+    {
         $dataConfig = [];
 
         $objectSetting = Db::get()->fetchAssociative('SELECT * FROM `vuetify_settings` WHERE `type` = "object"', []);
@@ -22,12 +23,12 @@ class SearchHelper
                     $classDefinition = ClassDefinition::getById($class['id']);
 
                     //lọc các field được cấu hình search
-                    $visibleSearchConfig = array_filter($classDefinition->getFieldDefinitions(), function($item) {
+                    $visibleSearchConfig = array_filter($classDefinition->getFieldDefinitions(), function ($item) {
                         return $item->visibleSearch === true;
                     });
 
                     $visibleSearch = [];
-                    foreach($visibleSearchConfig as $item) {
+                    foreach ($visibleSearchConfig as $item) {
                         if ($item instanceof \Pimcore\Model\DataObject\ClassDefinition\Data\Localizedfields) {
                             $children = $item->children;
                             foreach ($children as $child) {
@@ -57,15 +58,18 @@ class SearchHelper
         return $dataConfig;
     }
 
-    public static function validSearchField($item) {
-        if ( $item instanceof \Pimcore\Model\DataObject\ClassDefinition\Data\Input
+    public static function validSearchField($item)
+    {
+        if (
+            $item instanceof \Pimcore\Model\DataObject\ClassDefinition\Data\Input
             || $item instanceof \Pimcore\Model\DataObject\ClassDefinition\Data\Numeric
             || $item instanceof \Pimcore\Model\DataObject\ClassDefinition\Data\Select
             || $item instanceof \Pimcore\Model\DataObject\ClassDefinition\Data\Wysiwyg
             || $item instanceof \Pimcore\Model\DataObject\ClassDefinition\Data\Email
             || $item instanceof \Pimcore\Model\DataObject\ClassDefinition\Data\Lastname
             || $item instanceof \Pimcore\Model\DataObject\ClassDefinition\Data\Firstname
-            || $item instanceof \Pimcore\Model\DataObject\ClassDefinition\Data\Textarea) return true;
+            || $item instanceof \Pimcore\Model\DataObject\ClassDefinition\Data\Textarea
+        ) return true;
         return false;
     }
 
@@ -125,6 +129,11 @@ class SearchHelper
             if ($item->getType()) {
                 if ($model == 'dataObject' && $item->getType() != 'folder') {
                     $class = $item->getClassName();
+                } else {
+                    if ($model != 'asset' && $model != 'document') {
+                        $class = $model;
+                        $model = 'dataObject';
+                    }
                 }
 
                 $icon = self::getIcon($item->getType());

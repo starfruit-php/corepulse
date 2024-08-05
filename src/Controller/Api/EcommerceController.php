@@ -61,7 +61,6 @@ class EcommerceController extends BaseController
      */
     public function order(Request $request, PaginatorInterface $paginator)
     {
-        dd(123);
         // $user = $request->get('user');
         $user = 118;
         $totalPrice = 0;
