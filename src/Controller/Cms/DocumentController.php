@@ -30,6 +30,8 @@ use Pimcore\Model\Document\DocType;
 use Pimcore\Model\Tool;
 use Pimcore\Mail;
 use Symfony\Component\Mime\Address;
+use Pimcore\Logger;
+use Pimcore\Model\Element\ElementInterface;
 
 /**
  * @Route("/document")
@@ -738,8 +740,12 @@ class DocumentController extends BaseController
 
                     $data = $list->load();
                     foreach($data as $item) {
-                        
+                        $type = 'text';
+                        if (($item->getEmailLogExistsHtml() == 1 && $item->getEmailLogExistsText() == 1) || ($item->getEmailLogExistsHtml() == 1 && $item->getEmailLogExistsText() != 1)) {
+                            $type = 'html';
+                        }
                         $listEmail[] = [
+                            'id' => $item->getId(),
                             'from' => $item->getFrom(),
                             'to' => $item->getTo(),
                             'cc' => $item->getCc(),
@@ -750,10 +756,11 @@ class DocumentController extends BaseController
                             'bodyText' => $item->getBodyText(),
                             'sentDate' => date("M j, Y  H:i", $item->getSentDate()),
                             'params' => $item->getParams(),
+                            'type' => $type,
                         ];
                     }
+                    // dd($listEmail);
                 }
-                // dd($listEmail);
                 $data = [
                     'id' => $document->getId() ?? '',
                     'title' => method_exists($document, 'getTitle') ? $document->getTitle() : $document->getKey(),
@@ -1200,6 +1207,135 @@ class DocumentController extends BaseController
         return new JsonResponse(['status' => 200, 'message' => 'Email has been sent to the address ' . $to . 'successfully']);
     }
 
+     /**
+     * @Route("/resend-email-test", name="vuetify_resend_email_test", methods={"POST", "GET"}, options={"expose"=true}))
+    */
+    public function resendEmailTest(Request $request)
+    {
+        $success = false;
+        $emailLog = Tool\Email\Log::getById((int) $request->get('id'));
+        
+        if ($emailLog instanceof Tool\Email\Log) {
+            $mail = new Mail();
+            $mail->preventDebugInformationAppending();
+            $mail->setIgnoreDebugMode(true);
+            
+            if (!empty($request->get('to'))) {
+                $emailLog->setTo(null);
+                $emailLog->setCc(null);
+                $emailLog->setBcc(null);
+            } else {
+                $mail->disableLogging();
+            }
+
+            if ($html = $emailLog->getHtmlLog()) {
+                $mail->html($html);
+            }
+
+            if ($text = $emailLog->getTextLog()) {
+                $mail->text($text);
+            }
+            
+            foreach (['From', 'To', 'Cc', 'Bcc', 'ReplyTo'] as $field) {
+                if (!$values = $request->get(strtolower($field))) {
+                    $getter = 'get' . $field;
+                    $values = $emailLog->{$getter}();
+                }
+
+                $values = \Pimcore\Helper\Mail::parseEmailAddressField($values);
+
+                if ($values) {
+                    [$value] = $values;
+                    $prefix = 'add';
+                    $mail->{$prefix . $field}(new Address($value['email'], $value['name']));
+                }
+            }
+
+            $mail->subject($emailLog->getSubject());
+
+            // add document
+            if ($emailLog->getDocumentId()) {
+                $mail->setDocument($emailLog->getDocumentId());
+            }
+
+            // re-add params
+            try {
+                $params = $emailLog->getParams();
+            } catch (\Exception $e) {
+                Logger::warning('Could not decode JSON param string');
+                $params = [];
+            }
+
+            foreach ($params as $entry) {
+                $data = null;
+                $hasChildren = isset($entry['children']) && is_array($entry['children']);
+
+                if ($hasChildren) {
+                    $childData = [];
+                    foreach ($entry['children'] as $childParam) {
+                        $childData[$childParam['key']] = $this->parseLoggingParamObject($childParam);
+                    }
+                    $data = $childData;
+                } else {
+                    $data = $this->parseLoggingParamObject($entry);
+                }
+
+                $mail->setParam($entry['key'], $data);
+            }
+
+            $mail->send();
+            $success = true;
+        }
+
+        if ($success) {
+            return new JsonResponse(['status' => 200, 'message' => 'Email has been sent to the address ' . $request->get('to') . 'successfully']);
+        } else {
+            return new JsonResponse(['status' => 500, 'message' => 'An error occurred while sending the mail.']);
+        }
+    }
+
+    /**
+     * @Route("/show-email-log", name="vuetify_show_email_log", methods={"POST", "GET"}, options={"expose"=true}))
+    */
+    public function showEmailLog(Request $request)
+    {
+        $id = $request->get('id');
+        $type = $request->get('type');
+
+        $type = $request->get('type');
+        $emailLog = Tool\Email\Log::getById((int) $request->get('id'));
+
+        if (!$emailLog) {
+            throw $this->createNotFoundException();
+        }
+
+        if ($type === 'text') {
+            return $this->render('@PimcoreAdmin/admin/email/text.html.twig', ['log' => $emailLog->getTextLog()]);
+        } elseif ($type === 'html') {
+            return new Response($emailLog->getHtmlLog(), 200, [
+                'Content-Security-Policy' => "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src * data:",
+            ]);
+        } elseif ($type === 'params') {
+            try {
+                $params = $emailLog->getParams();
+            } catch (\Exception $e) {
+                Logger::warning('Could not decode JSON param string');
+                $params = [];
+            }
+            foreach ($params as &$entry) {
+                $this->enhanceLoggingData($entry);
+            }
+
+            return $this->adminJson($params);
+        } elseif ($type === 'details') {
+            $data = $emailLog->getObjectVars();
+
+            return $this->adminJson($data);
+        } else {
+            return new Response('No Type specified');
+        }
+    }
+
     /**
      * @Route("/get-class", name="vuetify_get_class", methods={"POST", "GET"}, options={"expose"=true}))
     */
@@ -1440,5 +1576,25 @@ class DocumentController extends BaseController
         // } else {
         //     return $this->renderWithInertia('Pages/AccessDiend');
         // }
+    }
+
+    protected function parseLoggingParamObject(array $params): mixed
+    {
+        $data = null;
+        if ($params['data']['type'] === 'object') {
+            $class = '\\' . ltrim($params['data']['objectClass'], '\\');
+            $reflection = new \ReflectionClass($class);
+
+            if (!empty($params['data']['objectId']) && $reflection->implementsInterface(ElementInterface::class)) {
+                $obj = $class::getById($params['data']['objectId']);
+                if (!is_null($obj)) {
+                    $data = $obj;
+                }
+            }
+        } else {
+            $data = $params['data']['value'];
+        }
+
+        return $data;
     }
 }
