@@ -5,11 +5,9 @@ namespace CorepulseBundle\Controller\Api;
 use CorepulseBundle\Controller\Cms\FieldController;
 use CorepulseBundle\Services\AssetServices;
 use CorepulseBundle\Services\ClassServices;
-use CorepulseBundle\Services\DocumentServices;
 use CorepulseBundle\Services\Helper\BlockJson;
-use Pimcore\Translation\Translator;
-use Symfony\Component\HttpFoundation\RequestStack;
-use Symfony\Component\Validator\Validator\ValidatorInterface;
+use Pimcore\Db;
+
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
@@ -459,6 +457,50 @@ class ObjectController extends BaseController
             }
 
             return $this->sendError('Object not found', 500);
+
+        } catch (\Exception $e) {
+            return $this->sendError($e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * @Route("/object-slider-bar", name="api_object_slider_bar", methods={"GET"}, options={"expose"=true})
+     *
+     * {mô tả api}
+     *
+     * @param Cache $cache
+     *
+     * @return JsonResponse
+     *
+     * @throws \Exception
+     */
+    public function objectSliderBa(
+        Request $request,
+        PaginatorInterface $paginator): JsonResponse
+    {
+        try {
+            $objectSetting = Db::get()->fetchAssociative('SELECT * FROM `vuetify_settings` WHERE `type` = "object"', []);
+
+            $data['data'] = [];
+            if ($objectSetting !== null && $objectSetting) {
+                $query = 'SELECT * FROM `classes`';
+                $classListing = Db::get()->fetchAllAssociative($query);
+                $dataObjectSetting = json_decode($objectSetting['config']) ?? [];
+                $data = [];
+                foreach ($classListing as $class) {
+                    if (in_array($class['id'], $dataObjectSetting)) {
+                        $classDefinition = ClassDefinition::getById($class['id']);
+
+                        $newData["id"] = $class["id"];
+                        $newData["name"] = $class["name"];
+                        $newData["title"] = $classDefinition ? ($classDefinition->getTitle() ? $classDefinition->getTitle() :  $classDefinition->getName()) : $class["name"];
+                        
+                        $data['data'][] = $newData;
+                    }
+                }
+            }
+
+            return $this->sendResponse($data);
 
         } catch (\Exception $e) {
             return $this->sendError($e->getMessage(), 500);

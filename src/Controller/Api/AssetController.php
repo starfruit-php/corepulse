@@ -193,18 +193,20 @@ class AssetController extends BaseController
     {
         try {
             $condition = [
-                'test' => 'required',
+                'file' => 'required',
+                'parentId' => '',
+                'path' => '',
             ];
 
             $errorMessages = $this->validator->validate($condition, $request);
             if ($errorMessages) return $this->sendError($errorMessages);
 
-            $files = $request->files->get("test");
+            $files = $request->files->get("file");
             $infoFile = $request->get('test');
 
-            if ($files && $infoFile) {
+            if ($files) {
                 $infoFile = json_decode($infoFile);
-                $folderId = $infoFile->parentId ?  $infoFile->parentId : 1;
+                $folderId = $request->get('parentId') ?  $request->get('parentId') : 1;
 
                 $folder = Asset::getById(1);
                 $checkFolder = Asset::getById((int)$folderId);
@@ -212,7 +214,7 @@ class AssetController extends BaseController
                     $folder = $checkFolder;
                 } 
 
-                $path = property_exists($infoFile, 'path') ? $infoFile->path : '';
+                $path = $request->get('path') ?  $request->get('path') : '';
                 if ($path) {
                     $parentPath = $folder->getFullPath();
                     $basePath = dirname($path);
@@ -300,19 +302,16 @@ class AssetController extends BaseController
         try {
             $condition = [
                 'id' => 'required',
-                'test' => 'required',
+                'file' => 'required',
             ];
 
             $errorMessages = $this->validator->validate($condition, $request);
             if ($errorMessages) return $this->sendError($errorMessages);
 
             $id = $request->get('id');
-            $file = $request->files->get("test");
-            $infoFile = $request->get('test');
-            if ($file && $infoFile) {
-                $infoFile = json_decode($infoFile);
-                $id = property_exists($infoFile, 'id') ? $infoFile->id : '';
-
+            $file = $request->files->get("file");
+            
+            if ($file) {
                 $asset = Asset::getById($id);
                 $asset->setData(file_get_contents($file));
                 $asset->save();

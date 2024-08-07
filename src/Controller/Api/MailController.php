@@ -154,6 +154,7 @@ class MailController extends BaseController
     // trả ra dữ liệu 
     public function listingResponse($item)
     {
+        $json = [];
         $publicURL = DocumentServices::getThumbnailPath($item);
 
         $draft = $this->checkLastest($item);
