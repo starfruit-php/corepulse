@@ -86,6 +86,99 @@ class DocumentController extends BaseController
         }
     }
 
+    /**
+     * @Route("/delete", name="api_document_delete", methods={"GET"}, options={"expose"=true})
+     *
+     * {mô tả api}
+     *
+     * @param Cache $cache
+     *
+     * @return JsonResponse
+     *
+     * @throws \Exception
+     */
+    public function deleteAction( Request $request ): JsonResponse {
+        try {
+            $condition = [
+                'id' => 'required',
+            ];
+
+            $errorMessages = $this->validator->validate($condition, $request);
+            if ($errorMessages) return $this->sendError($errorMessages);
+
+            $ids = $request->get('id');
+            if (is_array($ids)) {
+                foreach ($ids as $id) {
+                    $document = Document::getById((int) $id);
+                    if ($document) {
+                        $document->delete();
+                    } else {
+                        return $this->sendError('Can not find document to be deleted');
+                    }
+                }
+            } else {
+                $document = Document::getById((int) $ids);
+                if ($document) {
+                    $document->delete();
+                } else {
+                    return $this->sendError('Can not find document to be deleted');
+                }
+            }
+
+            return $this->sendResponse("Delete page success");
+
+        } catch (\Exception $e) {
+            return $this->sendError($e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * @Route("/add", name="api_document_add", methods={"GET"}, options={"expose"=true})
+     *
+     * {mô tả api}
+     *
+     * @param Cache $cache
+     *
+     * @return JsonResponse
+     *
+     * @throws \Exception
+     */
+    public function addAction( Request $request ): JsonResponse {
+        try {
+            $condition = [
+                'title' => 'required',
+                'type' => '',
+                'key' => '',
+                'folderId' => '',
+            ];
+
+            $errorMessages = $this->validator->validate($condition, $request);
+            if ($errorMessages) return $this->sendError($errorMessages);
+
+            $title = $request->get('title');
+            $folderId = $request->get('folderId');
+            $parentId = ($folderId != 'null') ? (int)$folderId : 1;
+
+            $type = $request->get('type');
+            $key = $request->get('key');
+            if ($title) {
+                $checkPage = Document::getByPath("/" . $title);
+                if (!$checkPage) {
+                    $page = DocumentServices::createDoc($key, $title, $type, $parentId);
+                    if ($page)
+                        return $this->sendResponse("Create document ". $page ->getKey() ." successfully");
+                    else
+                        return $this->sendError('Create failed');
+                } else {
+                    return $this->sendError('Create failed');
+                }
+            }
+
+        } catch (\Exception $e) {
+            return $this->sendError($e->getMessage(), 500);
+        }
+    }
+
     // trả ra dữ liệu 
     public function listingResponse($item)
     {
@@ -109,19 +202,22 @@ class DocumentController extends BaseController
             $chills[] = $chill;
         }
 
-        $json[] = [
-            'id' => $item->getId(),
-            'name' => "<div class='tableCell--titleThumbnail d-flex align-center'><img class='me-2' src=' " .  $publicURL . "'><span>" . $item->getKey() . "</span></div>",
-            'type' => '<div class="chip">' . $item->getType() . '</div>',
-            'status' => $status,
-            'createDate' => DocumentServices::getTimeAgo($item->getCreationDate()),
-            'modificationDate' => DocumentServices::getTimeAgo($item->getModificationDate()),
-            'parent' => $chills ? true : false,
-            'noMultiEdit' => [
-                'name' => $chills ? [] : ['name'],
-            ],
-            "noAction" =>  $chills ? [] : ['seeMore'],
-        ];
+        $checkName = strpos($item->getKey(), 'email');
+        if ($checkName === false) {
+            $json[] = [
+                'id' => $item->getId(),
+                'name' => "<div class='tableCell--titleThumbnail d-flex align-center'><img class='me-2' src=' " .  $publicURL . "'><span>" . $item->getKey() . "</span></div>",
+                'type' => '<div class="chip">' . $item->getType() . '</div>',
+                'status' => $status,
+                'createDate' => DocumentServices::getTimeAgo($item->getCreationDate()),
+                'modificationDate' => DocumentServices::getTimeAgo($item->getModificationDate()),
+                'parent' => $chills ? true : false,
+                'noMultiEdit' => [
+                    'name' => $chills ? [] : ['name'],
+                ],
+                "noAction" =>  $chills ? [] : ['seeMore'],
+            ];
+        }
 
         return $json;
     }

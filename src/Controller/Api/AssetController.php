@@ -12,6 +12,7 @@ use Knp\Component\Pager\PaginatorInterface;
 use CorepulseBundle\Services\AssetServices;
 use Pimcore\Model\Asset;
 use DateTime;
+use Pimcore\Model\Asset\Service as AssetService;
 
 /**
  * @Route("/asset")
@@ -128,6 +129,279 @@ class AssetController extends BaseController
         }
     }
 
+    /**
+     * @Route("/upload-folder", name="api_asset_upload_folder", methods={"GET"}, options={"expose"=true})
+     *
+     * {mô tả api}
+     *
+     * @param Cache $cache
+     *
+     * @return JsonResponse
+     *
+     * @throws \Exception
+     */
+    public function uploadFolder(
+        Request $request): JsonResponse
+    {
+        try {
+            $condition = [
+                'nameFolder' => 'required',
+                'parentId' => '',
+            ];
+
+            $errorMessages = $this->validator->validate($condition, $request);
+            if ($errorMessages) return $this->sendError($errorMessages);
+
+            $nameFolder = $request->get('nameFolder');
+            if ($nameFolder) {
+                $parentId = $request->get('parentId');
+                if ($parentId) {
+                    $folders = Asset::getById($parentId);
+                    if ($folders) {
+                        $path = $folders->getPath() . $folders->getFileName();
+                        AssetService::createFolderByPath($path . "/" . $nameFolder);
+
+                    } else {
+                        AssetService::createFolderByPath("/" . $nameFolder);
+                    }
+                } else {
+                    AssetService::createFolderByPath("/" . $nameFolder);
+                }
+                return $this->sendResponse('folder.create.success');
+            } else {
+                return $this->sendError('folder.create.error');
+            }
+
+        } catch (\Exception $e) {
+            return $this->sendError($e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * @Route("/upload-file", name="api_asset_upload_file", methods={"GET"}, options={"expose"=true})
+     *
+     * {mô tả api}
+     *
+     * @param Cache $cache
+     *
+     * @return JsonResponse
+     *
+     * @throws \Exception
+     */
+    public function uploadFile(
+        Request $request): JsonResponse
+    {
+        try {
+            $condition = [
+                'test' => 'required',
+            ];
+
+            $errorMessages = $this->validator->validate($condition, $request);
+            if ($errorMessages) return $this->sendError($errorMessages);
+
+            $files = $request->files->get("test");
+            $infoFile = $request->get('test');
+
+            if ($files && $infoFile) {
+                $infoFile = json_decode($infoFile);
+                $folderId = $infoFile->parentId ?  $infoFile->parentId : 1;
+
+                $folder = Asset::getById(1);
+                $checkFolder = Asset::getById((int)$folderId);
+                if ($checkFolder) {
+                    $folder = $checkFolder;
+                } 
+
+                $path = property_exists($infoFile, 'path') ? $infoFile->path : '';
+                if ($path) {
+                    $parentPath = $folder->getFullPath();
+                    $basePath = dirname($path);
+                    $fullPathNew = $parentPath . $basePath;
+
+                    $folder = Asset::getByPath($fullPathNew) ?? Asset\Service::createFolderByPath($fullPathNew);
+                }
+
+                $file = AssetServices::createFile($files, $folder);
+                if ($file) {
+                    return $this->sendResponse('file.create.success');
+                } else {
+                    return $this->sendError('file.create.error');
+                }
+            }
+        } catch (\Exception $e) {
+            return $this->sendError($e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * @Route("/delete", name="api_asset_delete", methods={"GET"}, options={"expose"=true})
+     *
+     * {mô tả api}
+     *
+     * @param Cache $cache
+     *
+     * @return JsonResponse
+     *
+     * @throws \Exception
+     */
+    public function deleteAction(
+        Request $request): JsonResponse
+    {
+        try {
+            $condition = [
+                'id' => 'required',
+            ];
+
+            $errorMessages = $this->validator->validate($condition, $request);
+            if ($errorMessages) return $this->sendError($errorMessages);
+
+            $itemId = $request->get('id');
+            if (is_array($itemId)) {
+                foreach ($itemId as $item) {
+                    $asset_detail = Asset::getById((int)$item);
+                    if ($asset_detail) {
+                        $asset_detail->delete();
+                    } else {
+                        return $this->sendError('Can not find photos or folders to be deleted');
+                    }
+                }
+            } else {
+                if ($itemId) {
+                    $asset_detail = Asset::getById((int)$itemId);
+                    if ($asset_detail) {
+                        $asset_detail->delete();
+                    } else {
+                        return $this->sendError('Can not find photos or folders to be deleted');
+                    }
+                }
+            }
+            
+            return $this->sendResponse("Delete photos or folders success");
+
+        } catch (\Exception $e) {
+            return $this->sendError($e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * @Route("/replace-image", name="api_asset_replace_image", methods={"GET"}, options={"expose"=true})
+     *
+     * {mô tả api}
+     *
+     * @param Cache $cache
+     *
+     * @return JsonResponse
+     *
+     * @throws \Exception
+     */
+    public function replaceImage(
+        Request $request): JsonResponse
+    {
+        try {
+            $condition = [
+                'id' => 'required',
+                'test' => 'required',
+            ];
+
+            $errorMessages = $this->validator->validate($condition, $request);
+            if ($errorMessages) return $this->sendError($errorMessages);
+
+            $id = $request->get('id');
+            $file = $request->files->get("test");
+            $infoFile = $request->get('test');
+            if ($file && $infoFile) {
+                $infoFile = json_decode($infoFile);
+                $id = property_exists($infoFile, 'id') ? $infoFile->id : '';
+
+                $asset = Asset::getById($id);
+                $asset->setData(file_get_contents($file));
+                $asset->save();
+
+                return $this->sendResponse('replace.image.success');
+            }
+            return $this->sendError('replace.image.error');
+
+        } catch (\Exception $e) {
+            return $this->sendError($e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * @Route("/add-attribute", name="api_asset_add_attribute", methods={"GET"}, options={"expose"=true})
+     *
+     * {mô tả api}
+     *
+     * @param Cache $cache
+     *
+     * @return JsonResponse
+     *
+     * @throws \Exception
+     */
+    public function addAttribute(
+        Request $request): JsonResponse
+    {
+        try {
+            $condition = [
+                'id' => 'required',
+                'alt' => '',
+                'caption' => '',
+                'description' => '',
+                'language' => '',
+                'fileName' => '',
+                'videoMov' => '',
+                'videoWebm' => '',
+            ];
+
+            $errorMessages = $this->validator->validate($condition, $request);
+            if ($errorMessages) return $this->sendError($errorMessages);
+
+            $itemId = $request->get('id');
+            $alt = $request->get('alt');
+            $caption = $request->get('caption');
+            $description = $request->get('description');
+            $language = $request->get('language');
+            $fileName = $request->get('fileName');
+
+            $videoMov = $request->get('videoMov');
+            $videoWebm = $request->get('videoWebm');
+
+            $asset_detail = Asset::getById((int)$itemId);
+
+            if ($alt) {
+                $asset_detail->addMetadata("alt", "input", $alt, $language);
+            }
+            if ($caption) {
+                $asset_detail->addMetadata("caption", "input", $caption, $language);
+            }
+            if ($description) {
+                $asset_detail->addMetadata("description", "textarea", $description, $language);
+            }
+            if ($fileName && $fileName !=  $asset_detail->getFileName()) {
+                $asset_detail->setFileName($fileName);
+            }
+
+            $mov = Asset::getByPath($videoMov);
+            $asset_detail->addMetadata("mov", "asset", $mov, $language);
+
+            $webm = Asset::getByPath($videoWebm);
+            $asset_detail->addMetadata("webm", "asset", $webm, $language);
+
+
+            $asset_detail->save();
+            $data = [
+                'id' => $itemId
+            ];
+
+            if ($language != 'null') {
+                $data['language'] = $language;
+            }
+
+            return $this->sendResponse('add.attribute.success');
+
+        } catch (\Exception $e) {
+            return $this->sendError($e->getMessage(), 500);
+        }
+    }
 
     // Trả ra dữ liệu
     public function listingResponse($item)
@@ -147,7 +421,8 @@ class AssetController extends BaseController
         $json = [
             'id' => $item->getId(),
             'file' => $item->getFileName(),
-            'fileName' => ($item->getType() == "image") ? $filenName : "<div class='tableCell--titleThumbnail d-flex align-center'><img class='me-2' src=' " .  $publicURL . "'><span>" .  $item->getFileName() . "</span></div>",
+            'fileName' =>  $item->getFileName(),
+            'thumbnail' => $publicURL,
             'creationDate' => ($item->getType() != "folder") ? self::getTimeAgo($item->getCreationDate()) : '',
             'size' => ($item->getType() != "folder") ? round((int)$item->getFileSize() / (1024 * 1024), 2) . "MB" : '',
             'parenId' => $item->getParent()?->getId(),
