@@ -34,7 +34,7 @@ class AuthController extends BaseController
         $valid = $user && $user->getActive() && password_verify(md5($username . ':corepulse:' . $password), $user->getPassword());
         
         if (!$valid) {
-            return $this->sendError('Login failed!');
+            return $this->sendError('Login failed (1)!');
         }
 
         $generate = Token::generateToken($user);
@@ -44,6 +44,18 @@ class AuthController extends BaseController
             return $this->sendResponse(compact('authToken'));
         }
 
-        return $this->sendError('Login failed!');
+        return $this->sendError('Login failed (2)!');
+    }
+
+    /**
+     * @Route("/logout", name="api_auth_logout", methods={"POST"})
+     *
+     * {mô tả api}
+     */
+    public function logoutAction()
+    {
+        $this->getUser()->setAuthToken(null);
+        $this->getUser()->save();
+        return $this->sendResponse();
     }
 }

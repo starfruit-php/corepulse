@@ -37,6 +37,9 @@ security:
 
     access_control:
         ...
+        - { path: ^/corepulse/cms/api/auth, roles: PUBLIC_ACCESS }
+        - { path: ^/corepulse/cms/api/auth/logout, roles: ROLE_COREPULSE_USER }
+        - { path: ^/corepulse/cms/api, roles: ROLE_COREPULSE_USER }
         - { path: ^/cms/login, roles: PUBLIC_ACCESS }
         - { path: ^/cms, roles: ROLE_COREPULSE_USER }
 ```
