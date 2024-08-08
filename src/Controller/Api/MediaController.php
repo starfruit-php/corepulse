@@ -31,7 +31,7 @@ class MediaController extends BaseController
      *
      * @throws \Exception
      */
-    public static function getAssetAction(
+    public function getAssetAction(
         Request $request,
         PaginatorInterface $paginator
     ): JsonResponse {
@@ -53,7 +53,7 @@ class MediaController extends BaseController
             $order_by = $request->get('order_by') ? $request->get('order_by') : 'mimetype';
             $order = $request->get('order') ? $request->get('order') : 'ASC';
 
-            $parentId = $request->get('id');
+            $parentId = $request->get('id') ? $request->get('id') : '1';
             $types = $request->get('types');
             $search = $request->get('search');
             $pathFolder = $request->get('path');
@@ -65,43 +65,8 @@ class MediaController extends BaseController
                 }
             }
 
-            $conditionQuery = 'id != 1';
-            $conditionParams = [];
-
-            $nameFoldes = 'Home';
-            $nameParent = [];
-            if ($parentId && $parentId != 'null') {
-                $conditionQuery .= ' AND parentId = :parentId';
-                $conditionParams['parentId'] = $parentId;
-
-                if ($parentId == 1) {
-                    $types = $types ? $types : "image,pdf,txt,document,video";
-                }
-
-                $parentInfo = Asset::getById($parentId);
-                $nameFoldes = $parentInfo->getFileName();
-                $pathParent = $parentInfo->getPath() . $parentInfo->getFileName();
-                $nameParent = explode('/', $pathParent);
-                $result = array_filter($nameParent, function ($nameParent) {
-                    return !empty($nameParent);
-                });
-                $nameParent = [];
-                foreach ($result as $val) {
-                    $idChill = '';
-                    if (strpos($parentInfo->getPath(), $val) !== false) {
-                        $substring = substr($parentInfo->getPath(), 0, strpos($parentInfo->getPath(), $val)) . $val;
-                        $asset = Asset::getByPath($substring);
-                        if ($asset) {
-                            $idChill = $asset->getId();
-                        }
-                    }
-                    $nameParent[] = [
-                        'id' => $idChill,
-                        'name' => $val,
-                        'end' =>  $val == end($result),
-                    ];
-                }
-            }
+            $conditionQuery = 'id != 1 AND parentId = :parentId';
+            $conditionParams['parentId'] = $parentId;
 
             if ($types && ($types != "undefined")) {
                 $types = explode(',', $types);

@@ -46,20 +46,16 @@ class AppController extends BaseController
                 $loginSetting['config'] = [];
             }
 
-            $data['data']['config'] = $loginSetting['config'];
+            $setting = $loginSetting['config'];
+            $data['data'] = [
+                'logo' => isset($setting['logo']) ? $setting['logo'] : '/bundles/corepulse/image/corepulse.png',
+                'background' => isset($setting['background']) ? $setting['background'] : '/bundles/pimcoreadmin/img/login/pc11.svg',
+                'colorPrimary' => isset($setting['color']) ? $setting['color'] : '#6a1b9a',
+                'colorLight' => isset($setting['colorLight']) ? $setting['colorLight'] : '#f3e5f5',
+                'title' => isset($setting['title']) ? $setting['title'] : 'Corepluse',
+                'footer' => isset($setting['footer']) ? $setting['footer'] : '<p>From Starfruit With Love</p>',
 
-            $colorPrimary = "#6a1b9a";
-            $colorLight = "#f3e5f5";
-            if ($loginSetting['config']) {
-                $colorPrimary = $loginSetting['config']['color'] ?? '#6a1b9a';
-                $colorLight = $loginSetting['config']['colorLight'] ?? '#f3e5f5';
-                if ($loginSetting['config']['logo']) {
-                    $this->inertia->viewData('favicon', $loginSetting['config']['logo']);
-                }
-            }
-
-            $data['data']['colorPrimary'] = $colorPrimary;
-            $data['data']['colorLight'] = $colorLight;
+            ];
 
             return $this->sendResponse($data);
 
