@@ -47,9 +47,8 @@ class Token
             $token = JWT::encode($payload, $key, 'HS256');
 
             $user->setAuthToken($token);
-            if ($user->save()) {
-                return true;
-            }
+            $user->save();
+            return true;
         }
 
         return false;
