@@ -105,22 +105,50 @@ class TimeLineController extends BaseController
     public function update(Request $request, PaginatorInterface $paginator)
     {
         $options = [
-            'idOrder' => 'required',
+            'id' => 'required',
+            'description' => 'required',
         ];
 
         $messageError = $this->validator->validate($options, $this->request);
 
         if ($messageError) return $this->sendError($messageError);
 
-        $timeLine = TimeLineService::create([
+        $timeLine = TimeLine::getById($request->get('id'));
+
+        $timeLine = TimeLineService::edit([
             'title' => $request->get('title'),
             'idOrder' => $request->get('idOrder'),
             'description' => $request->get('description'),
-        ]);
+        ], $timeLine);
+
         if ($timeLine instanceof TimeLine) {
-            return $this->sendResponse('timeLine.create.success');
+            return $this->sendResponse('timeLine.edit.success');
         }
 
-        return $this->sendError('timeLine.create.error');
+        return $this->sendError('timeLine.edit.error');
+    }
+
+    /**
+     * @Route("/timeline/delete", name="timeline_delete", options={"expose"=true}))
+     */
+    public function delete(Request $request, PaginatorInterface $paginator)
+    {
+        $options = [
+            'id' => 'required'
+        ];
+
+        $messageError = $this->validator->validate($options, $this->request);
+
+        if ($messageError) return $this->sendError($messageError);
+
+        $timeLine = TimeLine::getById($request->get('id'));
+
+        if ($timeLine instanceof TimeLine) {
+            $timeLine = TimeLineService::delete($timeLine->getId());
+
+            return $this->sendResponse('timeLine.delete.success');
+        }
+
+        return $this->sendError('timeLine.delete.error');
     }
 }

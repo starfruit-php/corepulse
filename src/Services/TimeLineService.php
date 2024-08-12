@@ -32,6 +32,7 @@ class TimeLineService
                 $timeline->$setValue($value);
             }
         }
+        $timeline->setUpdateAt(date('Y-m-d H:i:s'));
         $timeline->save();
 
         return $timeline;

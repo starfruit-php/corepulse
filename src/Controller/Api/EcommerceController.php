@@ -57,7 +57,7 @@ class EcommerceController extends BaseController
     }
 
     /**
-     * @Route("/order", name="order", methods={"GET"})
+     * @Route("/order/listing", name="order_listing", methods={"GET"})
      */
     public function order(Request $request, PaginatorInterface $paginator)
     {
@@ -65,95 +65,79 @@ class EcommerceController extends BaseController
         $user = 118;
         $totalPrice = 0;
 
-        $order = new OnlineShopOrder\Listing();
-        $order->addConditionParam('customer__id', $user);
+        $data = [];
+        $response = [];
+        try {
 
-        $order_by = $request->get('order_by');
-        $order = $request->get('order');
+            $order_by = $request->get('order_by');
+            $order = $request->get('order');
 
-        $messageError = $this->validator->validate([
-            'page' => $this->request->get('page') ? 'numeric|positive' : '',
-            'limit' => $this->request->get('limit') ? 'numeric|positive' : '',
-            'order_by' => $order_by ? 'choice:title' : '',
-            'order' => $order ? 'choice:desc,asc' : ''
-        ], $request);
+            $messageError = $this->validator->validate([
+                'customer' => 'required',
+                'page' => $this->request->get('page') ? 'numeric|positive' : '',
+                'limit' => $this->request->get('limit') ? 'numeric|positive' : '',
+                'order_by' => $order_by ? 'choice:title' : '',
+                'order' => $order ? 'choice:desc,asc' : ''
+            ], $request);
 
-        if ($messageError) return $this->sendError($messageError);
-
-        if (empty($order_by)) $order_by = 'title';
-        if (empty($order)) $order = 'desc';
-
-        // $listing = new Review\Listing();
-
-        // if (!empty($request->get('search'))) $listing->addConditionParam("title LIKE '%" . $request->get('search') . "%'");
-        // $listing->setOrderKey($order_by);
-        // $listing->setOrder($order);
+            if ($messageError) return $this->sendError($messageError);
 
 
-        // $pagination = $paginator->paginate(
-        //     $listing,
-        //     $request->get('page', self::REVIEW_PAGE_DEFAULT),
-        //     $request->get('limit', self::REVIEW_PERPAGE_DEFAULT),
-        // );
 
-        // foreach ($listing as $review) {
-        //     $dataJson = ObjectJson::getJson($review);
+            if (empty($order_by)) $order_by = 'ordernumber';
+            if (empty($order)) $order = 'desc';
+            $listing = new OnlineShopOrder\Listing;
+            $listing->addConditionParam('customer__id', $user);
+            if (!empty($request->get('search'))) $listing->addConditionParam("ordernumber LIKE '%" . $request->get('search') . "%'");
+            $listing->setOrderKey($order_by);
+            $listing->setOrder($order);
 
-        //     array_push($data, $dataJson);
-        // }
 
-        // $response['data'] = $data;
-        // $response['paginator'] = $pagination->getPaginationData();
+            $pagination = $paginator->paginate(
+                $listing,
+                $request->get('page', 1),
+                $request->get('limit', 10),
+            );
 
-        // return $this->sendResponse($data);
-    }
+            foreach ($listing as $item) {
+                $child = [];
 
-    /**
-     * @Route("/detail-order", name="order", methods={"GET"})
-     */
-    public function detailOrder(Request $request, PaginatorInterface $paginator)
-    {
-        $messageError = $this->validator->validate([
-            'id' => 'required',
-        ], $request);
-        if ($messageError) return $this->sendError($messageError);
+                foreach ($item->getItems() as $value) {
+                    $child[] = [
+                        'product' => $value->getProduct() ? $value->getProduct()->getProductName() : '',
+                        'amount' => $value->getAmount(),
+                        'totalPrice' => $value->getTotalPrice(),
 
-        $order = DataObject::getById($request->get('id'));
+                    ];
+                }
 
-        $data = [
-            'id' => $order->getId(),
-            'code' => $order->getOrdernumber(),
-            'status' => $order->getOrderState(),
-            'name' => $order->getName(),
-            'phone' => $order->getPhone(),
-            'email' => $order->getEmail(),
-            'subTotalNetPrice' => $order->getSubTotalNetPrice(),
-            'subTotalPrice' => $order->getSubTotalPrice(),
-            'totalNetPrice' => $order->getTotalNetPrice(),
-            'totalPrice' => $order->getTotalPrice(),
+                $dataJson = [
+                    'id' => $item->getId(),
+                    'ordernumber' => $item->getOrdernumber(),
+                    'orderdate' => $item->getOrderdate(),
+                    'totalPrice' => $item->getTotalPrice(),
+                    'totalNetPrice' => $item->getTotalNetPrice(),
+                    'customer' => $item->getCustomer()->getId(),
+                    'subTotalNetPrice' => $item->getSubTotalNetPrice(),
+                    'item' => $child
+                ];
 
-            'creationDate' => date('Y-m-d H:i:s', $order->getCreationDate()),
-        ];
+                array_push($data, $dataJson);
+            }
 
-        foreach ($order->getItems() as $item) {
-            // dd($item);
-            $data['items'][] = [
-                'id' => $item->getId(),
-                'product' => $item->getProductName(),
-                'amount' => $item->getAmount(),
-                'totalNetPrice' => $item->getTotalNetPrice(),
-            ];
+            $response['data'] = $data;
+            $response['paginator'] = $pagination->getPaginationData();
+        } catch (\Throwable $e) {
+
+            return $this->sendError($e->getMessage(), 500);
         }
-        // dd($order);
-        // $response['data'] = $data;
-        // $response['paginator'] = $pagination->getPaginationData();
 
-        return $this->sendResponse($data);
+        return $this->sendResponse($response);
     }
 
 
     /**
-     * @Route("/update", name="order", methods={"POST"})
+     * @Route("/order/update", name="order_update", methods={"POST"})
      */
     public function update(Request $request, PaginatorInterface $paginator)
     {
