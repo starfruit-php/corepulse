@@ -17,7 +17,7 @@ class AppController extends BaseController
 {
 
     /**
-     * @Route("/listing", name="api_app_listing", methods={"GET"}, options={"expose"=true})
+     * @Route("/setting", name="api_app_setting", methods={"GET"}, options={"expose"=true})
      *
      * {mô tả api}
      *
@@ -27,7 +27,7 @@ class AppController extends BaseController
      *
      * @throws \Exception
      */
-    public function listingAction( Request $request ): JsonResponse
+    public function settingAction( Request $request ): JsonResponse
     {
         try {
             $loginSetting = Db::get()->fetchAssociative('SELECT * FROM `vuetify_settings` WHERE `type` = "login"', []);

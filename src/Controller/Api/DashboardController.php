@@ -20,7 +20,7 @@ use Pimcore\Model\User;
 class DashboardController extends BaseController
 {
     /**
-     * @Route("/listing", name="api_dashboard_listing", methods={"GET"}, options={"expose"=true})
+     * @Route("/default", name="api_dashboard_default", methods={"GET"}, options={"expose"=true})
      *
      * {mô tả api}
      *
@@ -30,7 +30,7 @@ class DashboardController extends BaseController
      *
      * @throws \Exception
      */
-    public function listingAction( Request $request ): JsonResponse
+    public function defaultAction( Request $request ): JsonResponse
     {
         try {
             $data['data'] = [];

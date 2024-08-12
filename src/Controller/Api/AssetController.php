@@ -63,6 +63,11 @@ class AssetController extends BaseController
                 $conditionParams['type'] = $type;
             }
 
+            $search = $request->get('search') ? $request->get('search') : '';
+            if ($search) {
+                $conditionQuery .= " AND LOWER(`filename`)" . " LIKE LOWER('%" . $search . "%')";
+            }
+
             $list = new Asset\Listing();
             $list->setOrderKey($request->get('order_by', 'mimetype'));
             $list->setOrder($request->get('order', 'asc'));
@@ -412,10 +417,6 @@ class AssetController extends BaseController
         }
 
         $publicURL = AssetServices::getThumbnailPath($item);
-        $filenName = "<div class='div-images'> <div class='tableCell--titleThumbnail preview--image d-flex align-center'>"
-            . "<img class='me-2 image-default' src=' " .  $publicURL . "'><span>" .
-            $item->getFileName() .
-            "</span></div>" . "<div class='image-preview'> <img src='" . $publicURL . "' alt='Preview Image'></div> </div>";
 
         $json = [
             'id' => $item->getId(),

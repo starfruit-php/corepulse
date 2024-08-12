@@ -464,7 +464,7 @@ class ObjectController extends BaseController
     }
 
     /**
-     * @Route("/object-slider-bar", name="api_object_slider_bar", methods={"GET"}, options={"expose"=true})
+     * @Route("/get-sidebar", name="api_object_slider_bar", methods={"GET"}, options={"expose"=true})
      *
      * {mô tả api}
      *
@@ -474,7 +474,7 @@ class ObjectController extends BaseController
      *
      * @throws \Exception
      */
-    public function objectSliderBa(
+    public function getSidebar(
         Request $request,
         PaginatorInterface $paginator): JsonResponse
     {
