@@ -67,3 +67,8 @@ services:
       - { name: kernel.event_listener, event: pimcore.document.postAdd, method: postDocumentAdd }
       - { name: kernel.event_listener, event: pimcore.document.postUpdate, method: postDocumentUpdate }
       - { name: kernel.event_listener, event: pimcore.document.postDelete, method: postDocumentDelete }
+
+  CorepulseBundle\EventListener\DataObject\ClassDefinitionListener:
+    tags:
+      - { name: kernel.event_listener, event: pimcore.class.postUpdate, method: postClassUpdate }
+      - { name: kernel.event_listener, event: pimcore.class.postAdd, method: postClassUpdate }

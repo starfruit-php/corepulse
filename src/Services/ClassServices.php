@@ -57,7 +57,7 @@ class ClassServices
                 }
             }
 
-            $data = [ 'fields' => $result ];
+            $data = [ 'fields' => $result, 'class' => $classDefinition->getName() ];
 
             $data = array_merge($data, $propertyVisibility);
         } catch (\Throwable $th) {
@@ -66,7 +66,7 @@ class ClassServices
         return $data;
     }
 
-    private static function getFieldProperty($fieldDefinition, $localized = false)
+    public static function getFieldProperty($fieldDefinition, $localized = false)
     {
         $data = get_object_vars($fieldDefinition);
         $data['fieldtype'] = $fieldDefinition->getFieldType();
@@ -75,15 +75,23 @@ class ClassServices
         return $data;
     }
 
-    public static function updateTable($className, $visibleFields)
+    public static function updateTable($className, $visibleFields, $tableView = false)
     {
         $config = self::getConfig($className);
 
         if ($config) {
+            $saveData = json_decode($config['visibleFields'], true);
+            if ($tableView) {
+                $saveData['tableView'] = $visibleFields;
+            } else if (!isset($visibleFields['tableView'])) {
+                $visibleFields['tableView'] = isset($saveData['tableView']) ? $saveData['tableView'] : [];
+                $saveData = $visibleFields;
+            }
+
             Db::get()->update(
                 'corepulse_class',
                 [
-                    'visibleFields' => json_encode($visibleFields),
+                    'visibleFields' => json_encode($saveData),
                 ],
                 [
                     'className' => $className,
@@ -94,6 +102,25 @@ class ClassServices
         }
 
         return false;
+    }
+
+    public static function systemField($propertyVisibility)
+    {
+        $fields = [];
+        $properties = ['id', 'key', 'path', 'published', 'modificationDate', 'creationDate'];
+
+        foreach ($properties as $property) {
+            $fields[$property] = [
+                "name" => $property,
+                "title" => $property,
+                "visibleSearch" => $propertyVisibility['search'][$property],
+                "visibleGridView" => $propertyVisibility['grid'][$property],
+                "fieldtype" => "system",
+                "type" => $property,
+            ];
+        }
+
+        return $fields;
     }
 
     public static function getConfig($className)
@@ -107,6 +134,34 @@ class ClassServices
         }
 
         return $item;
+    }
+
+    public static function getVisibleGridView($fields)
+    {
+        return array_filter($fields, function($value) {
+            return $value['visibleGridView'] === true;
+        });
+    }
+
+    public static function getVisibleSearch($fields)
+    {
+        return array_filter($fields, function($value) {
+            return $value['visibleSearch'] === true;
+        });
+    }
+
+    public static function filterFill($fields, $tableView)
+    {
+        if(empty($tableView)) {
+            return self::getVisibleGridView($fields);
+        }
+
+        $data = [];
+        foreach ($tableView as $view) {
+            $data[$view] = $fields[$view];
+        }
+
+        return $data;
     }
 
     public static function getDataField($item, $field, $colors) {

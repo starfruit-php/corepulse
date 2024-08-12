@@ -2,12 +2,12 @@
 
 namespace CorepulseBundle\Component\Field;
 
-class Date extends Input
+class Datetime extends Input
 {
     public function getValue()
     {
         $value = $this->data->{'get' . ucfirst($this->getName())}();
 
-        return $value?->format("Y/m/d");
+        return $value?->format("Y/m/d H:i");
     }
 }

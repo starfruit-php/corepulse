@@ -8,6 +8,10 @@ class DataObjectServices
     {
         $data = [];
         foreach ($fields as $key => $field) {
+            if (isset($field['invisible']) && $field['invisible']) {
+                continue;
+            }
+
             $getClass = '\\CorepulseBundle\\Component\\Field\\' . ucfirst($field['fieldtype']);
             if (!class_exists($getClass)) {
                 $data[$key] = null;

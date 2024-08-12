@@ -29,55 +29,40 @@ use DateTime;
  */
 class ObjectController extends BaseController
 {
-    protected ?Schema $schema = null;
-    protected BufferedOutput $output;
-
-    protected function getSchema($db): Schema
+    /**
+     * @Route("/submit-column-setting", name="api_object_submit_column_setting", methods={"POST"}, options={"expose"=true})
+     */
+    public function submitColumnSetting()
     {
-        return $this->schema ??= $db->createSchemaManager()->introspectSchema();
+        try {
+            $condition = [
+                'id' => 'required',
+                'columns' => 'required|array',
+            ];
+            $messageError = $this->validator->validate($condition, $this->request);
+            if($messageError) return $this->sendError($messageError);
+
+            $classId = $this->request->get("id");
+            $columns = $this->request->get('columns');
+
+            $update = ClassServices::updateTable($classId, $columns, true);
+
+            $data = [
+                'success' => true,
+                'message' => 'class update table view success'
+            ];
+            return $this->sendResponse($data);
+        } catch (\Throwable $th) {
+            return $this->sendError($th->getMessage(), 500);
+        }
     }
 
-    const listField = [
-        "input", "textarea", "wysiwyg", "password",
-        "number", "numericRange", "slider", "numeric",
-        "date", "datetime", "dateRange", "time", "manyToOneRelation",
-        "select", 'multiselect', 'image', 'manyToManyRelation',
-        'manyToManyObjectRelation', 'imageGallery', 'urlSlug'
-    ];
-
-    const chipField = [
-        "select", "multiselect", "manyToOneRelation", "manyToManyObjectRelation",
-        "manyToManyRelation", "advancedManyToManyRelation", "advancedmanyToManyObjectRelation"
-    ];
-
-    const multiField = [
-        "multiselect", 'manyToManyRelation', 'manyToManyObjectRelation'
-    ];
-
-    const relationField = [
-        "manyToOneRelation"
-    ];
-
-    const noSearch = ["image", "imageGallery", "urlSlug"];
-
-    const noOrder = [
-        "image", "imageGallery", "urlSlug", "multiselect", "manyToOneRelation",
-        "manyToManyObjectRelation", "manyToManyRelation", "advancedManyToManyRelation", "advancedmanyToManyObjectRelation"
-    ];
-
-    const notHandleEdit = [
-        "advancedManyToManyRelation",
-        "advancedmanyToManyObjectRelation"
-    ];
-
-    const relationsField = ["manyToManyObjectRelation", "manyToManyRelation", "advancedManyToManyRelation", "advancedmanyToManyObjectRelation"];
-
     /**
-     * @Route("/get-column-setting", name="api_object_column_setting", methods={"GET"}, options={"expose"=true})
+     * @Route("/get-column-setting", name="api_object_get_column_setting", methods={"GET"}, options={"expose"=true})
      */
     public function getColumnSetting()
     {
-        // try {
+        try {
             $condition = [
                 'id' => 'required',
             ];
@@ -85,22 +70,34 @@ class ObjectController extends BaseController
             if($messageError) return $this->sendError($messageError);
 
             $classId = $this->request->get("id");
-            $classDefinition = ClassServices::examplesAction($classId);
 
-            dd($classDefinition);
+            $checkClass = ClassServices::isValid($classId);
 
-            if (!$classDefinition || !class_exists('\\Pimcore\\Model\\DataObject\\' . ucfirst($classDefinition->getName()))) {
+            if (!$checkClass) {
                 return $this->sendError([
                     'success' => false,
                     'message' => 'Class not found.'
                 ], 500);
             }
 
-            dd($classDefinition->examplesAction($classId));
-        // } catch (\Throwable $th) {
-        //     //throw $th;
-        // }
+            $classConfig = ClassServices::getConfig($classId);
+            $visibleFields = json_decode($classConfig['visibleFields'], true);
 
+            $fields = $visibleFields['fields'];
+            $columns = array_merge(ClassServices::systemField($visibleFields), $fields);
+            $tableView = $visibleFields['tableView'];
+
+            $visibleGridView = ClassServices::filterFill($columns, $tableView);
+
+            $data = [
+                'columns' => $columns,
+                'visibleGridView' => $visibleGridView,
+            ];
+
+            return $this->sendResponse($data);
+        } catch (\Throwable $th) {
+            return $this->sendError($th->getMessage(), 500);
+        }
     }
 
     /**
@@ -116,6 +113,7 @@ class ObjectController extends BaseController
             $condition = array_merge($condition, [
                 'id' => 'required',
                 'search' => '',
+                'columns' => 'array',
             ]);
             $messageError = $this->validator->validate($condition, $this->request);
             if($messageError) return $this->sendError($messageError);
@@ -123,19 +121,22 @@ class ObjectController extends BaseController
             $classId = $this->request->get("id");
 
             $checkClass = ClassServices::isValid($classId);
-            $classDefinition = ClassDefinition::getById($classId);
 
-            if (!$checkClass || !$classDefinition || !class_exists('\\Pimcore\\Model\\DataObject\\' . ucfirst($classDefinition->getName()))) {
+            $classConfig = ClassServices::getConfig($classId);
+            $visibleFields = json_decode($classConfig['visibleFields'], true);
+
+            $columns = array_merge(ClassServices::systemField($visibleFields), $visibleFields['fields']);
+            $fields = $this->request->get('columns') ? ClassServices::filterFill($columns, $this->request->get('columns')) : $columns;
+
+            $className = $visibleFields['class'];
+            if (!$checkClass || !$className || !class_exists('\\Pimcore\\Model\\DataObject\\' . ucfirst($className))) {
                 return $this->sendError([
                     'success' => false,
                     'message' => 'Class not found.'
                 ], 500);
             }
 
-            $classConfig = ClassServices::getConfig($classId);
-            $visibleFields = json_decode($classConfig['visibleFields'], true);
-
-            $fields = $visibleFields['fields'];
+            $listing = call_user_func_array('\\Pimcore\\Model\\DataObject\\' . $className . '::getList', [["unpublished" => true]]);
 
             $search = $this->request->get('search');
             $locale = $this->request->get('locale', \Pimcore\Tool::getDefaultLanguage());
@@ -188,7 +189,6 @@ class ObjectController extends BaseController
                 }
             }
 
-            $listing = call_user_func_array('\\Pimcore\\Model\\DataObject\\' . $classDefinition->getName() . '::getList', [["unpublished" => true]]);
             $listing->setLocale($locale);
             $listing->setUnpublished(true);
 
