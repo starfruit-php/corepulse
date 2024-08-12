@@ -33,9 +33,9 @@ services:
     resource: "../src/Security"
     public: true
 
-  CorepulseBundle\Component\:
-    resource: "../src/Component"
-    public: true
+#   CorepulseBundle\Component\:
+#     resource: "../src/Component"
+#     public: true
 
 
   CorepulseBundle\EventSubscriber\:

@@ -12,6 +12,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Knp\Component\Pager\PaginatorInterface;
+use Symfony\Component\Process\Process;
 
 class BaseController extends FrontendController
 {
@@ -24,7 +25,7 @@ class BaseController extends FrontendController
         RequestStack $requestStack,
         Translator $translator,
         ValidatorInterface $validator,
-        PaginatorInterface $paginator
+        PaginatorInterface $paginator,
         )
     {
         $this->request = $requestStack->getCurrentRequest();
@@ -37,6 +38,7 @@ class BaseController extends FrontendController
 
         $this->validator = new Validator($validator, $this->translator);
         $this->paginator = $paginator;
+        $this->setLocaleRequest();
     }
 
      /**
@@ -44,7 +46,6 @@ class BaseController extends FrontendController
      */
     public function setLocaleRequest()
     {
-
         if ($this->request->get('_locale')) {
             $this->request->setLocale($this->request->get('_locale'));
         }
@@ -126,7 +127,7 @@ class BaseController extends FrontendController
 
         return $pagination;
     }
-    
+
     public function helperPaginator($paginator, $listing, $page = 1, $limit = 10)
     {
         $pagination = $paginator->paginate(
@@ -186,6 +187,16 @@ class BaseController extends FrontendController
             return $interval->i . " minute" . ($interval->i > 1 ? "s" : "") . " ago";
         } else {
             return "just now";
+        }
+    }
+
+    public function runProcess($command)
+    {
+        try {
+            $process = new Process(explode(' ', 'php ' . str_replace("\\", '/', PIMCORE_PROJECT_ROOT) . '/bin/console ' . $command), null, null, null, 900);
+
+            $process->run();
+        } catch (\Throwable $e) {
         }
     }
 }

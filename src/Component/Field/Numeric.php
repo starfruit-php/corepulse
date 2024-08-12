@@ -2,6 +2,6 @@
 
 namespace CorepulseBundle\Component\Field;
 
-class Wysiwyg extends Input
+class Numeric extends Input
 {
 }

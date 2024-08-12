@@ -7,6 +7,7 @@ use Pimcore\Db;
 use Starfruit\BuilderBundle\Tool\LanguageTool;
 use Starfruit\BuilderBundle\Model\Option;
 use CorepulseBundle\Model\Indexing;
+use Pimcore\Model\Document;
 use Starfruit\BuilderBundle\Sitemap\Setting;
 
 class SeoServices
@@ -223,5 +224,31 @@ class SeoServices
         }
 
         return $setting;
+    }
+
+    static public function updateRedirect($redirect, $data = [])
+    {
+        if (!empty($data['target'])) {
+            if ($doc = Document::getByPath($data['target'])) {
+                $data['target'] = $doc->getId();
+            }
+        }
+
+        if (isset($data['regex']) && !$data['regex'] && isset($data['source']) && $data['source']) {
+            $data['source'] = str_replace('+', ' ', $data['source']);
+        }
+
+        $redirect->setValues($data, true);
+
+        $redirect->save();
+
+        $redirectTarget = $redirect->getTarget();
+        if (is_numeric($redirectTarget)) {
+            if ($doc = Document::getById((int)$redirectTarget)) {
+                $redirect->setTarget($doc->getRealFullPath());
+            }
+        }
+
+        return $redirect;
     }
 }

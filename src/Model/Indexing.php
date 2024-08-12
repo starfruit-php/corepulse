@@ -242,7 +242,7 @@ class Indexing extends AbstractModel
 
     public function getDataJson(): array
     {
-        $result = [
+        $data = [
             'id' => $this->getId(),
             'url' => $this->getUrl(),
             'time' => $this->getTime() ? $this->getTime() : $this->getUpdateAt(),
@@ -256,6 +256,13 @@ class Indexing extends AbstractModel
             'result' => json_decode($this->getResult(), true),
         ];
 
-        return $result;
+        $indexStatusResult = [];
+        if (isset($data["result"]["indexStatusResult"])) {
+            $indexStatusResult = $data["result"]["indexStatusResult"];
+        }
+
+        $data = array_merge($data, $indexStatusResult);
+
+        return $data;
     }
 }

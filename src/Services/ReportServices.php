@@ -2,11 +2,9 @@
 
 namespace CorepulseBundle\Services;
 
-use Google\Service\AIPlatformNotebooks\Status;
 use Pimcore\Db;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
-use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
-use Symfony\Component\HttpFoundation\Response;
+use CorepulseBundle\Services\Helper\Text\PrettyText;
 
 class ReportServices
 {
@@ -190,63 +188,5 @@ class ReportServices
         }
 
         return $spreadsheet;
-    }
-
-    //xử lý filter
-    public static function filterData($data, $key, $value)
-    {
-        if (count($data)) {
-            $result = array_filter($data, function ($item) use ($key, $value) {
-                return self::checkValue($item[$key], $value);
-            });
-
-            return $result;
-        }
-    }
-
-    public static function checkValue($string, $value)
-    {
-        $lowercaseString = self::getPretty(strtolower($string));
-        $lowercaseValue = self::getPretty(strtolower(ltrim($value)));
-
-        return stripos($lowercaseString, $lowercaseValue) !== false;
-    }
-
-    public static function sortArrayByField($array, $field, $order = 'asc') {
-        usort($array, function($a, $b) use ($field, $order) {
-            $valueA = $a[$field];
-            $valueB = $b[$field];
-
-            if ($valueA == $valueB) {
-                return 0;
-            }
-
-            if ($order == 'asc') {
-                return ($valueA < $valueB) ? -1 : 1;
-            } else {
-                return ($valueA > $valueB) ? -1 : 1;
-            }
-        });
-
-        return $array; // Trả về mảng đã được sắp xếp
-    }
-
-    public static function getPretty($text)
-    {
-        // to ASCII
-        $text = trim(transliterator_transliterate('Any-Latin; Latin-ASCII; [^\u001F-\u007f] remove', $text));
-
-        $search = ['?', '\'', '"', '/', '-', '+', '.', ',', ';', '(', ')', ' ', '&', 'ä', 'ö', 'ü', 'Ä', 'Ö', 'Ü', 'ß', 'É', 'é', 'È', 'è', 'Ê', 'ê', 'E', 'e', 'Ë', 'ë',
-                         'À', 'à', 'Á', 'á', 'Å', 'å', 'a', 'Â', 'â', 'Ã', 'ã', 'ª', 'Æ', 'æ', 'C', 'c', 'Ç', 'ç', 'C', 'c', 'Í', 'í', 'Ì', 'ì', 'Î', 'î', 'Ï', 'ï',
-                         'Ó', 'ó', 'Ò', 'ò', 'Ô', 'ô', 'º', 'Õ', 'õ', 'Œ', 'O', 'o', 'Ø', 'ø', 'Ú', 'ú', 'Ù', 'ù', 'Û', 'û', 'U', 'u', 'U', 'u', 'Š', 'š', 'S', 's',
-                         'Ž', 'ž', 'Z', 'z', 'Z', 'z', 'L', 'l', 'N', 'n', 'Ñ', 'ñ', '¡', '¿',  'Ÿ', 'ÿ', '_', ':' ];
-        $replace = ['', '', '', '', '-', '', '', '-', '-', '', '', '-', '', 'ae', 'oe', 'ue', 'Ae', 'Oe', 'Ue', 'ss', 'E', 'e', 'E', 'e', 'E', 'e', 'E', 'e', 'E', 'e',
-                         'A', 'a', 'A', 'a', 'A', 'a', 'a', 'A', 'a', 'A', 'a', 'a', 'AE', 'ae', 'C', 'c', 'C', 'c', 'C', 'c', 'I', 'i', 'I', 'i', 'I', 'i', 'I', 'i',
-                         'O', 'o', 'O', 'o', 'O', 'o', 'o', 'O', 'o', 'OE', 'O', 'o', 'O', 'o', 'U', 'u', 'U', 'u', 'U', 'u', 'U', 'u', 'U', 'u', 'S', 's', 'S', 's',
-                         'Z', 'z', 'Z', 'z', 'Z', 'z', 'L', 'l', 'N', 'n', 'N', 'n', '', '', 'Y', 'y', '-', '-' ];
-
-        $value = urlencode(str_replace($search, $replace, $text));
-
-        return $value;
     }
 }

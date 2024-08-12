@@ -9,12 +9,15 @@ class DatabaseServices
     const COREPULSE_INDEXING_TABLE = 'corepulse_indexing';
     const COREPULSE_NOTIFICATION_TABLE = 'corepulse_notification';
     const COREPULSE_PLAUSIBLE_TABLE = 'corepulse_plausible';
-
+    const COREPULSE_ORDER_TIMELINE_TABLE = 'corepulse_order_timeline';
+    const COREPULSE_CLASS_TABLE = 'corepulse_class';
 
     public static function createTables()
     {
         self::createCorepulseIndexing();
         self::createCorepulseNotification();
+        self::createCorepulseOrderTimeline();
+        self::createCorepulseClass();
     }
 
     public static function updateTables()
@@ -100,6 +103,35 @@ class DatabaseServices
             ADD COLUMN IF NOT EXISTS `password` varchar(255) NOT NULL,
             ADD COLUMN IF NOT EXISTS `link` varchar(255) DEFAULT NULL;
         ";
+
+        Db::get()->executeQuery($query);
+    }
+
+    public static function createCorepulseOrderTimeline()
+    {
+        $query = " CREATE TABLE IF NOT EXISTS " . self::COREPULSE_ORDER_TIMELINE_TABLE . " (
+            `id` int(11) NOT NULL AUTO_INCREMENT,
+            `idOrder` int(11) NOT NULL,
+            `title` varchar(255)  DEFAULT NULL,
+            `description` varchar(255)  DEFAULT NULL,
+            `createAt` timestamp DEFAULT current_timestamp(),
+            `updateAt` timestamp DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+            PRIMARY KEY (`id`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        COMMIT;";
+
+        Db::get()->executeQuery($query);
+    }
+
+    public static function createCorepulseClass()
+    {
+        $query = " CREATE TABLE IF NOT EXISTS " . self::COREPULSE_CLASS_TABLE . " (
+            `id` int(11) NOT NULL AUTO_INCREMENT,
+            `className` varchar(255) NOT NULL,
+            `visibleFields` LONGTEXT  DEFAULT NULL,
+            PRIMARY KEY (`id`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        COMMIT;";
 
         Db::get()->executeQuery($query);
     }

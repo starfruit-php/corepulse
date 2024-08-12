@@ -2,26 +2,34 @@
 
 namespace CorepulseBundle\Component\Field;
 
-class Input 
+use CorepulseBundle\Component\Field\FieldInterface;
+
+class Input implements FieldInterface
 {
-    public function getName()
+    protected $data;
+
+    protected $layout;
+
+    public function __construct($data, $layout)
     {
-        return 'Input';
+        if (is_array($layout)) $layout = (object)$layout;
+
+        $this->layout = $layout;
+        $this->data = $data;
     }
 
-    public function getTitle($item)
+    public function getName():string
     {
-        return $item->getTitle();
+        return $this->layout->name;
     }
 
-    public function getType()
+    public function getTitle():string
     {
-        return 'input';
+        return $this->layout->title;
     }
 
-    public function getValue($item)
+    public function getValue()
     {
-        return $item->getValue();
+        return $this->data->{'get' . ucfirst($this->getName())}();
     }
-
 }

@@ -187,14 +187,7 @@ class SeoController extends BaseController
 
         $listData = [];
         foreach ($listing as $item) {
-            $data = $item->getDataJson();
-
-            $indexStatusResult = [];
-            if (isset($data["result"]["indexStatusResult"])) {
-                $indexStatusResult = $data["result"]["indexStatusResult"];
-            }
-
-            $listData[] = array_merge($data, $indexStatusResult);
+            $listData[] = $item->getDataJson();
         }
 
         $fields = [];
@@ -257,11 +250,7 @@ class SeoController extends BaseController
         $type = $request->get('type');
         $idsOrId = $request->get('id');
         try {
-            $submitType = GoogleServices::submitType($idsOrId, $type);
-
-            $data = [
-                'success' => true,
-            ];
+            $data = GoogleServices::submitType($idsOrId, $type);
         } catch (\Throwable $th) {
             $data = [
                 'success' => false,
@@ -311,7 +300,7 @@ class SeoController extends BaseController
         $language = $request->get('language');
         $object = DataObject::getById($request->get('id'));
 
-        // try {
+        try {
             // lấy thông tin or thêm mới object vào bảng seo
             $seo = Seo::getOrCreate($object, $language);
 
@@ -336,9 +325,9 @@ class SeoController extends BaseController
             $settingAi = ['settingAi' => SeoServices::getApiKey()];
             $data = array_merge($scoring, $metaData);
             $data = array_merge($data, $settingAi);
-        // } catch (\Throwable $th) {
-        //     $data = [];
-        // }
+        } catch (\Throwable $th) {
+            $data = [];
+        }
 
         return new JsonResponse($data);
     }

@@ -14,7 +14,6 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Pimcore\Model\DataObject\ClassDefinition;
 
-
 class ClassServices
 {
     const chipField = [
@@ -26,86 +25,78 @@ class ClassServices
         "advancedmanyToManyObjectRelation"
     ];
 
+    public static function isValid($classId)
+    {
+        $objectSetting = Db::get()->fetchAssociative('SELECT * FROM `vuetify_settings` WHERE `type` = "object"', []);
+        if ($objectSetting !== null && $objectSetting) {
+            $data = json_decode($objectSetting['config']) ?? [];
+
+            if (!empty($data) && in_array($classId, $data)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public static function examplesAction($classId)
     {
-        $classDefinition = ClassDefinition::getById($classId);
-        $propertyVisibility = $classDefinition->getPropertyVisibility();
-        $fieldDefinitions = $classDefinition->getFieldDefinitions();
-        $result = [];
-        foreach ($fieldDefinitions as $key => $fieldDefinition) {
-            if ($fieldDefinition instanceof ClassDefinition\Data\Localizedfields) {
-                foreach ($fieldDefinition->getChildren() as $child) {
-                    $result[$child->name] = self::getFieldProperty($child);
-                }
-            } else {
-                $result[$key] = self::getFieldProperty($fieldDefinition);
-            }
-        }
-
-        return $result;
-    }
-
-    private static function getFieldProperty($fieldDefinition)
-    {
-        $url = [
-            'path' => "object_listing_edit",
-        ];
-        $component = "ModalEdit";
-        $handleEdit = true;
-        $options = [];
-
-        if (in_array($fieldDefinition->getFieldtype(), self::chipField)) {
-            $options = FieldController::getOptions($fieldDefinition->getFieldtype(), $fieldDefinition);
-        }
-
-        if (in_array($fieldDefinition->getFieldtype(), self::notHandleEdit)) {
-            $handleEdit = false;
-        }
-
-        return [
-            "visible" => $fieldDefinition->visibleGridView,
-            "key" => $fieldDefinition->name,
-            "type" => $fieldDefinition->getFieldtype(),
-            "title" => $fieldDefinition->getTitle(),
-            "tooltip" => $fieldDefinition->getTooltip(),
-            "searchType" => FieldServices::getType($fieldDefinition->getFieldtype()),
-            "options" => $options,
-            "handleEdit" => $handleEdit,
-            "url" => $url,
-            "component" => $component,
-        ];
-    }
-
-    public static function updateTable($className, $visibleFiels)
-    {
+        $data = [];
         try {
-            $object = self::getData($className);
-            // dd(json_encode($visibleFiels));
-            if ($object) {
-                Db::get()->update(
-                    'corepulse_class',
-                    [
-                        'visibleFiels' => json_encode($visibleFiels),
-                    ],
-                    [
-                        'className' => $className,
-                    ]
-                );
-
-                $response = "Update successfully";
-            } else {
-                $response = "Object not found";
+            $classDefinition = ClassDefinition::getById($classId);
+            $propertyVisibility = $classDefinition->getPropertyVisibility();
+            $fieldDefinitions = $classDefinition->getFieldDefinitions();
+            $result = [];
+            foreach ($fieldDefinitions as $key => $fieldDefinition) {
+                if ($fieldDefinition instanceof ClassDefinition\Data\Localizedfields) {
+                    foreach ($fieldDefinition->getChildren() as $child) {
+                        $result[$child->name] = self::getFieldProperty($child, true);
+                    }
+                } else {
+                    $result[$key] = self::getFieldProperty($fieldDefinition);
+                }
             }
 
-            return $response;
+            $data = [ 'fields' => $result ];
 
+            $data = array_merge($data, $propertyVisibility);
         } catch (\Throwable $th) {
-            return new JsonResponse(['warning' => $th->getMessage()]);
         }
 
+        return $data;
     }
 
-    public static function getData($className)
+    private static function getFieldProperty($fieldDefinition, $localized = false)
+    {
+        $data = get_object_vars($fieldDefinition);
+        $data['fieldtype'] = $fieldDefinition->getFieldType();
+        $data['localized'] = $localized;
+
+        return $data;
+    }
+
+    public static function updateTable($className, $visibleFields)
+    {
+        $config = self::getConfig($className);
+
+        if ($config) {
+            Db::get()->update(
+                'corepulse_class',
+                [
+                    'visibleFields' => json_encode($visibleFields),
+                ],
+                [
+                    'className' => $className,
+                ]
+            );
+
+            return true;
+        }
+
+        return false;
+    }
+
+    public static function getConfig($className)
     {
         $item = Db::get()->fetchAssociative('SELECT * FROM `corepulse_class` WHERE `className` = "' . $className . '"', []);
         if (!$item) {
@@ -114,11 +105,6 @@ class ClassServices
             ]);
             $item = Db::get()->fetchAssociative('SELECT * FROM `corepulse_class` WHERE `className` = "' . $className . '"', []);
         }
-        // if ($item['visibleFiels']) {
-        //     $item['visibleFiels'] = json_decode($item['visibleFiels'], true);
-        // } else {
-        //     $item['visibleFiels'] = [];
-        // }
 
         return $item;
     }

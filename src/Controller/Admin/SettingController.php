@@ -10,6 +10,7 @@ use CorepulseBundle\Controller\Cms\FieldController;
 
 use CorepulseBundle\Services\UserServices;
 use CorepulseBundle\Model\User;
+use CorepulseBundle\Services\ClassServices;
 use Pimcore\Model\Asset;
 use Symfony\Component\HttpFoundation\JsonResponse;
 
@@ -94,7 +95,7 @@ class SettingController extends BaseController
             ],
         ];
 
-        //get data logo and backgoroud 
+        //get data logo and backgoroud
         $loginSetting = self::getData('login');
 
         $data = $this->getObjectSetting($blackList, $objectSetting['config']);
@@ -227,16 +228,7 @@ class SettingController extends BaseController
                     $dataSave = array_values($dataSave);
                 }
 
-                // lưu dữ liệu
-                Db::get()->update(
-                    'vuetify_settings',
-                    [
-                        'config' => json_encode($dataSave),
-                    ],
-                    [
-                        'type' => 'object',
-                    ]
-                );
+                $dataSave = self::save($dataSave);
             }
         } catch (\Throwable $th) {
             return new JsonResponse(['warning' => $th->getMessage()]);
@@ -299,16 +291,7 @@ class SettingController extends BaseController
                     $dataSave = array_values($dataSave);
                 }
 
-                // lưu dữ liệu
-                Db::get()->update(
-                    'vuetify_settings',
-                    [
-                        'config' => json_encode($dataSave),
-                    ],
-                    [
-                        'type' => 'object',
-                    ]
-                );
+                $dataSave = self::save($dataSave);
 
                 $classDefinition = ClassDefinition::getById($dataPost->id);
 
@@ -344,7 +327,7 @@ class SettingController extends BaseController
         return $newAsset;
     }
 
-    // get data with obect or login 
+    // get data with obect or login
     public static function getData($type)
     {
         $item = Db::get()->fetchAssociative('SELECT * FROM `vuetify_settings` WHERE `type` = "' . $type . '"', []);
@@ -361,5 +344,25 @@ class SettingController extends BaseController
         }
 
         return $item;
+    }
+
+    public static function save($dataSave)
+    {
+        foreach ($dataSave as $classId) {
+            $params = ClassServices::examplesAction($classId);
+            $update = ClassServices::updateTable($classId, $params);
+        }
+
+        Db::get()->update(
+            'vuetify_settings',
+            [
+                'config' => json_encode($dataSave),
+            ],
+            [
+                'type' => 'object',
+            ]
+        );
+
+        return $dataSave;
     }
 }

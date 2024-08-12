@@ -5,6 +5,7 @@ namespace CorepulseBundle\Controller\Api;
 use CorepulseBundle\Controller\Cms\FieldController;
 use CorepulseBundle\Services\AssetServices;
 use CorepulseBundle\Services\ClassServices;
+use CorepulseBundle\Services\DataObjectServices;
 use CorepulseBundle\Services\Helper\BlockJson;
 use Pimcore\Db;
 
@@ -30,7 +31,7 @@ class ObjectController extends BaseController
 {
     protected ?Schema $schema = null;
     protected BufferedOutput $output;
-    
+
     protected function getSchema($db): Schema
     {
         return $this->schema ??= $db->createSchemaManager()->introspectSchema();
@@ -72,288 +73,73 @@ class ObjectController extends BaseController
     const relationsField = ["manyToManyObjectRelation", "manyToManyRelation", "advancedManyToManyRelation", "advancedmanyToManyObjectRelation"];
 
     /**
-     * @Route("/create-table", name="api_object_create_table", methods={"GET"}, options={"expose"=true})
+     * @Route("/get-column-setting", name="api_object_column_setting", methods={"GET"}, options={"expose"=true})
      */
-    public function createTable(
-        Request $request,
-        PaginatorInterface $paginator,
-        Connection $db)
+    public function getColumnSetting()
     {
-        $this->output = new BufferedOutput(Output::VERBOSITY_NORMAL, true);
-        $response = '';
-        $tablesToInstall = ['corepulse_class' => 'CREATE TABLE `corepulse_class` (
-            `id` int(11) NOT NULL AUTO_INCREMENT,
-            `className` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-            `visibleFiels` LONGTEXT COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-            PRIMARY KEY (`id`)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;'];
-        foreach ($tablesToInstall as $name => $statement) {
-            if ($this->getSchema($db)->hasTable($name)) {
-                $this->output->write(sprintf(
-                    '     <comment>WARNING:</comment> Skipping table "%s" as it already exists',
-                    $name
-                ));
-
-                $response = "Table " . $name. " already exists";
-                continue;
-            }
-
-            $db->executeQuery($statement);
-            $response = "Tables " . $name. " created successfully";
-        }
-
-        return $this->sendResponse($response);
-    }
-    /**
-     * @Route("/update-table-by-object", name="api_object_update-table", methods={"GET"}, options={"expose"=true})
-     */
-    public function updateTableByObject(
-        Request $request,
-        PaginatorInterface $paginator)
-    {
-        try {
-            $object = $request->get("object");
-            $classDefinition = ClassDefinition::getById($object);
-            if ($classDefinition) {
-                $className = $classDefinition->getName();
-                $propertyVisibility = $classDefinition->getPropertyVisibility();
-        
-                $propertys = [];
-                if ($propertyVisibility) {
-                   $propertys = $propertyVisibility['grid'];
-                }
-                $fields = ClassServices::examplesAction($object);
-                $result = array_merge($propertys, $fields);
-                // dd($fields);
-                $update = ClassServices::updateTable($className, $fields);
-
-                return $this->sendResponse($update);
-
-            }
-            return $this->sendError("Object not found", 500);
-        } catch (\Exception $e) {
-            return $this->sendError($e->getMessage(), 500);
-        }
-    }
-
-    /**
-     * @Route("/listing", name="api_object_list", methods={"GET"}, options={"expose"=true})
-     */
-    public function listingAction(
-        Request $request,
-        PaginatorInterface $paginator): JsonResponse
-    {
-        try {
-
-            $this->setLocaleRequest();
-            $orderByOptions = ['modificationDate'];
-            $conditions = $this->getPaginationConditions($request, $orderByOptions);
-            list($page, $limit, $condition) = $conditions;
-
-            $condition = array_merge($condition, [
-                'object' => 'required',
-                'search' => '',
-            ]);
-            $messageError = $this->validator->validate($condition, $request);
+        // try {
+            $condition = [
+                'id' => 'required',
+            ];
+            $messageError = $this->validator->validate($condition, $this->request);
             if($messageError) return $this->sendError($messageError);
 
-            $object = $request->get("object");
-            $classDefinition = ClassDefinition::getById($object);
+            $classId = $this->request->get("id");
+            $classDefinition = ClassServices::examplesAction($classId);
 
-            if (class_exists('\\Pimcore\\Model\\DataObject\\' . ucfirst($classDefinition->getName()))) {
-                $listing = call_user_func_array('\\Pimcore\\Model\\DataObject\\' . $classDefinition->getName() . '::getList', [["unpublished" => true]]);
-                $listing->setLocale($request->get('_locale', \Pimcore\Tool::getDefaultLanguage()));
-                $listing->setUnpublished(true);
-    
-                $paginationData = $this->helperPaginator($paginator, $listing, $page, $limit);
-                $data = array_merge(
-                    [
-                        'data' => []
-                    ],
-                    $paginationData,
-                );
+            dd($classDefinition);
 
-                $dataJson = [
-                    "id" => $classDefinition->getId(),
-                    "name" => $classDefinition->getName(),
-                    "title" => $classDefinition->getTitle() ? $classDefinition->getTitle() :  $classDefinition->getName()
-                ];
+            if (!$classDefinition || !class_exists('\\Pimcore\\Model\\DataObject\\' . ucfirst($classDefinition->getName()))) {
+                return $this->sendError([
+                    'success' => false,
+                    'message' => 'Class not found.'
+                ], 500);
+            }
 
-                $data['data']['totalItems'] =  $listing->count();
-                $data['data']['classObject'] =  $dataJson;
-    
-                $fields = ClassServices::getData($classDefinition->getName());
-                $visibleFiels = [];
-                if ($fields) {
-                    $visibleFiels = json_decode($fields['visibleFiels']);
-                    $data['data']['fields'] = $visibleFiels;
-                }
+            dd($classDefinition->examplesAction($classId));
+        // } catch (\Throwable $th) {
+        //     //throw $th;
+        // }
 
-                // dd($fields['visibleFiels']);
-                $colors = [];
-                $chips = [];
-                $chipsColor = [];
-                $multiSelect = [];
-                $noOrder = [];
-
-                foreach($listing as $item)
-                {
-                    $draft = $this->checkLastest($item);
-    
-                    if ($draft) {
-                        $status = 'Draft';
-                        $chipsColor['published']['Draft'] = 'green';
-                    } else {
-                        if ($item->getPublished()) {
-                            $status = 'Published';
-                            $chipsColor['published']['Published'] = 'primary';
-                        } else {
-                            $status = 'Unpublished';
-                            $chipsColor['published']['Unpublished'] = 'red';
-                        }
-                    }
-    
-                    $json = [
-                        'id' => $item->getId(),
-                        "key" => $item->getKey(),
-                        "modificationDate" => $this->getTimeAgo($item->getModificationDate()),
-                        "published" => $status,
-                        "draft" => $draft,
-                        "unSelecte" => false
-                    ];
-    
-                    foreach ($visibleFiels as $key => $value) {
-                        $function = "get" . ucwords($key);
-                        $json[$value->key] = ClassServices::getDataField($item, $value, $colors);
-                    }
-                    $data['data']['listing'][] = $json;
-                }
-                
-                $data['data'][] = [
-                    "noOrder" => $noOrder,
-                    "chips" => $chips,
-                    "chipsColor" => $chipsColor,
-                    "multiSelect" => $multiSelect,
-                ];
-
-                return $this->sendResponse($data);
-            } 
-
-            return $this->sendError("Object not found", 500);
-
-        } catch (\Exception $e) {
-            return $this->sendError($e->getMessage(), 500);
-        }
     }
+
     /**
      * @Route("/listing-by-object", name="api_object_listing", methods={"GET"}, options={"expose"=true})
      */
-    public function listingByObject(
-        Request $request,
-        PaginatorInterface $paginator): JsonResponse
+    public function listingByObject()
     {
         try {
-            $this->setLocaleRequest();
             $orderByOptions = ['modificationDate'];
-            $conditions = $this->getPaginationConditions($request, $orderByOptions);
+            $conditions = $this->getPaginationConditions($this->request, $orderByOptions);
             list($page, $limit, $condition) = $conditions;
 
             $condition = array_merge($condition, [
-                'object' => 'required',
+                'id' => 'required',
                 'search' => '',
             ]);
-            $messageError = $this->validator->validate($condition, $request);
+            $messageError = $this->validator->validate($condition, $this->request);
             if($messageError) return $this->sendError($messageError);
 
-            $object = $request->get("object");
-            $classDefinition = ClassDefinition::getById($object);
+            $classId = $this->request->get("id");
 
-            if (class_exists('\\Pimcore\\Model\\DataObject\\' . ucfirst($classDefinition->getName()))) {
-                $listing = call_user_func_array('\\Pimcore\\Model\\DataObject\\' . $classDefinition->getName() . '::getList', [["unpublished" => true]]);
-            } else {
+            $checkClass = ClassServices::isValid($classId);
+            $classDefinition = ClassDefinition::getById($classId);
+
+            if (!$checkClass || !$classDefinition || !class_exists('\\Pimcore\\Model\\DataObject\\' . ucfirst($classDefinition->getName()))) {
+                return $this->sendError([
+                    'success' => false,
+                    'message' => 'Class not found.'
+                ], 500);
             }
 
-            $dataJson = [
-                "id" => $classDefinition->getId(),
-                "name" => $classDefinition->getName(),
-                "title" => $classDefinition->getTitle() ? $classDefinition->getTitle() :  $classDefinition->getName()
-            ];
+            $classConfig = ClassServices::getConfig($classId);
+            $visibleFields = json_decode($classConfig['visibleFields'], true);
 
-            $fields = $classDefinition->getFieldDefinitions();
-            $listFields = [];
-            $colors = [];
-            foreach ($fields as $key => $field) {
-                if (in_array($field->getFieldtype(), self::listField)) {
-                    $searchType = 'Input';
-    
-                    $options = [];
-    
-                    if (in_array($field->getFieldtype(), self::chipField)) {
-                        $chips[] = $field->getTooltip() ? $field->getTooltip() : $key;
-    
-                        $searchType = 'Select';
-                        $options = FieldController::getOptions($field->getFieldtype(), $field);
-    
-                        if (in_array($field->getFieldType(), self::multiField)) {
-                            $multiSelect[] = $key;
-                            $searchType = 'Select';
-                        }
-    
-                        if (in_array($field->getFieldtype(), self::relationField)) {
-                            $relation[] = $key;
-                            $searchType = 'Relation';
-                        }
-    
-                        if (in_array($field->getFieldtype(), self::relationsField)) {
-                            $relations[] = $key;
-                            $searchType = 'Relation';
-                        }
-                    } elseif ($field->getFieldtype() == 'dateRange') {
-                        $searchType = 'DateRange';
-                    } elseif ($field->getFieldtype() == 'date') {
-                        $searchType = 'DatePicker';
-                    }
-    
-                    //lấy điều kiện để search
-                    if (in_array($field->getFieldtype(), self::noOrder)) {
-                        $noOrder[] = $key;
-                    }
-    
-                    $url = [
-                        'path' => "object_listing_edit",
-                    ];
-    
-                    $component = "ModalEdit";
-                    $handleEdit = true;
-    
-                    if (in_array($field->getFieldtype(), self::notHandleEdit)) {
-                        $handleEdit = false;
-                    }
-    
-                    if (in_array($field->getFieldtype(), self::noSearch)) {
-                        $searchType = 'nosearch';
-                    }
-    
-                    $dataField[] = [
-                        "key" => $key,
-                        "type" => $field->getFieldtype(),
-                        "title" => $field->getTitle(),
-                        "tooltip" => $field->getTooltip(),
-                        "searchType" => $searchType,
-                        "options" => $options,
-                        "handleEdit" => $handleEdit,
-                        "url" => $url,
-                        "component" => $component,
-                    ];
-    
-                    $listFields[] = [
-                        "type" => $field->getFieldtype(),
-                        "name" => $key
-                    ];
-                }
-            }
+            $fields = $visibleFields['fields'];
 
-            $search = $request->get('search');
+            $search = $this->request->get('search');
+            $locale = $this->request->get('locale', \Pimcore\Tool::getDefaultLanguage());
+
             if ($search) {
                 $search = json_decode($search, true);
                 $search = array_filter($search, function ($value) {
@@ -369,31 +155,31 @@ class ObjectController extends BaseController
                             continue;
                         }
                         if (is_array($keyword)) {
-                            if (count($relation) && in_array($field, $relation)) {
-                                $count = count($keyword);
-                                $value = $keyword[$count - 1];
-                                $listing->addConditionParam("`" . $field . "__id` = '" . $value . "'");
-                                continue;
-                            }
-    
-                            if (count($relations) && in_array($field, $relations)) {
-                                $count = count($keyword);
-                                $value = $keyword[$count - 1];
-                                $listing->addConditionParam("`" . $field . "` like '%" . $value . "%'");
-                                continue;
-                            }
-    
+                            // if (count($relation) && in_array($field, $relation)) {
+                            //     $count = count($keyword);
+                            //     $value = $keyword[$count - 1];
+                            //     $listing->addConditionParam("`" . $field . "__id` = '" . $value . "'");
+                            //     continue;
+                            // }
+
+                            // if (count($relations) && in_array($field, $relations)) {
+                            //     $count = count($keyword);
+                            //     $value = $keyword[$count - 1];
+                            //     $listing->addConditionParam("`" . $field . "` like '%" . $value . "%'");
+                            //     continue;
+                            // }
+
                             if (array_key_exists('type', $keyword)) {
                                 if ($keyword['type'] == "range") {
                                     $listing->addConditionParam("`" . $keyword['key'] . "` >= '" . $keyword['from'] . "' AND `" . $keyword['key'] . "` <= '" . $keyword['to'] . "'");
                                     continue;
                                 }
-    
+
                                 if ($keyword['type'] == "picker") {
                                     continue;
                                 }
                             }
-    
+
                             continue;
                         } else {
                             $listing->addConditionParam("LOWER(`" . $field . "`) like LOWER('%" . $keyword . "%')");
@@ -401,26 +187,23 @@ class ObjectController extends BaseController
                     }
                 }
             }
-            $listing->setLocale($request->get('locale', \Pimcore\Tool::getDefaultLanguage()));
+
+            $listing = call_user_func_array('\\Pimcore\\Model\\DataObject\\' . $classDefinition->getName() . '::getList', [["unpublished" => true]]);
+            $listing->setLocale($locale);
             $listing->setUnpublished(true);
 
             if ($limit == -1) {
                 $limit = 10000;
             }
 
-            $paginationData = $this->helperPaginator($paginator, $listing, $page, $limit);
-            $data = array_merge(
-                [
-                    'data' => []
-                ],
-                $paginationData,
-            );
+            $pagination = $this->paginator($listing, $page, $limit);
 
-            // dd($listing);
-            foreach($listing as $item)
-            {
-                $json = self::listingResponse($item, $listFields, $colors);
-                $data['data'][] = $json;
+            $data = [
+                'paginationData' => $pagination->getPaginationData(),
+            ];
+
+            foreach($pagination as $item) {
+                $data['data'][] =  DataObjectServices::getData($item, $fields);
             }
 
             return $this->sendResponse($data);
@@ -463,7 +246,7 @@ class ObjectController extends BaseController
         }
     }
 
-    /**
+   /**
      * @Route("/get-sidebar", name="api_object_slider_bar", methods={"GET"}, options={"expose"=true})
      *
      * {mô tả api}
@@ -494,7 +277,7 @@ class ObjectController extends BaseController
                         $newData["id"] = $class["id"];
                         $newData["name"] = $class["name"];
                         $newData["title"] = $classDefinition ? ($classDefinition->getTitle() ? $classDefinition->getTitle() :  $classDefinition->getName()) : $class["name"];
-                        
+
                         $data['data'][] = $newData;
                     }
                 }
