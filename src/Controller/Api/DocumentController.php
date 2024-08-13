@@ -63,6 +63,11 @@ class DocumentController extends BaseController
                 $conditionParams['type'] = $type;
             }
 
+            $search = $request->get('search') ? $request->get('search') : '';
+            if ($search) {
+                $conditionQuery .= " AND LOWER(`key`)" . " LIKE LOWER('%" . $search . "%')";
+            }
+
             $list = new Document\Listing();
             $list->setOrderKey($request->get('order_by', 'index'));
             $list->setOrder($request->get('order', 'asc'));
@@ -148,16 +153,16 @@ class DocumentController extends BaseController
             $condition = [
                 'title' => 'required',
                 'type' => '',
-                'key' => '',
+                'key' => 'required',
                 'folderId' => '',
-            ];
+            ];  
 
             $errorMessages = $this->validator->validate($condition, $request);
             if ($errorMessages) return $this->sendError($errorMessages);
 
             $title = $request->get('title');
             $folderId = $request->get('folderId');
-            $parentId = ($folderId != 'null') ? (int)$folderId : 1;
+            $parentId = $folderId  ? (int)$folderId : 1;
 
             $type = $request->get('type');
             $key = $request->get('key');
@@ -182,6 +187,7 @@ class DocumentController extends BaseController
     // trả ra dữ liệu 
     public function listingResponse($item)
     {
+        $json = [];
         $publicURL = DocumentServices::getThumbnailPath($item);
 
         $draft = $this->checkLastest($item);
@@ -206,7 +212,8 @@ class DocumentController extends BaseController
         if ($checkName === false) {
             $json[] = [
                 'id' => $item->getId(),
-                'name' => "<div class='tableCell--titleThumbnail d-flex align-center'><img class='me-2' src=' " .  $publicURL . "'><span>" . $item->getKey() . "</span></div>",
+                'name' =>  $item->getKey(),
+                'image' => $publicURL,
                 'type' => '<div class="chip">' . $item->getType() . '</div>',
                 'status' => $status,
                 'createDate' => DocumentServices::getTimeAgo($item->getCreationDate()),
