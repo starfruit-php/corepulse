@@ -188,7 +188,6 @@ class GoogleServices
     static public function submitIndex($params, ?bool $action = null)
     {
         $domain = Option::getMainDomain();
-        // $domain = 'https://solutions.mobifone.vn';
         $sites = $domain . '/';
 
         $indexing = '';
@@ -498,7 +497,6 @@ class GoogleServices
     {
         if (is_array($idsOrId)) {
             $domain = Option::getMainDomain();
-            // $domain = 'https://solutions.mobifone.vn';
             $sites = $domain . '/';
 
             $boundary = '===============7330845974216740156==';
