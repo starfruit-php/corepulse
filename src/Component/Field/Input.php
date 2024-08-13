@@ -30,6 +30,11 @@ class Input implements FieldInterface
 
     public function getValue()
     {
-        return $this->data->{'get' . ucfirst($this->getName())}();
+        return $this->format($this->data->{'get' . ucfirst($this->getName())}());
+    }
+
+    public function format($value)
+    {
+        return $value;
     }
 }

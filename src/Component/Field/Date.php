@@ -4,10 +4,8 @@ namespace CorepulseBundle\Component\Field;
 
 class Date extends Input
 {
-    public function getValue()
+    public function format($value)
     {
-        $value = $this->data->{'get' . ucfirst($this->getName())}();
-
         return $value?->format("Y/m/d");
     }
 }

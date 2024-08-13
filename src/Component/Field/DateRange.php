@@ -2,12 +2,10 @@
 
 namespace CorepulseBundle\Component\Field;
 
-class DateRange extends Input
+class DateRange extends Date
 {
-    public function getValue()
+    public function format($value)
     {
-        $value = $this->data->{'get' . ucfirst($this->getName())}();
-
         $format = $value?->getStartDate()?->format("Y/m/d") . " - " . $value?->getEndDate()?->format("Y/m/d");
 
         return $format;

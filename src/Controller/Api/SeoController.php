@@ -38,7 +38,7 @@ class SeoController extends BaseController
             $condition = '';
 
             $db = Db::get();
-            $listData = $db->fetchAllAssociative('SELECT id, code, uri, `count`, FROM_UNIXTIME(date, "%Y-%m-%d %h:%i") AS "date" FROM http_error_log ' . $condition . ' ORDER BY ' . $order_by);
+            $listData = $db->fetchAllAssociative('SELECT id, code, uri, `count`, FROM_UNIXTIME(date, "%Y-%m-%d %h:%i") AS "date" FROM http_error_log ? ORDER BY ?', [$condition, $order_by]);
 
 
             $filter = ArrayHelper::sortArrayByField($listData, $order_by, $order);
@@ -124,14 +124,22 @@ class SeoController extends BaseController
 
             if (is_array($idsOrId)) {
                 $conditions = [];
-                foreach ($idsOrId as $id) {
-                    $conditions[] = "FIND_IN_SET(?, id)";
-                }
-                $where = '(' . implode(' OR ', $conditions) . ')';
+                $placeholders = [];
+                $params = [];
 
-                $db->executeQuery("DELETE FROM http_error_log WHERE $where");
+                foreach ($idsOrId as $id) {
+                    $conditions[] = 'FIND_IN_SET(?, id)';
+                    $placeholders[] = '?';
+                    $params[] = $id;
+                }
+
+                $where = '(' . implode(' OR ', $conditions) . ')';
+                $placeholders = implode(', ', $placeholders);
+
+                $query = "DELETE FROM http_error_log WHERE $where";
+                $db->executeQuery($query, $params);
             } else {
-                $db->executeQuery('DELETE FROM http_error_log WHERE id = ' . $idsOrId);
+                $db->executeQuery('DELETE FROM http_error_log WHERE id = ?', [$idsOrId]);
             }
 
             $data = [
