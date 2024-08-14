@@ -157,20 +157,20 @@ class MediaController extends BaseController
 
                 $publicURL = AssetServices::getThumbnailPath($item);
 
-                if ($item->getId() == 1) {
-                    $datas['data']['home'] = [
-                        'id' => 1,
-                        'key' =>  "Home",
-                        'type' => $item->getType(),
-                        'children' => [],
-                        'icon' => "mdi-home",
-                        'image' => "/bundles/pimcoreadmin/img/flat-color-icons/home-gray.svg",
-                        'publish' => true,
-                        'classId' => $item->getType() != 'folder' ? $item->getType() : 'tree-folder',
-                    ];
-                }
+                // if ($item->getId() == 1) {
+                //     $datas['data'][] = [
+                //         'id' => 1,
+                //         'key' =>  "Home",
+                //         'type' => $item->getType(),
+                //         'children' => [],
+                //         'icon' => "mdi-home",
+                //         'image' => "/bundles/pimcoreadmin/img/flat-color-icons/home-gray.svg",
+                //         'publish' => true,
+                //         'classId' => $item->getType() != 'folder' ? $item->getType() : 'tree-folder',
+                //     ];
+                // }
 
-                $datas['data']['nodes'][(string)$item->getId()] = [
+                $datas['data'][] = [
                     'id' => $item->getId(),
                     'key' => $item->getFileName() ? $item->getFileName() : "Home",
                     'type' => $item->getType(),
@@ -182,15 +182,15 @@ class MediaController extends BaseController
                 ];
             }
             // dd($datas['data']);
-            $datas['data']['config'] = [
-                'roots' => $datas['data']['nodes'][1]['children'],
-                'keyboardNavigation' => false,
-                'dragAndDrop' => false,
-                'checkboxes' => false,
-                'editable' => false,
-                'disabled' => false,
-                'padding' => 35,
-            ];
+            // $datas['data']['config'] = [
+            //     'roots' => $datas['data'][0]['children'],
+            //     'keyboardNavigation' => false,
+            //     'dragAndDrop' => false,
+            //     'checkboxes' => false,
+            //     'editable' => false,
+            //     'disabled' => false,
+            //     'padding' => 35,
+            // ];
 
             return $this->sendResponse($datas);
 
@@ -311,10 +311,7 @@ class MediaController extends BaseController
             $id = $request->get('id');
             $config = $request->get('config');
 
-            $datas['data'] = [
-                'nodes' => [],
-                'children' => [],
-            ];
+            $datas['data'] = [];
     
             $conditions = '`parentId` = ? AND type = "folder"';
             $params = [ $id ];
@@ -343,7 +340,7 @@ class MediaController extends BaseController
                     }
                 }
                 $publicURL = AssetServices::getThumbnailPath($item);
-                $datas['data']['nodes'][(string)$item->getId()] = [
+                $datas['data'][] = [
                     'id' => $item->getId(),
                     'key' => $item->getFileName(),
                     'type' => $item->getType(),
@@ -354,7 +351,7 @@ class MediaController extends BaseController
                     'classId' => $item->getType() != 'folder' ? $item->getType() : 'tree-folder',
                 ];
     
-                $datas['data']['children'][] = (string)$item->getId();
+                // $datas['data']['children'][] = (string)$item->getId();
             }
             return $this->sendResponse($datas);
 

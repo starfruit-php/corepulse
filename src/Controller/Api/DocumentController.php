@@ -3,6 +3,7 @@
 namespace CorepulseBundle\Controller\Api;
 
 use CorepulseBundle\Services\DocumentServices;
+use CorepulseBundle\Services\FieldServices;
 use Pimcore\Translation\Translator;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
@@ -13,6 +14,9 @@ use Knp\Component\Pager\PaginatorInterface;
 use Pimcore\Model\Asset;
 use Pimcore\Model\Document;
 use DateTime;
+use Pimcore\Model\Document\DocType;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
+use Pimcore\Model\Tool;
 
 /**
  * @Route("/document")
@@ -82,10 +86,95 @@ class DocumentController extends BaseController
             );
 
             foreach ($list as $item) {
-                $data['data'][] = self::listingResponse($item);
+                $checkName = strpos($item->getKey(), 'email');
+                if ($checkName === false) {
+                    $data['data'][] = self::listingResponse($item);
+                }
+            }
+
+            if ($id == 1) {
+                $home = Document::getById($id);
+                $infoHome = [];
+                if ($home) {
+                    $publicURL = DocumentServices::getThumbnailPath($home);
+
+                    $draft = $this->checkLastest($home);
+                    if ($draft) {
+                        $status = 'Draft';
+                    } else {
+                        if ($home->getPublished()) {
+                            $status = 'Publish';
+                        } else {
+                            $status = 'Draft';
+                        }
+                    }
+
+                    $infoHome[] = [
+                        'id' => $home->getId(),
+                        'name' =>  "Home",
+                        'image' => $publicURL,
+                        'type' => $home->getType(),
+                        'status' => $status,
+                        'createDate' => DocumentServices::getTimeAgo($home->getCreationDate()),
+                        'modificationDate' => DocumentServices::getTimeAgo($home->getModificationDate()),
+                        'parent' => false,
+                    ];
+                }
+                // array_push($data, $infoHome);
+                array_unshift($data['data'], ...$infoHome);
             }
 
             return $this->sendResponse($data);
+        } catch (\Exception $e) {
+            return $this->sendError($e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * @Route("/detail", name="api_document_detail", methods={"GET"}, options={"expose"=true})
+     *
+     * {mô tả api}
+     *
+     * @param Cache $cache
+     *
+     * @return JsonResponse
+     *
+     * @throws \Exception
+     */
+    public function detailAction(
+        Request $request,
+        PaginatorInterface $paginator
+    ): JsonResponse {
+        try {
+            $condition = [
+                'id' => 'required',
+            ];
+
+            $errorMessages = $this->validator->validate($condition, $request);
+            if ($errorMessages) return $this->sendError($errorMessages);
+
+            $id = $request->get('id');
+            $document = Document::getById($id);
+            if ($document) {
+                $data['data'] = [];
+                if ($document->getType() != 'folder') {
+
+                    $data['data'] = self::detailResponse($document);
+
+                    $editTables = $document->getEditables();
+                    foreach ($editTables as $key => $value) {
+                        $function = 'get'. ucwords($value->getType());
+                        $data['data']['editTables'][] = [
+                            'name' => $value->getName(),
+                            'type' => $value->getType(),
+                            'value' => FieldServices::{$function}($document, $value),
+                        ];
+                    }
+                }
+                return $this->sendResponse($data);
+            }
+            return $this->sendError("page.not.found");
+
         } catch (\Exception $e) {
             return $this->sendError($e->getMessage(), 500);
         }
@@ -210,21 +299,119 @@ class DocumentController extends BaseController
 
         $checkName = strpos($item->getKey(), 'email');
         if ($checkName === false) {
-            $json[] = [
+            $json = [
                 'id' => $item->getId(),
                 'name' =>  $item->getKey(),
                 'image' => $publicURL,
-                'type' => '<div class="chip">' . $item->getType() . '</div>',
+                'type' => $item->getType(),
                 'status' => $status,
                 'createDate' => DocumentServices::getTimeAgo($item->getCreationDate()),
                 'modificationDate' => DocumentServices::getTimeAgo($item->getModificationDate()),
                 'parent' => $chills ? true : false,
-                'noMultiEdit' => [
-                    'name' => $chills ? [] : ['name'],
-                ],
-                "noAction" =>  $chills ? [] : ['seeMore'],
             ];
         }
+
+        return $json;
+    }
+
+
+    // trả ra dữ liệu 
+    public function detailResponse($document) 
+    {
+        $seoImage = null;
+        $seo = \Starfruit\BuilderBundle\Model\Seo::getOrCreate($document);
+        if ($seo) {
+            if (method_exists($seo, 'getImageAsset')) {
+                $idImage = $seo->getImageAsset();
+                $asset = Asset::getById((int)$idImage);
+                if ($asset) {
+                    $seoImage = $asset->getFullPath();
+                }
+            }
+        }
+
+        // get document type
+        $listDocType = new DocType\Listing();
+        if ($type = $document->getType()) {
+            if (!Document\Service::isValidType($type)) {
+                throw new BadRequestHttpException('Invalid type: ' . $type);
+            }
+            $listDocType->setFilter(static function (DocType $docType) use ($type) {
+                return $docType->getType() === $type;
+            });
+        }
+        $docTypes = [];
+        $lisDocType = [];
+        foreach ($listDocType->getDocTypes() as $type) {
+            $docTypes[] = [
+                'id' => $type->getObjectVars()['id'],
+                'name' => $type->getObjectVars()['name'],
+            ];
+            $lisDocType[] = $type->getObjectVars();
+        }
+
+        // nếu page là dạng email
+        $listEmail = [];
+        if ($document->getType() == "email") {
+            $list = new Tool\Email\Log\Listing();
+            $list->setCondition('documentId = ' . (int)$document->getId());
+            $list->setLimit(50);
+            $list->setOffset(0);
+            $list->setOrderKey('sentDate');
+            $list->setOrder('DESC');
+            
+
+            $data = $list->load();
+            foreach($data as $item) {
+                $type = 'text';
+                if (($item->getEmailLogExistsHtml() == 1 && $item->getEmailLogExistsText() == 1) || ($item->getEmailLogExistsHtml() == 1 && $item->getEmailLogExistsText() != 1)) {
+                    $type = 'html';
+                }
+                $listEmail[] = [
+                    'id' => $item->getId(),
+                    'from' => $item->getFrom(),
+                    'to' => $item->getTo(),
+                    'cc' => $item->getCc(),
+                    'bcc' => $item->getBcc(),
+                    'subject' => $item->getSubject(),
+                    'error' => $item->getError(),
+                    'bodyHtml' => $item->getBodyHtml(),
+                    'bodyText' => $item->getBodyText(),
+                    'sentDate' => date("M j, Y  H:i", $item->getSentDate()),
+                    'params' => $item->getParams(),
+                    'type' => $type,
+                ];
+            }
+        }
+
+        $href = '';
+        // nếu page là dạng link
+        if ($document->getType() == 'link') {
+            $href = $document->getHref();
+        }
+        
+        $json = [
+            'id' => $document->getId() ?? '',
+            'title' => method_exists($document, 'getTitle') ? $document->getTitle() : $document->getKey(),
+            'imageSeo' => $seoImage,
+            'prettyUrl' =>  method_exists($document, 'getPrettyUrl') ?  $document->getPrettyUrl() : '',
+            'description' => method_exists($document, 'getDescription') ? $document->getDescription() : '',
+            'controller' => method_exists($document, 'getController') ? $document->getController() : '',
+            'path' => method_exists($document, 'getPath') ? $document->getPath() : '',
+            'key' => method_exists($document, 'getKey') ? $document->getKey() : '',
+            'type' => method_exists($document, 'getType') ? $document->getType() : '',
+            'subject' =>  method_exists($document, 'getSubject') ?  $document->getSubject() : '',
+            'from' =>  method_exists($document, 'getFrom') ?  $document->getFrom() : '',
+            'replyTo' =>  method_exists($document, 'getReplyTo') ?  $document->getReplyTo() : '',
+            'to' =>  method_exists($document, 'getTo') ?  $document->getTo() : '',
+            'cc' =>  method_exists($document, 'getCc') ?  $document->getCc() : '',
+            'bcc' =>  method_exists($document, 'getBcc') ?  $document->getBcc() : '',
+            'docTypes' => $docTypes,
+            'docType' => '',
+            'lisDocType' => $lisDocType,
+            'listEmail' => $listEmail,
+            'href' => $href,
+        ];
 
         return $json;
     }

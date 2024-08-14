@@ -47,6 +47,9 @@ class AppController extends BaseController
             }
 
             $setting = $loginSetting['config'];
+
+            $configSidebar = \Pimcore::getContainer()->getParameter('corepulse_admin.sidebar');
+
             $data['data'] = [
                 'logo' => isset($setting['logo']) ? $setting['logo'] : '/bundles/corepulse/image/corepulse.png',
                 'background' => isset($setting['background']) ? $setting['background'] : '/bundles/pimcoreadmin/img/login/pc11.svg',
@@ -54,7 +57,7 @@ class AppController extends BaseController
                 'colorLight' => isset($setting['colorLight']) ? $setting['colorLight'] : '#f3e5f5',
                 'title' => isset($setting['title']) ? $setting['title'] : 'Corepluse',
                 'footer' => isset($setting['footer']) ? $setting['footer'] : '<p>From Starfruit With Love</p>',
-
+                'configSidebar' => $configSidebar,
             ];
 
             return $this->sendResponse($data);
