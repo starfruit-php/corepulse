@@ -10,6 +10,7 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
+use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Knp\Component\Pager\PaginatorInterface;
 use Symfony\Component\Process\Process;
@@ -20,12 +21,14 @@ class BaseController extends FrontendController
     protected $translator;
     protected $validator;
     protected $paginator;
+    protected $params;
 
     public function __construct(
         RequestStack $requestStack,
         Translator $translator,
         ValidatorInterface $validator,
         PaginatorInterface $paginator,
+        ParameterBagInterface $params,
         )
     {
         $this->request = $requestStack->getCurrentRequest();
@@ -38,6 +41,7 @@ class BaseController extends FrontendController
 
         $this->validator = new Validator($validator, $this->translator);
         $this->paginator = $paginator;
+        $this->params = $params;
         $this->setLocaleRequest();
     }
 
@@ -93,7 +97,6 @@ class BaseController extends FrontendController
             if (is_string($error)) {
                 $error = ["error" => ["message" => $this->translator->trans($error)]];
             }
-
         }
 
         return new JsonResponse($error, $statusCode);

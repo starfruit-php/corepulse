@@ -12,4 +12,11 @@ class Image extends Input
 
         return $value;
     }
+
+    public function formatBlock($value)
+    {
+        $value = AssetTool::getPath($value, true);
+
+        return $value;
+    }
 }

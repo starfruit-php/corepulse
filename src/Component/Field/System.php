@@ -6,7 +6,7 @@ class System extends Input
 {
     public function format($value)
     {
-        if ($this->layout->type == 'modificationDate' || $this->layout->type == 'creationDate') {
+        if (in_array($this->layout->type, self::SYSTEM_CONVERT_DATE)) {
             return date('Y/m/d', $value);
         }
 

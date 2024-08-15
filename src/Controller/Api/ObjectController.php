@@ -2,33 +2,29 @@
 
 namespace CorepulseBundle\Controller\Api;
 
-use CorepulseBundle\Controller\Cms\FieldController;
-use CorepulseBundle\Services\AssetServices;
 use CorepulseBundle\Services\ClassServices;
 use CorepulseBundle\Services\DataObjectServices;
-use CorepulseBundle\Services\Helper\BlockJson;
 use Pimcore\Db;
-
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
 use Knp\Component\Pager\PaginatorInterface;
-use Pimcore\Model\Asset;
 use Pimcore\Model\DataObject;
-use Pimcore\Model\DataObject\ClassDefinition;
-
-use Doctrine\DBAL\Connection;
-use Symfony\Component\Console\Output\BufferedOutput;
-use Symfony\Component\Console\Output\Output;
-use Doctrine\DBAL\Schema\Schema;
-
-use DateTime;
+use Pimcore\Model\DataObject\ClassDefinition\Data\ManyToManyObjectRelation;
+use Pimcore\Model\DataObject\ClassDefinition\Data\Relations\AbstractRelations;
+use Pimcore\Model\DataObject\ClassDefinition\Data\ReverseObjectRelation;
 
 /**
  * @Route("/object")
  */
 class ObjectController extends BaseController
 {
+    private array $objectData = [];
+
+    private array $objectLayoutData = [];
+
+    private array $metaData = [];
+
     /**
      * @Route("/submit-column-setting", name="api_object_submit_column_setting", methods={"POST"}, options={"expose"=true})
      */
@@ -214,33 +210,55 @@ class ObjectController extends BaseController
     }
 
     /**
-     * @Route("/detail", name="api_object_detail", methods={"GET"}, options={"expose"=true})
+     * @Route("/detail/{id}", name="api_object_detail", methods={"GET", "POST"})
      */
-    public function detailAction(
-        Request $request,
-        PaginatorInterface $paginator): JsonResponse
+    public function detailAction()
     {
         try {
-            $this->setLocaleRequest();
-
             $condition = [
                 'id' => 'required',
             ];
-            $messageError = $this->validator->validate($condition, $request);
+            $messageError = $this->validator->validate($condition, $this->request);
             if($messageError) return $this->sendError($messageError);
 
-            $object = DataObject::getById($request->get('id'));
-            $data = [];
-            if ($object) {
-                $lang = $request->get('_locale') ?? \Pimcore\Tool::getDefaultLanguage();
-                $data['data'] = FieldController::getData($object, $lang);
-                $data['data']['id'] = $request->get('id');
+            $id = $this->request->get('id');
+            $objectFromDatabase = DataObject\Concrete::getById($id);
 
-                return $this->sendResponse($data);
+            if (!$objectFromDatabase) return $this->sendError('Object not found', 500);
+
+            $objectFromDatabase = clone $objectFromDatabase;
+
+            // set the latest available version for editmode
+            $draftVersion = null;
+            $object = $this->getLatestVersion($objectFromDatabase, $draftVersion);
+
+            $objectFromVersion = $object !== $objectFromDatabase;
+
+            $objectData = [];
+
+            if ($draftVersion && $objectFromDatabase->getModificationDate() < $draftVersion->getDate()) {
+                $objectData['draft'] = [
+                    'id' => $draftVersion->getId(),
+                    'modificationDate' => $draftVersion->getDate(),
+                    'isAutoSave' => $draftVersion->isAutoSave(),
+                ];
             }
 
-            return $this->sendError('Object not found', 500);
+            try {
+                $this->getDataForObject($object, $objectFromVersion);
+            } catch (\Throwable $e) {
+                $object = $objectFromDatabase;
+                $this->getDataForObject($object, false);
+            }
 
+            // $objectData['data'] = $this->objectData;
+            $objectData['metaData'] = $this->metaData;
+            $layout = DataObject\Service::getSuperLayoutDefinition($object);
+            $objectData['layout'] = $this->getObjectVarsRecursive($object, $layout);
+            $objectData['layoutData'] = $this->objectLayoutData;
+            $objectData['sidebar'] = DataObjectServices::getSidebarData($object);
+
+            return $this->sendResponse($objectData);
         } catch (\Exception $e) {
             return $this->sendError($e->getMessage(), 500);
         }
@@ -272,7 +290,7 @@ class ObjectController extends BaseController
                 $data = [];
                 foreach ($classListing as $class) {
                     if (in_array($class['id'], $dataObjectSetting)) {
-                        $classDefinition = ClassDefinition::getById($class['id']);
+                        $classDefinition = DataObject\ClassDefinition::getById($class['id']);
 
                         $newData["id"] = $class["id"];
                         $newData["name"] = $class["name"];
@@ -290,226 +308,167 @@ class ObjectController extends BaseController
         }
     }
 
-    public function listingResponse($item, $listFields, $colors) {
-        $draft = $this->checkLastest($item);
+    protected function getObjectVarsRecursive($object, $layout)
+    {
+        $vars = get_object_vars($layout);
 
-        if ($draft) {
-            $status = 'Draft';
-            $chipsColor['published']['Draft'] = 'green';
-        } else {
-            if ($item->getPublished()) {
-                $status = 'Published';
-                $chipsColor['published']['Published'] = 'primary';
-            } else {
-                $status = 'Unpublished';
-                $chipsColor['published']['Unpublished'] = 'red';
+        if (method_exists($layout, 'getFieldType')) {
+            $vars['fieldtype'] = $layout->getFieldType();
+
+            $data  = null;
+            $getClass = '\\CorepulseBundle\\Component\\Field\\' . ucfirst($vars['fieldtype']);
+            if (class_exists($getClass)) {
+                $value = new $getClass($object, $vars);
+                $data = $value->getValue();
+                $this->objectLayoutData[$vars['name']] = $data;
             }
         }
-        $data = [
-            "key" => $item->getKey(),
-            "modificationDate" => $this->getTimeAgo($item->getModificationDate()),
-            "published" => $status,
-            "draft" => $draft,
-            "id" => $item->getId(),
-            "unSelecte" => false
-        ];
 
-        foreach ($listFields as $field) {
-            if ($field["type"] == "date") {
-                $data[$field["name"]] = $item->{"get" . ucfirst($field["name"])}()?->format("Y/m/d");
-                continue;
-            }
-
-            if ($field["type"] == "datetime") {
-                $data[$field["name"]] = $item->{"get" . ucfirst($field["name"])}()?->format("Y/m/d H:i");
-                continue;
-            }
-
-            if ($field["type"] == "dateRange") {
-                $value = $item->{"get" . ucfirst($field["name"])}();
-                $data[$field["name"]] = $value?->getStartDate()?->format("Y/m/d") . " - " . $value?->getEndDate()?->format("Y/m/d");
-                continue;
-            }
-
-            if ($field["type"] == "select") {
-                if ($item) {
-                    $value = $item->{"get" . ucfirst($field["name"])}();
-                    if ($value) {
-                        $color = sprintf('#%06X', mt_rand(0, 0xFFFFFF));
-                        while (in_array($color, $colors)) {
-                            $color = sprintf('#%06X', mt_rand(0, 0xFFFFFF));
-                        }
-                        $colors[] = $color;
-
-                        $chipsColor[$field["name"]][$value] = $color;
-                        $data[$field["name"]] = $value;
-                    } else {
-                        $data[$field["name"]] = $value;
-                    }
+        if (isset($vars['children'])) {
+            foreach ($vars['children'] as $key => $value) {
+                if (is_object($value)) {
+                    $vars['children'][$key] = $this->getObjectVarsRecursive($object, $value);
                 }
-                continue;
             }
-
-            if ($field["type"] == "multiselect") {
-                if ($item) {
-                    $value = $item->{"get" . ucfirst($field["name"])}();
-
-                    if ($value && is_array($value) && count($value)) {
-                        foreach ($value as $k => $v) {
-                            $color = sprintf('#%06X', mt_rand(0, 0xFFFFFF));
-                            while (in_array($color, $colors)) {
-                                $color = sprintf('#%06X', mt_rand(0, 0xFFFFFF));
-                            }
-                            $colors[] = $color;
-
-                            $chipsColor[$field["name"]][$v] = $color;
-                            $data[$field["name"]][] = $v;
-                        }
-                    } else {
-                        $data[$field["name"]] = '';
-                    }
-                }
-                continue;
-            }
-
-            if ($field["type"] == "manyToOneRelation") {
-                if ($item) {
-                    $value = $item->{"get" . ucfirst($field["name"])}();
-                    if ($value) {
-                        $color = sprintf('#%06X', mt_rand(0, 0xFFFFFF));
-                        while (in_array($color, $colors)) {
-                            $color = sprintf('#%06X', mt_rand(0, 0xFFFFFF));
-                        }
-                        $colors[] = $color;
-
-                        $chipsColor[$field["name"]][$value->getKey()] = $color;
-                        $data[$field["name"]] = [
-                            'key' => $value->getKey(),
-                            'data' => BlockJson::getValueRelation($value, 3)
-                        ];
-                    } else {
-                        $data[$field["name"]] = $value;
-                    }
-                }
-                continue;
-            }
-
-            if ($field["type"] == "manyToManyObjectRelation") {
-                if ($item) {
-                    $value = $item->{"get" . ucfirst($field["name"])}();
-
-                    if ($value && is_array($value) && count($value)) {
-                        foreach ($value as $k => $v) {
-                            $color = sprintf('#%06X', mt_rand(0, 0xFFFFFF));
-
-                            // Kiểm tra xem màu đã được sử dụng chưa, nếu đã sử dụng, tạo lại
-                            while (in_array($color, $colors)) {
-                                $color = sprintf('#%06X', mt_rand(0, 0xFFFFFF));
-                            }
-
-                            // Thêm màu vào mảng
-                            $colors[] = $color;
-
-                            $chipsColor[$field["name"]][$v->getKey()] = $color;
-                            $data[$field["name"]][] = [
-                                'key' => $v->getKey(),
-                                'data' => BlockJson::getValueRelation($v, 3)
-                            ];
-                        }
-                    } else {
-                        $data[$field["name"]] = '';
-                    }
-                }
-                continue;
-            }
-
-            if ($field["type"] == "manyToManyRelation") {
-                if ($item) {
-                    $value = $item->{"get" . ucfirst($field["name"])}();
-
-                    if ($value && is_array($value) && count($value)) {
-                        foreach ($value as $k => $v) {
-                            $color = sprintf('#%06X', mt_rand(0, 0xFFFFFF));
-
-                            // Kiểm tra xem màu đã được sử dụng chưa, nếu đã sử dụng, tạo lại
-                            while (in_array($color, $colors)) {
-                                $color = sprintf('#%06X', mt_rand(0, 0xFFFFFF));
-                            }
-
-                            // Thêm màu vào mảng
-                            $colors[] = $color;
-
-                            $chipsColor[$field["name"]][$v->getKey()] = $color;
-                            $data[$field["name"]][] = [
-                                'key' => $v->getKey(),
-                                'data' => BlockJson::getValueRelation($v, 3)
-                            ];
-                        }
-                    } else {
-                        $data[$field["name"]] = '';
-                    }
-                }
-                continue;
-            }
-
-            if ($field["type"] == "image") {
-                if ($item) {
-                    $value = $item->{"get" . ucfirst($field["name"])}();
-
-                    if ($value && $value instanceof Asset\Image) {
-
-                        $publicURL = AssetServices::getThumbnailPath($value);
-
-                        $data[$field["name"]] = "<div class='tableCell--titleThumbnail preview--image d-flex align-center'>
-                        <img class='me-2' src=' " .  $publicURL . "'></div>";
-                    } else {
-                        $data[$field["name"]] = $value;
-                    }
-                }
-                continue;
-            }
-
-            if ($field["type"] == "imageGallery") {
-                if ($item) {
-                    $value = $item->{"get" . ucfirst($field["name"])}();
-
-                    if ($value && $value->getItems()) {
-                        $gallery = $value->getItems();
-                        $va = "<span class='tableCell--titleThumbnail preview--image d-flex align-center'>";
-                        foreach ($gallery as $k => $v) {
-                            $image = $v->getImage();
-                            if ($image) {
-                                $publicURL = AssetServices::getThumbnailPath($image);
-
-                                $va .= "<img data-id='" . $image->getId() . "' data-path='" . $image->getFullPath() . "' class='me-2' src=' " .  $publicURL . "'>";
-                            }
-                        }
-                        $va .= '</span>';
-                        $data[$field["name"]] = $va;
-                    } else {
-                        $data[$field["name"]] = null;
-                    }
-                }
-                continue;
-            }
-
-            if ($field["type"] == "urlSlug") {
-                if ($item) {
-                    $value = $item->{"get" . ucfirst($field["name"])}();
-
-                    if ($value) {
-                        $data[$field["name"]] = $value[0]->getSlug();
-                    } else {
-                        $data[$field["name"]] = '';
-                    }
-                }
-                continue;
-            }
-
-            $data[$field["name"]] = $item->{"get" . ucfirst($field["name"])}();
         }
 
-        return $data;
+        return $vars;
     }
 
+    protected function getLatestVersion(DataObject\Concrete $object,  ? DataObject\Concrete &$draftVersion = null) : DataObject\Concrete
+    {
+        $latestVersion = $object->getLatestVersion();
+        if ($latestVersion) {
+            $latestObj = $latestVersion->loadData();
+            if ($latestObj instanceof DataObject\Concrete) {
+                $draftVersion = $latestVersion;
+
+                return $latestObj;
+            }
+        }
+
+        return $object;
+    }
+
+    private function getDataForObject(DataObject\Concrete $object, bool $objectFromVersion = false): void
+    {
+        foreach ($object->getClass()->getFieldDefinitions(['object' => $object]) as $key => $def) {
+            $this->getDataForField($object, $key, $def, $objectFromVersion);
+        }
+    }
+
+    /**
+     * Gets recursively attribute data from parent and fills objectData and metaData
+     */
+    private function getDataForField(DataObject\Concrete $object, string $key, DataObject\ClassDefinition\Data $fielddefinition, bool $objectFromVersion, int $level = 0): void
+    {
+        $parent = DataObject\Service::hasInheritableParentObject($object);
+
+        $getter = 'get' . ucfirst($key);
+
+        // Editmode optimization for lazy loaded relations (note that this is just for AbstractRelations, not for all
+        // LazyLoadingSupportInterface types. It tries to optimize fetching the data needed for the editmode without
+        // loading the entire target element.
+        // ReverseObjectRelation should go in there anyway (regardless if it a version or not),
+        // so that the values can be loaded.
+        if (
+            (!$objectFromVersion && $fielddefinition instanceof AbstractRelations)
+            || $fielddefinition instanceof ReverseObjectRelation
+        ) {
+            $refId = null;
+
+            if ($fielddefinition instanceof ReverseObjectRelation) {
+                $refKey = $fielddefinition->getOwnerFieldName();
+                $refClass = DataObject\ClassDefinition::getByName($fielddefinition->getOwnerClassName());
+                if ($refClass) {
+                    $refId = $refClass->getId();
+                }
+            } else {
+                $refKey = $key;
+            }
+
+            $relations = $object->getRelationData($refKey, !$fielddefinition instanceof ReverseObjectRelation, $refId);
+
+            if ($fielddefinition->supportsInheritance() && empty($relations) && !empty($parent)) {
+                $this->getDataForField($parent, $key, $fielddefinition, $objectFromVersion, $level + 1);
+            } else {
+                $data = [];
+
+                if ($fielddefinition instanceof DataObject\ClassDefinition\Data\ManyToOneRelation) {
+                    if (isset($relations[0])) {
+                        $data = $relations[0];
+                        $data['published'] = (bool) $data['published'];
+                    } else {
+                        $data = null;
+                    }
+                } elseif (
+                    ($fielddefinition instanceof DataObject\ClassDefinition\Data\OptimizedAdminLoadingInterface && $fielddefinition->isOptimizedAdminLoading())
+                    || ($fielddefinition instanceof ManyToManyObjectRelation && !$fielddefinition->getVisibleFields() && !$fielddefinition instanceof DataObject\ClassDefinition\Data\AdvancedManyToManyObjectRelation)
+                ) {
+                    foreach ($relations as $rkey => $rel) {
+                        $index = $rkey + 1;
+                        $rel['fullpath'] = $rel['path'];
+                        $rel['classname'] = $rel['subtype'];
+                        $rel['rowId'] = $rel['id'] . AbstractRelations::RELATION_ID_SEPARATOR . $index . AbstractRelations::RELATION_ID_SEPARATOR . $rel['type'];
+                        $rel['published'] = (bool) $rel['published'];
+                        $data[] = $rel;
+                    }
+                } else {
+                    $fieldData = $object->$getter();
+                    $data = $fielddefinition->getDataForEditmode($fieldData, $object, ['objectFromVersion' => $objectFromVersion]);
+                }
+                $this->objectData[$key] = $data;
+                $this->metaData[$key]['objectid'] = $object->getId();
+                $this->metaData[$key]['inherited'] = $level != 0;
+            }
+        } else {
+            $fieldData = $object->$getter();
+            $isInheritedValue = false;
+
+            if ($fielddefinition instanceof DataObject\ClassDefinition\Data\CalculatedValue) {
+                $fieldData = new DataObject\Data\CalculatedValue($fielddefinition->getName());
+                $fieldData->setContextualData('object', null, null, null, null, null, $fielddefinition);
+                $value = $fielddefinition->getDataForEditmode($fieldData, $object, ['objectFromVersion' => $objectFromVersion]);
+            } else {
+                $value = $fielddefinition->getDataForEditmode($fieldData, $object, ['objectFromVersion' => $objectFromVersion]);
+            }
+
+            // following some exceptions for special data types (localizedfields, objectbricks)
+            if ($value && ($fieldData instanceof DataObject\Localizedfield || $fieldData instanceof DataObject\Classificationstore)) {
+                // make sure that the localized field participates in the inheritance detection process
+                $isInheritedValue = $value['inherited'];
+            }
+            if ($fielddefinition instanceof DataObject\ClassDefinition\Data\Objectbricks && is_array($value)) {
+                // make sure that the objectbricks participate in the inheritance detection process
+                foreach ($value as $singleBrickData) {
+                    if (!empty($singleBrickData['inherited'])) {
+                        $isInheritedValue = true;
+                    }
+                }
+            }
+
+            if ($fielddefinition->isEmpty($fieldData) && !empty($parent)) {
+                $this->getDataForField($parent, $key, $fielddefinition, $objectFromVersion, $level + 1);
+                // exception for classification store. if there are no items then it is empty by definition.
+                // consequence is that we have to preserve the metadata information
+                // see https://github.com/pimcore/pimcore/issues/9329
+                if ($fielddefinition instanceof DataObject\ClassDefinition\Data\Classificationstore && $level == 0) {
+                    $this->objectData[$key]['metaData'] = $value['metaData'] ?? [];
+                    $this->objectData[$key]['inherited'] = true;
+                }
+            } else {
+                $isInheritedValue = $isInheritedValue || ($level != 0);
+                $this->metaData[$key]['objectid'] = $object->getId();
+
+                $this->objectData[$key] = $value;
+                $this->metaData[$key]['inherited'] = $isInheritedValue;
+
+                if ($isInheritedValue && !$fielddefinition->isEmpty($fieldData) && !$fielddefinition->supportsInheritance()) {
+                    $this->objectData[$key] = null;
+                    $this->metaData[$key]['inherited'] = false;
+                    $this->metaData[$key]['hasParentValue'] = true;
+                }
+            }
+        }
+    }
 }

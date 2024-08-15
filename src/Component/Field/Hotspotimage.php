@@ -15,6 +15,10 @@ class Hotspotimage extends Image
             $result['crop'] = $value->getCrop();
             $result['image'] = AssetTool::getPath($value->getImage(), true);
 
+            if ($result['image']) {
+                $result['image']['id'] = $value->getImage()->getId();
+            }
+
             return $result;
         }
 

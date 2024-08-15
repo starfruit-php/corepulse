@@ -18,25 +18,62 @@ class ManyToOneRelation extends Select
         return null;
     }
 
-    public static function getElementType(ElementInterface $element)
+    public function getElementType(ElementInterface $element)
     {
-        return match (true) {
-            $element instanceof Asset => [
+        $data = null;
+
+        $visibleFields = ['key', 'path', 'fullpath'];
+        $displayMode = $this->layout->displayMode;
+ 
+        if (property_exists($this->layout, 'visibleFields') && $this->layout->visibleFields) {
+            $visibleFields = explode(',',$this->layout->visibleFields);
+        }
+
+        if ($element instanceof Asset) {
+            $data = [
                 'type' => 'asset',
                 'id' => $element->getId(),
                 'subType' => $element->getType()
-            ],
-            $element instanceof Document =>  [
+            ];
+        }
+
+        if ($element instanceof Document) {
+            $data = [
                 'type' => 'document',
                 'id' => $element->getId(),
                 'subType' => $element->getType()
-            ],
-            $element instanceof DataObject\AbstractObject => [
+            ];
+            if ($key = array_search("filename", $visibleFields)) {
+                unset($visibleFields[$key]);
+            }
+        }
+
+        if ($element instanceof DataObject\AbstractObject) {
+            $data = [
                 'type' => 'Object',
                 'id' => $element->getId(),
                 'subType' => $element->getClassName()
-            ],
-            default => null,
-        };
+            ];
+           
+            if ($key = array_search("filename", $visibleFields)) {
+                unset($visibleFields[$key]);
+            }
+        }
+
+        foreach ($visibleFields as $field) {
+            $value = $element->{'get' . ucfirst($field)}();
+            if (in_array($field, self::SYSTEM_CONVERT_DATE)) {
+                $value = date('Y/m/d', $value);
+            }
+
+            $data[$field] = $value;
+        }
+
+        return $data;
+    }
+
+    public function getOption()
+    {
+
     }
 }
