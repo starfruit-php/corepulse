@@ -46,6 +46,8 @@ class DocumentController extends BaseController
             list($page, $limit, $condition) = $conditions;
 
             $condition = array_merge($condition, [
+                'order_by' => '',
+                'order' => '',
                 'folderId' => '',
                 'type' => '',
             ]);
@@ -121,7 +123,13 @@ class DocumentController extends BaseController
                     ];
                 }
                 // array_push($data, $infoHome);
-                array_unshift($data['data'], ...$infoHome);
+                
+                $order = $request->get('order');
+                if ($order == 'desc') {
+                    array_push($data['data'], ...$infoHome);
+                } else {
+                    array_unshift($data['data'], ...$infoHome);
+                }
             }
 
             return $this->sendResponse($data);
