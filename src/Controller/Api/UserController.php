@@ -43,6 +43,8 @@ class UserController extends BaseController
             list($page, $limit, $condition) = $conditions;
 
             $condition = array_merge($condition, [
+                'order_by' => '',
+                'order' => '',
                 'search' => '',
             ]);
             $messageError = $this->validator->validate($condition, $request);
@@ -59,10 +61,13 @@ class UserController extends BaseController
                 }
             }
 
+            $order_by = $request->get('order_by', 'name');
+            $order = $request->get('order', 'desc');
+
             $list = new User\Listing();
             $list->setCondition($conditionQuery, $conditionParams);
-            $list->setOrderKey($request->get('order_by', 'name'));
-            $list->setOrder($request->get('order', 'desc'));
+            $list->setOrderKey($order_by);
+            $list->setOrder($order);
 
             $paginationData = $this->helperPaginator($paginator, $list, $page, $limit);
             $data = array_merge(

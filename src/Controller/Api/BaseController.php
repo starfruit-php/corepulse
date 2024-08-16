@@ -202,4 +202,55 @@ class BaseController extends FrontendController
         } catch (\Throwable $e) {
         }
     }
+
+
+    public function getQueryCondition($rule, $filters)
+    {
+        $conditionQuery = [];
+        $conditionParams = [];
+
+        $rule = strtoupper($rule);
+
+        foreach ($filters as $key => $value) {
+            foreach ($value as $k => $val) {
+
+                if (isset($val['value']) && $val['value']) {
+                    // nếu là dạng date sẽ cover thành string to time
+                    if ($k == 'date') {
+                        $val['value'] = strtotime($val['value']);
+                    }
+
+                    // tạo chuỗi truy vấn
+                    if ($val['condition'] == 'equal' || $val['condition'] == 'alike') {
+                        $conditionQuery[] =  ' ' . $key . ' = :' . $key . ' ';
+                    }
+                    if ($val['condition'] == 'biggerThan' || $val['condition'] == 'after') {
+                        $conditionQuery[] = ' ' . $key . ' > :' . $key . ' ';
+                    }
+                    if ($val['condition'] == 'smallerThan' || $val['condition'] == 'before') {
+                        $conditionQuery[] = ' ' . $key . ' < :' . $key . ' ';
+                    }
+                    if ($val['condition'] == 'includes') {
+                        $conditionQuery[] = ' ' . $key . ' LIKE :' . $key . ' ';
+                    }
+                    if ($val['condition'] == 'notIncludes') {
+                        $conditionQuery[] = ' ' . $key . ' NOT LIKE :' . $key . ' ';
+                    }
+                    
+                    if ($val['condition'] == 'notAlike') {
+                        $conditionQuery[] = ' ' . $key . ' != :' . $key . ' ';
+                    }
+
+                    if ($val['condition'] == 'includes' || $val['condition'] == 'notIncludes') {
+                        $val['value'] = "%" . $val['value'] . "%";
+                    }
+                    
+                    $conditionParams[$key] = $val['value'];
+                }
+            }
+        }
+        $query = implode($rule , $conditionQuery);
+        
+        return [ 'query' => $query,  'params' => $conditionParams ];
+    }
 }

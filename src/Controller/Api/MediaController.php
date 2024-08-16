@@ -41,6 +41,8 @@ class MediaController extends BaseController
             list($page, $limit, $condition) = $conditions;
 
             $condition = array_merge($condition, [
+                'order_by' => '',
+                'order' => '',
                 'id' => '',
                 'types' => '',
                 'search' => '',
@@ -52,6 +54,9 @@ class MediaController extends BaseController
 
             $order_by = $request->get('order_by') ? $request->get('order_by') : 'mimetype';
             $order = $request->get('order') ? $request->get('order') : 'ASC';
+            if ($order_by == 'name') {
+                $order_by = 'filename';
+            }
 
             $parentId = $request->get('id') ? $request->get('id') : '1';
             $types = $request->get('types');
@@ -109,7 +114,7 @@ class MediaController extends BaseController
                         'id' => $item->getId(),
                         'type' => $item->getType(),
                         'mimetype' => $item->getMimetype(),
-                        'name' => $item->getFileName(),
+                        'filename' => $item->getFileName(),
                         'fullPath' => $publicURL,
                         'parentId' => $item->getParentId(),
                         'checked' => false,
@@ -140,12 +145,30 @@ class MediaController extends BaseController
         PaginatorInterface $paginator
     ): JsonResponse {
         try {
+
+            $orderByOptions = ['mimetype'];
+            $conditions = $this->getPaginationConditions($request, $orderByOptions);
+            list($page, $limit, $condition) = $conditions;
+
+            $condition = array_merge($condition, [
+                'order_by' => '',
+                'order' => '',
+            ]);
+            $messageError = $this->validator->validate($condition, $request);
+            if($messageError) return $this->sendError($messageError);
+
+            $orderBy = $request->get('order_by', 'mimetype');
+            $order = $request->get('order', 'asc');
+            if ($orderBy == 'key') {
+                $orderBy = 'filename';
+            }
+
             $datas['data'] = [];
 
             $listing = new Asset\Listing();
             $listing->setCondition('`parentId` = 0 OR `parentId` = 1 AND type = "folder"');
-            $listing->setOrderKey('mimetype');
-            $listing->setOrder('ASC');
+            $listing->setOrderKey($orderBy);
+            $listing->setOrder($order);
 
             foreach ($listing as $item) {
                 $data = [];
@@ -172,7 +195,7 @@ class MediaController extends BaseController
 
                 $datas['data'][] = [
                     'id' => $item->getId(),
-                    'key' => $item->getFileName() ? $item->getFileName() : "Home",
+                    'filename' => $item->getFileName() ? $item->getFileName() : "Home",
                     'type' => $item->getType(),
                     'children' => $data,
                     'icon' => SearchHelper::getIcon($item->getType()),
@@ -342,7 +365,7 @@ class MediaController extends BaseController
                 $publicURL = AssetServices::getThumbnailPath($item);
                 $datas['data'][] = [
                     'id' => $item->getId(),
-                    'key' => $item->getFileName(),
+                    'filename' => $item->getFileName(),
                     'type' => $item->getType(),
                     'children' => $data,
                     'icon' => SearchHelper::getIcon($item->getType()),

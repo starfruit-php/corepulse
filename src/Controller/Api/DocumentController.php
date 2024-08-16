@@ -50,6 +50,8 @@ class DocumentController extends BaseController
                 'order' => '',
                 'folderId' => '',
                 'type' => '',
+                'filterRule' => '',
+                'filter' => '',
             ]);
             $messageError = $this->validator->validate($condition, $request);
             if ($messageError) return $this->sendError($messageError);
@@ -69,14 +71,24 @@ class DocumentController extends BaseController
                 $conditionParams['type'] = $type;
             }
 
-            $search = $request->get('search') ? $request->get('search') : '';
-            if ($search) {
-                $conditionQuery .= " AND LOWER(`key`)" . " LIKE LOWER('%" . $search . "%')";
+            $filterRule = $request->get('filterRule');
+            $filter = $request->get('filter');
+
+            if ($filterRule && $filter) {
+                $arrQuery = $this->getQueryCondition($filterRule, $filter);
+
+                if ($arrQuery['query']) {
+                    $conditionQuery .= ' AND (' . $arrQuery['query'] . ')';
+                    $conditionParams = array_merge($conditionParams, $arrQuery['params']);
+                }
             }
 
+            $orderBy = $request->get('order_by', 'index');
+            $order = $request->get('order', 'asc');
+
             $list = new Document\Listing();
-            $list->setOrderKey($request->get('order_by', 'index'));
-            $list->setOrder($request->get('order', 'asc'));
+            $list->setOrderKey($orderBy);
+            $list->setOrder($order);
             $list->setCondition($conditionQuery, $conditionParams);
 
             $paginationData = $this->helperPaginator($paginator, $list, $page, $limit);
@@ -94,42 +106,48 @@ class DocumentController extends BaseController
                 }
             }
 
-            if ($id == 1) {
-                $home = Document::getById($id);
-                $infoHome = [];
-                if ($home) {
-                    $publicURL = DocumentServices::getThumbnailPath($home);
-
-                    $draft = $this->checkLastest($home);
-                    if ($draft) {
-                        $status = 'Draft';
-                    } else {
-                        if ($home->getPublished()) {
-                            $status = 'Publish';
-                        } else {
+            if ($filterRule && $filter) {
+            } else {
+                if ($id == 1) {
+                    $home = Document::getById($id);
+                    $infoHome = [];
+                    if ($home) {
+                        $publicURL = DocumentServices::getThumbnailPath($home);
+    
+                        $draft = $this->checkLastest($home);
+                        if ($draft) {
                             $status = 'Draft';
+                        } else {
+                            if ($home->getPublished()) {
+                                $status = 'Publish';
+                            } else {
+                                $status = 'Draft';
+                            }
                         }
+    
+                        $infoHome[] = [
+                            'id' => $home->getId(),
+                            'key' =>  "Home",
+                            'image' => $publicURL,
+                            'type' => $home->getType(),
+                            'published' => $status,
+                            'createDate' => DocumentServices::getTimeAgo($home->getCreationDate()),
+                            'modificationDate' => DocumentServices::getTimeAgo($home->getModificationDate()),
+                            'parent' => false,
+                        ];
                     }
-
-                    $infoHome[] = [
-                        'id' => $home->getId(),
-                        'name' =>  "Home",
-                        'image' => $publicURL,
-                        'type' => $home->getType(),
-                        'status' => $status,
-                        'createDate' => DocumentServices::getTimeAgo($home->getCreationDate()),
-                        'modificationDate' => DocumentServices::getTimeAgo($home->getModificationDate()),
-                        'parent' => false,
-                    ];
-                }
-                // array_push($data, $infoHome);
-                
-                $order = $request->get('order');
-                if ($order == 'desc') {
-                    array_push($data['data'], ...$infoHome);
-                } else {
                     array_unshift($data['data'], ...$infoHome);
                 }
+            }
+            
+            if ($orderBy != 'index') {
+                usort($data['data'], function($a, $b) use ($orderBy, $order) {
+                    if ($order == 'asc') {
+                        return $a[$orderBy] <=> $b[$orderBy];
+                    } else {
+                        return $b[$orderBy] <=> $a[$orderBy];
+                    }
+                });
             }
 
             return $this->sendResponse($data);
@@ -164,6 +182,8 @@ class DocumentController extends BaseController
             $id = $request->get('id');
             $document = Document::getById($id);
             if ($document) {
+                // $res = $this->renderView($document->getTemplate(), ['editmode' => true, 'document' => $document]);
+
                 $data['data'] = [];
                 if ($document->getType() != 'folder') {
 
@@ -171,6 +191,10 @@ class DocumentController extends BaseController
 
                     $editTables = $document->getEditables();
                     foreach ($editTables as $key => $value) {
+                        if ($value->getType() == 'input') {
+
+                            dd ($value->getData());
+                        }
                         $function = 'get'. ucwords($value->getType());
                         $data['data']['editTables'][] = [
                             'name' => $value->getName(),
@@ -309,10 +333,10 @@ class DocumentController extends BaseController
         if ($checkName === false) {
             $json = [
                 'id' => $item->getId(),
-                'name' =>  $item->getKey(),
+                'key' =>  $item->getKey(),
                 'image' => $publicURL,
                 'type' => $item->getType(),
-                'status' => $status,
+                'published' => $status,
                 'createDate' => DocumentServices::getTimeAgo($item->getCreationDate()),
                 'modificationDate' => DocumentServices::getTimeAgo($item->getModificationDate()),
                 'parent' => $chills ? true : false,
