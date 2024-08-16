@@ -86,6 +86,10 @@ class DocumentController extends BaseController
             $orderBy = $request->get('order_by', 'index');
             $order = $request->get('order', 'asc');
 
+            if (!$orderBy) {
+                $orderBy = 'index';
+            }
+
             $list = new Document\Listing();
             $list->setOrderKey($orderBy);
             $list->setOrder($order);
@@ -291,12 +295,14 @@ class DocumentController extends BaseController
                 $checkPage = Document::getByPath("/" . $title);
                 if (!$checkPage) {
                     $page = DocumentServices::createDoc($key, $title, $type, $parentId);
-                    if ($page)
-                        return $this->sendResponse("Create document ". $page ->getKey() ." successfully");
-                    else
+                    if ($page){
+                        $data['data'] = self::listingResponse($page);
+                        return $this->sendResponse($data);
+                    } else {
                         return $this->sendError('Create failed');
+                    }
                 } else {
-                    return $this->sendError('Create failed');
+                    return $this->sendError('Page "' . $title . '" already exists');
                 }
             }
 

@@ -231,10 +231,10 @@ class BaseController extends FrontendController
                         $conditionQuery[] = ' ' . $key . ' < :' . $key . ' ';
                     }
                     if ($val['condition'] == 'includes') {
-                        $conditionQuery[] = ' ' . $key . ' LIKE :' . $key . ' ';
+                        $conditionQuery[] = ' LOWER(' . $key . ')' . ' LIKE LOWER(:' . $key . ') ';
                     }
                     if ($val['condition'] == 'notIncludes') {
-                        $conditionQuery[] = ' ' . $key . ' NOT LIKE :' . $key . ' ';
+                        $conditionQuery[] = ' LOWER(' . $key . ')' . ' NOT LIKE LOWER(:' . $key . ') ';
                     }
                     
                     if ($val['condition'] == 'notAlike') {
