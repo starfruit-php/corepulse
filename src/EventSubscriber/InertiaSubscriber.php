@@ -67,9 +67,31 @@ class InertiaSubscriber implements EventSubscriberInterface
         $pathInfo = $request->getPathInfo();
 
         if (substr( $pathInfo, 0, 4) === self::PATH_ROOT) {
+
+            // get login setting
+            $loginSetting = Db::get()->fetchAssociative('SELECT * FROM `vuetify_settings` WHERE `type` = "login"', []);
+            if (!$loginSetting) {
+                Db::get()->insert('vuetify_settings', [
+                    'type' => 'login',
+                ]);
+                $loginSetting = Db::get()->fetchAssociative('SELECT * FROM `vuetify_settings` WHERE `type` = "login"', []);
+            }
+            if ($loginSetting['config']) {
+                $loginSetting['config'] = json_decode($loginSetting['config'], true);
+            } else {
+                $loginSetting['config'] = [];
+            }
+            $this->inertia->share('appearance', $loginSetting['config']);
+
+            // get meta title
+            $metaTitle = "CorePulse CMS";
+            if ($loginSetting['config'] && $loginSetting['config']['metaTitle']) {
+                $metaTitle = $loginSetting['config']['metaTitle'];
+            }
+
             // Get the current controller
             $controller = $event->getController();
-            $this->inertia->viewData('metaTitleDefault', 'CorePulse CMS');
+            $this->inertia->viewData('metaTitleDefault', $metaTitle);
 
             // Check if the controller is a class (not a closure or invokable object)
             if (is_array($controller) && $controller[1] == 'editModeAction') {
@@ -113,19 +135,6 @@ class InertiaSubscriber implements EventSubscriberInterface
                 $this->inertia->share('objectSetting', []);
             }
 
-            $loginSetting = Db::get()->fetchAssociative('SELECT * FROM `vuetify_settings` WHERE `type` = "login"', []);
-            if (!$loginSetting) {
-                Db::get()->insert('vuetify_settings', [
-                    'type' => 'login',
-                ]);
-                $loginSetting = Db::get()->fetchAssociative('SELECT * FROM `vuetify_settings` WHERE `type` = "login"', []);
-            }
-            if ($loginSetting['config']) {
-                $loginSetting['config'] = json_decode($loginSetting['config'], true);
-            } else {
-                $loginSetting['config'] = [];
-            }
-            $this->inertia->share('appearance', $loginSetting['config']);
 
             $colorPrimary = "#6a1b9a";
             $colorLight = "#f3e5f5";

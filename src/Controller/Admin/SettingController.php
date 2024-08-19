@@ -132,7 +132,7 @@ class SettingController extends BaseController
             }
 
             // update logo and backgroud
-            $fields = ['logo', 'background', 'color', 'title', 'colorLight', 'footer'];
+            $fields = ['logo', 'background', 'color', 'title', 'metaTitle', 'colorLight', 'footer'];
 
             foreach ($fields as $field) {
                 if ($request->get($field)) {

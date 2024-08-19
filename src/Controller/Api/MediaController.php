@@ -44,9 +44,8 @@ class MediaController extends BaseController
                 'order_by' => '',
                 'order' => '',
                 'id' => '',
-                'types' => '',
-                'search' => '',
-                'path' => '',
+                'filterRule' => '',
+                'filter' => '',
             ]);
 
             $messageError = $this->validator->validate($condition, $request);
@@ -54,50 +53,27 @@ class MediaController extends BaseController
 
             $order_by = $request->get('order_by') ? $request->get('order_by') : 'mimetype';
             $order = $request->get('order') ? $request->get('order') : 'ASC';
-            if ($order_by == 'name') {
-                $order_by = 'filename';
-            }
-
             $parentId = $request->get('id') ? $request->get('id') : '1';
-            $types = $request->get('types');
-            $search = $request->get('search');
-            $pathFolder = $request->get('path');
-
-            if ($pathFolder) {
-                $item = Asset::getByPath($pathFolder);
-                if ($item) {
-                    $parentId = $item->getId();
-                }
-            }
 
             $conditionQuery = 'id != 1 AND parentId = :parentId';
             $conditionParams['parentId'] = $parentId;
 
-            if ($types && ($types != "undefined")) {
-                $types = explode(',', $types);
-                $conditionTypes = '';
-                for ($i = 0; $i < count($types); $i++) {
-                    $or = " OR ";
-                    if ($i == (count($types) - 1)) {
-                        $or = '';
-                    }
-                    $conditionName = "type = '" . $types[$i] . "'" . $or;
-                    $conditionTypes .= $conditionName;
-                }
-                $conditionQuery .= ' AND (' . $conditionTypes . ')';
-            }
+            $filterRule = $request->get('filterRule');
+            $filter = $request->get('filter');
 
-            if (isset($search) && !empty($search) && ($search != "undefined")) {
-                $conditionQuery .= ' AND LOWER(filename) LIKE LOWER(:search) AND type != "folder"';
-                $conditionParams['search'] = '%' . $search . '%';
+            if ($filterRule && $filter) {
+                $arrQuery = $this->getQueryCondition($filterRule, $filter);
+
+                if ($arrQuery['query']) {
+                    $conditionQuery .= ' AND (' . $arrQuery['query'] . ')';
+                    $conditionParams = array_merge($conditionParams, $arrQuery['params']);
+                }
             }
 
             $listingAsset = new \Pimcore\Model\Asset\Listing();
             $listingAsset->setCondition($conditionQuery, $conditionParams);
             $listingAsset->setOrderKey($order_by);
             $listingAsset->setOrder($order);
-
-            $images = [];
 
             $paginationData = $this->helperPaginator($paginator, $listingAsset, $page, $limit);
             $data = array_merge(
@@ -153,6 +129,8 @@ class MediaController extends BaseController
             $condition = array_merge($condition, [
                 'order_by' => '',
                 'order' => '',
+                'filterRule' => '',
+                'filter' => '',
             ]);
             $messageError = $this->validator->validate($condition, $request);
             if($messageError) return $this->sendError($messageError);
@@ -163,10 +141,25 @@ class MediaController extends BaseController
                 $orderBy = 'filename';
             }
 
+            $conditionQuery = '`parentId` = 0 OR `parentId` = 1 AND type = "folder"';
+            $conditionParams = [];
+
+            $filterRule = $request->get('filterRule');
+            $filter = $request->get('filter');
+
+            if ($filterRule && $filter) {
+                $arrQuery = $this->getQueryCondition($filterRule, $filter);
+
+                if ($arrQuery['query']) {
+                    $conditionQuery .= ' AND (' . $arrQuery['query'] . ')';
+                    $conditionParams = array_merge($conditionParams, $arrQuery['params']);
+                }
+            }
+
             $datas['data'] = [];
 
             $listing = new Asset\Listing();
-            $listing->setCondition('`parentId` = 0 OR `parentId` = 1 AND type = "folder"');
+            $listing->setCondition($conditionQuery, $conditionParams);
             $listing->setOrderKey($orderBy);
             $listing->setOrder($order);
 
@@ -180,19 +173,6 @@ class MediaController extends BaseController
 
                 $publicURL = AssetServices::getThumbnailPath($item);
 
-                // if ($item->getId() == 1) {
-                //     $datas['data'][] = [
-                //         'id' => 1,
-                //         'key' =>  "Home",
-                //         'type' => $item->getType(),
-                //         'children' => [],
-                //         'icon' => "mdi-home",
-                //         'image' => "/bundles/pimcoreadmin/img/flat-color-icons/home-gray.svg",
-                //         'publish' => true,
-                //         'classId' => $item->getType() != 'folder' ? $item->getType() : 'tree-folder',
-                //     ];
-                // }
-
                 $datas['data'][] = [
                     'id' => $item->getId(),
                     'filename' => $item->getFileName() ? $item->getFileName() : "Home",
@@ -201,19 +181,8 @@ class MediaController extends BaseController
                     'icon' => SearchHelper::getIcon($item->getType()),
                     'image' => $publicURL,
                     'publish' => true,
-                    'classId' => $item->getType() != 'folder' ? $item->getType() : 'tree-folder',
                 ];
             }
-            // dd($datas['data']);
-            // $datas['data']['config'] = [
-            //     'roots' => $datas['data'][0]['children'],
-            //     'keyboardNavigation' => false,
-            //     'dragAndDrop' => false,
-            //     'checkboxes' => false,
-            //     'editable' => false,
-            //     'disabled' => false,
-            //     'padding' => 35,
-            // ];
 
             return $this->sendResponse($datas);
 
@@ -371,10 +340,7 @@ class MediaController extends BaseController
                     'icon' => SearchHelper::getIcon($item->getType()),
                     'publish' => true,
                     'image' => $publicURL,
-                    'classId' => $item->getType() != 'folder' ? $item->getType() : 'tree-folder',
                 ];
-    
-                // $datas['data']['children'][] = (string)$item->getId();
             }
             return $this->sendResponse($datas);
 

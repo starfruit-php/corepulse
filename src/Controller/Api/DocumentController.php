@@ -61,8 +61,14 @@ class DocumentController extends BaseController
 
             $id = $request->get('folderId') ? $request->get('folderId') : 1;
             if ($id) {
-                $conditionQuery .= ' AND parentId = :parentId';
-                $conditionParams['parentId'] = $id;
+                if ($id == 1) {
+                    $conditionQuery .= ' AND (parentId = :parentId OR parentId = :parentId2)';
+                    $conditionParams['parentId'] = $id;
+                    $conditionParams['parentId2'] = 0;
+                } else {
+                    $conditionQuery .= ' AND parentId = :parentId';
+                    $conditionParams['parentId'] = $id;
+                }
             }
 
             $type = $request->get('type') ? $request->get('type') : '';
@@ -110,49 +116,13 @@ class DocumentController extends BaseController
                 }
             }
 
-            if ($filterRule && $filter) {
-            } else {
-                if ($id == 1) {
-                    $home = Document::getById($id);
-                    $infoHome = [];
-                    if ($home) {
-                        $publicURL = DocumentServices::getThumbnailPath($home);
-    
-                        $draft = $this->checkLastest($home);
-                        if ($draft) {
-                            $status = 'Draft';
-                        } else {
-                            if ($home->getPublished()) {
-                                $status = 'Publish';
-                            } else {
-                                $status = 'Draft';
-                            }
-                        }
-    
-                        $infoHome[] = [
-                            'id' => $home->getId(),
-                            'key' =>  "Home",
-                            'image' => $publicURL,
-                            'type' => $home->getType(),
-                            'published' => $status,
-                            'createDate' => DocumentServices::getTimeAgo($home->getCreationDate()),
-                            'modificationDate' => DocumentServices::getTimeAgo($home->getModificationDate()),
-                            'parent' => false,
-                        ];
-                    }
-                    array_unshift($data['data'], ...$infoHome);
+            usort($data['data'], function($a, $b) use ($orderBy, $order) {
+                if ($order == 'asc') {
+                    return $a[$orderBy] <=> $b[$orderBy];
+                } else {
+                    return $b[$orderBy] <=> $a[$orderBy];
                 }
-            }
-            
-            if ($orderBy != 'index') {
-                usort($data['data'], function($a, $b) use ($orderBy, $order) {
-                    if ($order == 'asc') {
-                        return $a[$orderBy] <=> $b[$orderBy];
-                    } else {
-                        return $b[$orderBy] <=> $a[$orderBy];
-                    }
-                });
-            }
+            });
 
             return $this->sendResponse($data);
         } catch (\Exception $e) {
@@ -338,16 +308,17 @@ class DocumentController extends BaseController
         }
 
         $checkName = strpos($item->getKey(), 'email');
-        if ($checkName === false) {
+        if ($checkName === false && $item->getType() != "email") {
             $json = [
                 'id' => $item->getId(),
-                'key' =>  $item->getKey(),
+                'key' =>  $item->getId() == 1 ? 'Home' : $item->getKey(),
                 'image' => $publicURL,
                 'type' => $item->getType(),
                 'published' => $status,
                 'createDate' => DocumentServices::getTimeAgo($item->getCreationDate()),
                 'modificationDate' => DocumentServices::getTimeAgo($item->getModificationDate()),
                 'parent' => $chills ? true : false,
+                'index' => $item->getId() == 1 ? 0 : $item->getIndex(),
             ];
         }
 

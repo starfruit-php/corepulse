@@ -7,6 +7,7 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
 use Knp\Component\Pager\PaginatorInterface;
+use Pimcore\Model\Asset;
 use Pimcore\Model\DataObject\ClassDefinition;
 
 
@@ -66,5 +67,41 @@ class AppController extends BaseController
             return $this->sendError($e->getMessage(), 500);
         }
     }
+
+
+    /**
+     * @Route("/get-breadcrumb", name="api_app_get_breadcrumb", methods={"GET"}, options={"expose"=true})
+     *
+     * {mô tả api}
+     *
+     * @param Cache $cache
+     *
+     * @return JsonResponse
+     *
+     * @throws \Exception
+     */
+    public function getBreadcrumb( Request $request ): JsonResponse
+    {
+        try {
+            $condition = [
+                'type' => 'required',
+                'id' => 'required',
+            ];
+
+            $errorMessages = $this->validator->validate($condition, $request);
+            if ($errorMessages) return $this->sendError($errorMessages);
+
+            $type = $request->get('type');
+            $id = $request->get('id');
+            if ($type == "media") {
+                $parentInfo = Asset::getById($id);
+            }
+
+
+        } catch (\Exception $e) {
+            return $this->sendError($e->getMessage(), 500);
+        }
+    }
+
 
 }

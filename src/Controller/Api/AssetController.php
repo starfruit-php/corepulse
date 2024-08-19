@@ -122,7 +122,7 @@ class AssetController extends BaseController
             $item = Asset::getById($id);
             if ($item) {
                 if ($item->getType() != 'folder') {
-                    $data = self::detailResponse($request, $item);
+                    $data['data'] = self::detailResponse($request, $item);
                     return $this->sendResponse($data);
                 }
                 return $this->sendError('Type asset invalid');
@@ -488,25 +488,28 @@ class AssetController extends BaseController
 
         $json = [
             'id' => $item->getId(),
-            'fileName' => $item->getFileName(),
+            'filename' => $item->getFileName(),
+            'publicURL' => $domain . $item->getPath() . $item->getFileName(),
+            'path' =>  $item->getPath() . $item->getFileName(),
             'size' => round((int)$item->getFileSize() / (1024 * 1024), 3) . " MB",
             'fomat' => $fomat,
             'type' => $item->getType(),
+            'mimetype' => $item->getMimetype(),
             'width' => $width,
             'dimensions' => $width . " x " . $height,
             'uploadOn' => date("M j, Y  H:i", $item->getModificationDate()),
-            'publicURL' => $domain . $item->getPath() . $item->getFileName(),
-            'path' =>  $item->getPath() . $item->getFileName(),
+            
             'data' => ($item->getType() == 'text') ? $item->getData() : '',
-            'alt' => $alt,
-            'caption' => $caption,
-            'description' => $description,
+            'languages' => $languages,
+            'attribute' => [
+                'alt' => $alt,
+                'caption' => $caption,
+                'description' => $description,
+            ],
             'videoMov' => $videoMov,
             'videoWebm' => $videoWebm,
-            'languages' => $languages,
-            'parentId' => $item->getParentId(),
-            'publish' => round((int)$item->getFileSize() / (1024 * 1024), 3) == 0,
-            'mimetype' => $item->getMimetype(),
+            
+            'parentId' => $item->getParentId(),            
         ];
 
         return $json;
