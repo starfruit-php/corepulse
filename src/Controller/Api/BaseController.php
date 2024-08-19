@@ -210,47 +210,48 @@ class BaseController extends FrontendController
         $conditionParams = [];
 
         $rule = strtoupper($rule);
-
         foreach ($filters as $key => $value) {
             foreach ($value as $k => $val) {
+                foreach ($val as $i => $v) {
 
-                if (isset($val['value']) && $val['value']) {
-                    // nếu là dạng date sẽ cover thành string to time
-                    if ($k == 'date') {
-                        $val['value'] = strtotime($val['value']);
+    
+                    if (isset($v['value']) && $v['value']) {
+                        // nếu là dạng date sẽ cover thành string to time
+                        if ($i == 'date') {
+                            $v['value'] = strtotime($v['value']);
+                        }
+    
+                        // tạo chuỗi truy vấn
+                        if ($v['condition'] == 'equal' || $v['condition'] == 'alike') {
+                            $conditionQuery[] =  ' ' . $k . ' = :' . $k . ' ';
+                        }
+                        if ($v['condition'] == 'biggerThan' || $v['condition'] == 'after') {
+                            $conditionQuery[] = ' ' . $k . ' > :' . $k . ' ';
+                        }
+                        if ($v['condition'] == 'smallerThan' || $v['condition'] == 'before') {
+                            $conditionQuery[] = ' ' . $k . ' < :' . $k . ' ';
+                        }
+                        if ($v['condition'] == 'includes') {
+                            $conditionQuery[] = ' LOWER(' . $k . ')' . ' LIKE LOWER(:' . $k . ') ';
+                        }
+                        if ($v['condition'] == 'notIncludes') {
+                            $conditionQuery[] = ' LOWER(' . $k . ')' . ' NOT LIKE LOWER(:' . $k . ') ';
+                        }
+                        
+                        if ($v['condition'] == 'notAlike') {
+                            $conditionQuery[] = ' ' . $k . ' != :' . $k . ' ';
+                        }
+    
+                        if ($v['condition'] == 'includes' || $v['condition'] == 'notIncludes') {
+                            $v['value'] = "%" . $v['value'] . "%";
+                        }
+                        
+                        $conditionParams[$k] = $v['value'];
                     }
-
-                    // tạo chuỗi truy vấn
-                    if ($val['condition'] == 'equal' || $val['condition'] == 'alike') {
-                        $conditionQuery[] =  ' ' . $key . ' = :' . $key . ' ';
-                    }
-                    if ($val['condition'] == 'biggerThan' || $val['condition'] == 'after') {
-                        $conditionQuery[] = ' ' . $key . ' > :' . $key . ' ';
-                    }
-                    if ($val['condition'] == 'smallerThan' || $val['condition'] == 'before') {
-                        $conditionQuery[] = ' ' . $key . ' < :' . $key . ' ';
-                    }
-                    if ($val['condition'] == 'includes') {
-                        $conditionQuery[] = ' LOWER(' . $key . ')' . ' LIKE LOWER(:' . $key . ') ';
-                    }
-                    if ($val['condition'] == 'notIncludes') {
-                        $conditionQuery[] = ' LOWER(' . $key . ')' . ' NOT LIKE LOWER(:' . $key . ') ';
-                    }
-                    
-                    if ($val['condition'] == 'notAlike') {
-                        $conditionQuery[] = ' ' . $key . ' != :' . $key . ' ';
-                    }
-
-                    if ($val['condition'] == 'includes' || $val['condition'] == 'notIncludes') {
-                        $val['value'] = "%" . $val['value'] . "%";
-                    }
-                    
-                    $conditionParams[$key] = $val['value'];
                 }
             }
         }
         $query = implode($rule , $conditionQuery);
-        
         return [ 'query' => $query,  'params' => $conditionParams ];
     }
 }

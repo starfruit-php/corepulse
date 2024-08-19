@@ -291,6 +291,8 @@ class DocumentController extends BaseController
 
             $type = $request->get('type');
             $key = $request->get('key');
+
+            $key = trim($key);
             if ($title) {
                 $checkPage = Document::getByPath("/" . $title);
                 if (!$checkPage) {
