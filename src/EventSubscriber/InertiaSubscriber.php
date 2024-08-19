@@ -85,7 +85,7 @@ class InertiaSubscriber implements EventSubscriberInterface
 
             // get meta title
             $metaTitle = "CorePulse CMS";
-            if ($loginSetting['config'] && $loginSetting['config']['metaTitle']) {
+            if ($loginSetting['config'] && isset($loginSetting['config']['metaTitle']) && $loginSetting['config']['metaTitle']) {
                 $metaTitle = $loginSetting['config']['metaTitle'];
             }
 
