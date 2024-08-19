@@ -9,7 +9,8 @@ use Symfony\Component\Routing\Annotation\Route;
 use Knp\Component\Pager\PaginatorInterface;
 use Pimcore\Model\Asset;
 use Pimcore\Model\DataObject\ClassDefinition;
-
+use Pimcore\Model\Document;
+use Pimcore\Model\DataObject;
 
 /**
  * @Route("/app")
@@ -93,9 +94,68 @@ class AppController extends BaseController
 
             $type = $request->get('type');
             $id = $request->get('id');
+
+            $parentInfo = '';
+            $name = '';
             if ($type == "media") {
                 $parentInfo = Asset::getById($id);
+                $name = $parentInfo->getFileName();
             }
+            if ($type == "object") {
+                $parentInfo = DataObject::getById($id);
+                $name = $parentInfo->getKey();
+            }
+            if ($type == "document") {
+                $parentInfo = Document::getById($id);
+                $name = $parentInfo->getKey();
+            }
+
+            if ($parentInfo && $name) {
+                $pathParent = $parentInfo->getPath() . $parentInfo->getKey();
+                $nameParent = explode('/', $pathParent);
+                $result = array_filter($nameParent, function ($nameParent) {
+                    return !empty($nameParent);
+                });
+                $breadcrumbs[] = [
+                    'id' => 1,
+                    'name' => 'Home',
+                    'end' =>  false,
+                ];
+                $previousSubstring = '';
+                foreach ($result as $key => $val) {
+                    $idChill = '';
+                    $substring = '';
+    
+                    if (strpos($parentInfo->getPath(), $val) !== false) {
+                        $substring = $previousSubstring . '/' . $val;
+                        
+                        $doc = '';
+                        if ($type == "media") {
+                            $doc = Asset::getByPath($substring);
+                        }
+                        if ($type == "object") {
+                            $doc = DataObject::getByPath($substring);
+                        }
+                        if ($type == "document") {
+                            $doc = Document::getByPath($substring);
+                        }
+                        if ($doc) {
+                            $idChill = $doc->getId();
+                        }
+                    }
+                    $breadcrumbs[] = [
+                        'id' => $idChill,
+                        'name' => $val,
+                        'end' =>  $key == array_key_last($result),
+                    ];
+                    $previousSubstring = $substring;
+                }
+
+                $data['data'] = $breadcrumbs;
+
+                return $this->sendResponse($data);
+            }
+            return $this->sendError("Item not found");
 
 
         } catch (\Exception $e) {
