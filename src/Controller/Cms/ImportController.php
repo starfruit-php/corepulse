@@ -79,7 +79,7 @@ class ImportController extends BaseController
             return new JsonResponse(['status' => 200, 'message' => 'Your data has been added, please go to the "Hotel" folder to check']);
         }
 
-        if ($type == "booking") {
+        if ($type == "booking_link") {
             foreach ($result as $item) {
                 $hotelItem = Hotel::getByIdVtTour($item['property_id'], 1);
 
