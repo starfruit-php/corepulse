@@ -269,23 +269,23 @@ class FieldController extends BaseController
 
             $options[] = self::getRelationType($classes, self::KEY_OBJECT, 'classes', $listObject);
 
-            if ($options && count($options) == 1) {
-                $options = isset($options[0]['children']) ? $options[0]['children'] : [];
-                if ($options && count($options) == 1) {
-                    $options = $options[0]['children'];
-                }
-            }
+            // if ($options && count($options) == 1) {
+            //     $options = isset($options[0]['children']) ? $options[0]['children'] : [];
+            //     if ($options && count($options) == 1) {
+            //         $options = $options[0]['children'];
+            //     }
+            // }
         }
 
         $optionTypes = ['gender', 'select', 'multiselect', 'booleanSelect'];
         if (in_array($type, $optionTypes)) {
-            // $optionsProviderClass = $layoutDefinition->optionsProviderClass;
-            // if ($optionsProviderClass && class_exists($optionsProviderClass) && $object) {
-            //     $optionProvider = new $optionsProviderClass;
-            //     $options = $optionProvider->getOptions(compact('object'), $layoutDefinition);
-            // } else {
+            $optionsProviderClass = $layoutDefinition->optionsProviderClass;
+            if ($optionsProviderClass && class_exists($optionsProviderClass) && $object) {
+                $optionProvider = new $optionsProviderClass;
+                $options = $optionProvider->getOptions(compact('object'), $layoutDefinition);
+            } else {
                 $options = $layoutDefinition->getOptions();
-            // }
+            }
         }
 
         if ($type == 'video') {
