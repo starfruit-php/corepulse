@@ -52,6 +52,13 @@ class ImageController extends BaseController
                     $path = $item->getFullPath() . '/';
                 }
             }
+            if (substr($path, 0, 4) == "http") {
+                $prefix = \Pimcore::getContainer()->getParameter('pimcore.config')['assets']['frontend_prefixes']['source'];
+                if ($prefix) {
+                    $path = substr($path, strlen($prefix)); 
+                }
+            }
+
             $newAsset = new \Pimcore\Model\Asset();
             $filename = time() . '-' . $value->getClientOriginalName();
 
@@ -65,9 +72,8 @@ class ImageController extends BaseController
             $newAsset->setParent($valueFolder);
             $newAsset->setData(file_get_contents($value));
             $newAsset->save();
-            $image = Asset\Image::getById($newAsset->getId());
-
-            return $image;
+            
+            return $newAsset;
         } else {
             return '';
         }
