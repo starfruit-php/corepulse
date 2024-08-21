@@ -96,8 +96,11 @@ class ImportController extends BaseController
                 $hotelItem = Tour::getByTourId($item['property_id'], 1);
 
                 if ($hotelItem) {
-                    $hotelItem->setFirstScene($item['id']);
-                    $hotelItem->save();
+                    $scene = Scene::getBySceneId($item['id'], 1);
+                    if ($scene) {
+                        $hotelItem->setFirstScene($scene->getId());
+                        $hotelItem->save();
+                    }
                 }    
             }
             return new JsonResponse(['status' => 200, 'message' => 'You have successfully imported SCENE FIRST data']);
