@@ -85,9 +85,22 @@ class ObjectController extends BaseController
 
             $visibleGridView = ClassServices::filterFill($columns, $tableView);
 
+            $types = [];
+            foreach ($columns as $key => $item) {
+                if (in_array($item['fieldtype'], ClassServices::BACCKLIST_TYPE) ) {
+                    unset($columns[$key]);
+                    continue;
+                }
+
+                if (!in_array($item['type'], $types)) {
+                    $types[] = $item['type'];
+                }
+            }
+
             $data = [
                 'columns' => $columns,
                 'visibleGridView' => $visibleGridView,
+                'types' => $types,
             ];
 
             return $this->sendResponse($data);
@@ -101,14 +114,13 @@ class ObjectController extends BaseController
      */
     public function listingByObject()
     {
-        // try {
+        try {
             $orderByOptions = ['modificationDate'];
             $conditions = $this->getPaginationConditions($this->request, $orderByOptions);
             list($page, $limit, $condition) = $conditions;
 
             $condition = array_merge($condition, [
                 'id' => 'required',
-                'search' => '',
                 'columns' => 'array',
             ]);
             $messageError = $this->validator->validate($condition, $this->request);
@@ -151,7 +163,6 @@ class ObjectController extends BaseController
                 }
             }
 
-            // dd($conditionQuery, $conditionParams);
             $listing->setCondition($conditionQuery, $conditionParams);
             $listing->setLocale($locale);
             $listing->setUnpublished(true);
@@ -167,20 +178,20 @@ class ObjectController extends BaseController
             ];
 
             foreach($pagination as $item) {
-                $data['data'][] =  DataObjectServices::getData($item, $fields);
+                $data['data'][] =  DataObjectServices::getData($item, $fields, true);
             }
 
             return $this->sendResponse($data);
 
-        // } catch (\Exception $e) {
-        //     return $this->sendError($e->getMessage(), 500);
-        // }
+        } catch (\Exception $e) {
+            return $this->sendError($e->getMessage(), 500);
+        }
     }
 
     /**
      * @Route("/detail/{id}", name="api_object_detail", methods={"GET", "POST"})
      */
-    public function detailAction()
+    public function detail()
     {
         try {
             $condition = [
@@ -276,7 +287,143 @@ class ObjectController extends BaseController
         }
     }
 
-   /**
+
+    /**
+     * @Route("/delete", name="api_object_delete", methods={"POST"})
+     *
+     * {mô tả api}
+     *
+     * @param Cache $cache
+     *
+     * @return JsonResponse
+     *
+     * @throws \Exception
+     */
+    public function delete()
+    {
+        try {
+            $condition = [
+                'id' => 'required',
+                'classId' => 'required',
+            ];
+
+            $errorMessages = $this->validator->validate($condition, $this->request);
+            if ($errorMessages) return $this->sendError($errorMessages);
+
+            $classId = $this->request->get('classId');
+            $checkClass = ClassServices::isValid($classId);
+
+            $classConfig = ClassServices::getConfig($classId);
+            $visibleFields = json_decode($classConfig['visibleFields'], true);
+
+            $className = $visibleFields['class'];
+            if (!$checkClass || !$className || !class_exists('\\Pimcore\\Model\\DataObject\\' . ucfirst($className))) {
+                return $this->sendError([
+                    'success' => false,
+                    'message' => 'Class not found.'
+                ], 500);
+            }
+
+            $ids = $this->request->get('id');
+            if (is_array($ids)) {
+                foreach ($ids as $id) {
+                    $object = DataObject::getById((int) $id);
+                    if ($object) {
+                        $object->delete();
+                    } else {
+                        return $this->sendError('Can not find object to be deleted');
+                    }
+                }
+            } else {
+                $object = DataObject::getById((int) $ids);
+                if ($object) {
+                    $object->delete();
+                } else {
+                    return $this->sendError('Can not find object to be deleted');
+                }
+            }
+
+            return $this->sendResponse([
+                'success' => true,
+                'message' => "Delete object success."
+            ]);
+
+        } catch (\Exception $e) {
+            return $this->sendError($e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * @Route("/add", name="api_object_add", methods={"POST"})
+     *
+     * {mô tả api}
+     *
+     * @param Cache $cache
+     *
+     * @return JsonResponse
+     *
+     * @throws \Exception
+     */
+    public function addAction()
+    {
+        try {
+            $condition = [
+                'classId' => 'required',
+                'type' => '',
+                'key' => 'required',
+                'parentId' => 'numeric',
+                'folderName' => '',
+            ];
+
+            $errorMessages = $this->validator->validate($condition, $this->request);
+            if ($errorMessages) return $this->sendError($errorMessages);
+
+            $classId = $this->request->get('classId');
+            $checkClass = ClassServices::isValid($classId);
+
+            $classConfig = ClassServices::getConfig($classId);
+            $visibleFields = json_decode($classConfig['visibleFields'], true);
+
+            $className = $visibleFields['class'];
+            if (!$checkClass || !$className || !class_exists('\\Pimcore\\Model\\DataObject\\' . ucfirst($className))) {
+                return $this->sendError([
+                    'success' => false,
+                    'message' => 'Class not found.'
+                ], 500);
+            }
+
+            $folderName = $this->request->get('folderName');
+            $parentId = $this->request->get('parentId') ? (int)$this->request->get('parentId') : 1;
+
+            if ($folderName) {
+                $parent = DataObject::getByPath("/" . $folderName) ?? DataObject\Service::createFolderByPath("/" . $folderName);
+            }
+            
+            if (!$parent) {
+                $parent = DataObject::getById($parentId);
+            }
+
+            $func = '\\Pimcore\\Model\\DataObject\\' . ucfirst($className);
+
+            $object = new $func();
+
+            $object->setKey($this->request->get('key'));
+            // if ($type = $this->request->get('type', 'object')) {
+            //     $object->setType($type);
+            // }
+            $object->setParent($parent);
+            $object->save();
+
+            return $this->sendResponse([
+                'success' => true,
+                'message' => 'Create object succes.'
+            ]);
+        } catch (\Exception $e) {
+            return $this->sendError($e->getMessage(), 500);
+        }
+    }
+
+    /**
      * @Route("/get-sidebar", name="api_object_slider_bar", methods={"GET"}, options={"expose"=true})
      *
      * {mô tả api}

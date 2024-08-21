@@ -16,17 +16,12 @@ use Pimcore\Model\DataObject\ClassDefinition;
 
 class ClassServices
 {
-    const LIST_TYPE = [
-        "input", "textarea", "wysiwyg", "password",
-        "number", "numericRange", "slider", "numeric",
-        "date", "datetime", "dateRange", "time", "manyToOneRelation",
-        "select", 'multiselect', 'image', 'manyToManyRelation',
-        'manyToManyObjectRelation', 'imageGallery', ''
+    const BACCKLIST_TYPE = [
+        "fieldcollections", "block"
     ];
 
     CONST TYPE_RESPONSIVE = [
-        "fieldcollections" => null,
-        "block" => null,
+        "imageGallery" => 'gallery',
         "datetime" => 'string',
         "dateRange" => 'string',
         "checkbox" => 'boolean',

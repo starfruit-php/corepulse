@@ -6,11 +6,15 @@ use CorepulseBundle\Services\ClassServices;
 
 class DataObjectServices
 {
-    static public function getData($object, $fields)
+    static public function getData($object, $fields, $backlist = false)
     {
         $data = [];
         foreach ($fields as $key => $field) {
             $field = self::convertField($field);
+
+            if ($backlist && in_array($field['fieldtype'], ClassServices::BACCKLIST_TYPE) ) {
+                continue;
+            }
 
             if (isset($field['invisible']) && $field['invisible']) {
                 continue;
