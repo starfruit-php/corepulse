@@ -91,6 +91,18 @@ class ImportController extends BaseController
             return new JsonResponse(['status' => 200, 'message' => 'You have successfully imported BOOKING data']);
         }
 
+        if ($type == "is_first") {
+            foreach ($result as $item) {
+                $hotelItem = Tour::getByTourId($item['property_id'], 1);
+
+                if ($hotelItem) {
+                    $hotelItem->setFirstScene($item['id']);
+                    $hotelItem->save();
+                }    
+            }
+            return new JsonResponse(['status' => 200, 'message' => 'You have successfully imported SCENE FIRST data']);
+        }
+
 
         if ($type == "tour") {
             foreach ($result as $item) {
