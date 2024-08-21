@@ -8,11 +8,11 @@ class System extends Input
 {
     public function format($value)
     {
-        if (in_array($this->layout->type, self::SYSTEM_CONVERT_DATE)) {
+        if (in_array($this->layout->subtype, self::SYSTEM_CONVERT_DATE)) {
             return date('Y/m/d', $value);
         }
 
-        if ($this->layout->type == 'published') {
+        if ($this->layout->subtype == 'published') {
             $item = $this->data;
             $draft = $this->checkLastest($item);
             $status = 'Draft';

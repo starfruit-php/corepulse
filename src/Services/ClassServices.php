@@ -154,6 +154,7 @@ class ClassServices
                 "title" => $key,
                 "fieldtype" => "system",
                 "type" => $property,
+                "subtype" => $key,
             ];
 
             if ($propertyVisibility) {
