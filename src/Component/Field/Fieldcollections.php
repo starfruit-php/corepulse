@@ -33,8 +33,10 @@ class Fieldcollections extends Input
     {
         $items = new DataObject\Fieldcollection();
         foreach ($values as $key => $value) {
-            $fieldCollection = new $this->layout();
-            foreach ($value as $k => $v) {
+            $func = "Pimcore\\Model\\DataObject\\Fieldcollection\\Data\\". ucfirst($value["name"]);
+
+            $fieldCollection = new $func();
+            foreach ($value['value'] as $k => $v) {
                 $getClass = '\\CorepulseBundle\\Component\\Field\\' . ucfirst($v['type']);
                 if (class_exists($getClass)) {
                     $component = new $getClass($this->data, null, $v['value']);

@@ -193,7 +193,7 @@ class ObjectController extends BaseController
      */
     public function detail()
     {
-        try {
+        // try {
             $condition = [
                 'id' => 'required',
             ];
@@ -227,7 +227,7 @@ class ObjectController extends BaseController
                     $object = $objectFromDatabase;
                     $updateData = $contents['update'];
 
-                    try {
+                    // try {
                         $result = DataObjectServices::saveEdit($object, $updateData);
 
                         $message = [
@@ -236,12 +236,12 @@ class ObjectController extends BaseController
                         ];
 
                         return $this->sendResponse($message);
-                    } catch (\Throwable $th) {
-                        return $this->sendError([
-                            'success' => false,
-                            'message' => $th->getMessage(),
-                        ], 500);
-                    }
+                    // } catch (\Throwable $th) {
+                    //     return $this->sendError([
+                    //         'success' => false,
+                    //         'message' => $th->getMessage(),
+                    //     ], 500);
+                    // }
                 }
 
                 return $this->sendError([
@@ -282,9 +282,9 @@ class ObjectController extends BaseController
             $objectData['sidebar'] = DataObjectServices::getSidebarData($object);
 
             return $this->sendResponse($objectData);
-        } catch (\Exception $e) {
-            return $this->sendError($e->getMessage(), 500);
-        }
+        // } catch (\Exception $e) {
+        //     return $this->sendError($e->getMessage(), 500);
+        // }
     }
 
 
@@ -398,7 +398,7 @@ class ObjectController extends BaseController
             if ($folderName) {
                 $parent = DataObject::getByPath("/" . $folderName) ?? DataObject\Service::createFolderByPath("/" . $folderName);
             }
-            
+
             if (!$parent) {
                 $parent = DataObject::getById($parentId);
             }

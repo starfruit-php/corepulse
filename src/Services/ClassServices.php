@@ -21,6 +21,9 @@ class ClassServices
     ];
 
     CONST TYPE_RESPONSIVE = [
+        "firstname" => 'string',
+        "lastname" => 'string',
+        "textarea" => 'string',
         "imageGallery" => 'gallery',
         "datetime" => 'string',
         "dateRange" => 'string',
