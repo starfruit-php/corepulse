@@ -16,7 +16,32 @@ use Pimcore\Model\DataObject\ClassDefinition;
 
 class ClassServices
 {
-    const SYSTEM_FIELD = ['id', 'key', 'path', 'published', 'modificationDate', 'creationDate'];
+    const LIST_TYPE = [
+        "input", "textarea", "wysiwyg", "password",
+        "number", "numericRange", "slider", "numeric",
+        "date", "datetime", "dateRange", "time", "manyToOneRelation",
+        "select", 'multiselect', 'image', 'manyToManyRelation',
+        'manyToManyObjectRelation', 'imageGallery', ''
+    ];
+
+    CONST TYPE_RESPONSIVE = [
+        "fieldcollections" => null,
+        "block" => null,
+        "datetime" => 'string',
+        "dateRange" => 'string',
+        "checkbox" => 'boolean',
+        "input" => 'string',
+        "urlSlug" => 'string',
+        "numeric" => 'number',
+        "gender" => 'select',
+        "manyToOneRelation" => 'select',
+        "manyToManyObjectRelation" => 'multiselect',
+        "manyToManyRelation" => 'multiselect',
+        "advancedManyToManyRelation" => 'multiselect',
+        "advancedManyToManyObjectRelation" => 'multiselect',
+    ];
+
+    CONST SYSTEM_FIELD = ['id' => 'number', 'key' => 'string', 'path' => 'string', 'published' => 'boolean', 'modificationDate' => 'date', 'creationDate' => 'date' ];
 
     public static function isValid($classId)
     {
@@ -61,9 +86,30 @@ class ClassServices
 
     public static function getFieldProperty($fieldDefinition, $localized = false)
     {
-        $data = get_object_vars($fieldDefinition);
-        $data['fieldtype'] = $fieldDefinition->getFieldType();
-        $data['localized'] = $localized;
+        $type = $fieldDefinition->getFieldType();
+
+        if (isset(self::TYPE_RESPONSIVE[$type])) {
+            $type = self::TYPE_RESPONSIVE[$type];
+        }
+
+        $data = [
+            'name' => $fieldDefinition->getName(),
+            'title' => $fieldDefinition->getTitle(),
+            'invisible' => $fieldDefinition->getInvisible(),
+            'visibleSearch' => $fieldDefinition->getVisibleSearch(),
+            'visibleGridView' => $fieldDefinition->getVisibleGridView(),
+            'fieldtype' => $fieldDefinition->getFieldType(),
+            'localized' => $localized,
+            'type' => $type,
+        ];
+
+        if (method_exists($fieldDefinition, 'getDisplayMode')) {
+            $data['displayMode'] = $fieldDefinition->getDisplayMode();
+        }
+
+        if (method_exists($fieldDefinition, 'getChildren')) {
+            $data['children'] = $fieldDefinition->getChildren();
+        }
 
         return $data;
     }
@@ -102,17 +148,17 @@ class ClassServices
         $fields = [];
         $properties = self::SYSTEM_FIELD;
 
-        foreach ($properties as $property) {
-            $fields[$property] = [
-                "name" => $property,
-                "title" => $property,
+        foreach ($properties as $key => $property) {
+            $fields[$key] = [
+                "name" => $key,
+                "title" => $key,
                 "fieldtype" => "system",
                 "type" => $property,
             ];
 
             if ($propertyVisibility) {
-                $fields[$property]["visibleSearch"] = $propertyVisibility['search'][$property];
-                $fields[$property]["visibleGridView"] = $propertyVisibility['grid'][$property];
+                $fields[$key]["visibleSearch"] = $propertyVisibility['search'][$key];
+                $fields[$key]["visibleGridView"] = $propertyVisibility['grid'][$key];
             }
         }
 

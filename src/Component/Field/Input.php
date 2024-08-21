@@ -13,30 +13,25 @@ class Input implements FieldInterface
 
     protected $layout;
 
-    public function __construct($data, $layout = null)
+    protected $value;
+
+    public function __construct($data, $layout = null, $value = null)
     {
         if (is_array($layout)) $layout = (object)$layout;
 
         $this->layout = $layout;
         $this->data = $data;
+        $this->value = $value;
     }
 
     public function getName():string
     {
-        if (!$this->layout) {
-            return $this->data->getName();
-        }
-
-        return $this->layout->name;
+        return $this->layout ? $this->layout->name : $this->data->getName();
     }
 
     public function getTitle():string
     {
-        if (!$this->layout) {
-            return $this->data->getTitle();
-        }
-
-        return $this->layout->title;
+        return $this->layout ? $this->layout->title : $this->data->getTitle();
     }
 
     public function getValue()
@@ -48,7 +43,7 @@ class Input implements FieldInterface
         if ($this->data instanceof BlockElement) {
             return $this->formatBlock($this->data->getData());
         }
-      
+
         return $this->format($this->data->{'get' . ucfirst($this->getName())}());
     }
 
@@ -62,7 +57,17 @@ class Input implements FieldInterface
         return $value;
     }
 
-    public function formatBlock($value) 
+    public function formatBlock($value)
+    {
+        return $value;
+    }
+
+    public function getDataSave()
+    {
+        return $this->formatDataSave($this->value);
+    }
+
+    public function formatDataSave($value)
     {
         return $value;
     }

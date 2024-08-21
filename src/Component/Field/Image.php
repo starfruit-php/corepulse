@@ -3,6 +3,7 @@
 namespace CorepulseBundle\Component\Field;
 
 use Starfruit\BuilderBundle\Tool\AssetTool;
+use Pimcore\Model\Asset;
 
 class Image extends Input
 {
@@ -18,5 +19,12 @@ class Image extends Input
         $value = AssetTool::getPath($value, true);
 
         return $value;
+    }
+
+    public function formatDataSave($value)
+    {
+        $image = Asset::getById((int)$value);
+
+        return $image;
     }
 }

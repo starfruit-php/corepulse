@@ -101,7 +101,7 @@ class ObjectController extends BaseController
      */
     public function listingByObject()
     {
-        try {
+        // try {
             $orderByOptions = ['modificationDate'];
             $conditions = $this->getPaginationConditions($this->request, $orderByOptions);
             list($page, $limit, $condition) = $conditions;
@@ -121,9 +121,6 @@ class ObjectController extends BaseController
             $classConfig = ClassServices::getConfig($classId);
             $visibleFields = json_decode($classConfig['visibleFields'], true);
 
-            $columns = array_merge(ClassServices::systemField($visibleFields), $visibleFields['fields']);
-            $fields = $this->request->get('columns') ? ClassServices::filterFill($columns, $this->request->get('columns')) : $columns;
-
             $className = $visibleFields['class'];
             if (!$checkClass || !$className || !class_exists('\\Pimcore\\Model\\DataObject\\' . ucfirst($className))) {
                 return $this->sendError([
@@ -132,59 +129,30 @@ class ObjectController extends BaseController
                 ], 500);
             }
 
+            $columns = array_merge(ClassServices::systemField($visibleFields), $visibleFields['fields']);
+            $fields = $this->request->get('columns') ? ClassServices::filterFill($columns, $this->request->get('columns')) : $columns;
+
             $listing = call_user_func_array('\\Pimcore\\Model\\DataObject\\' . $className . '::getList', [["unpublished" => true]]);
 
-            $search = $this->request->get('search');
             $locale = $this->request->get('locale', \Pimcore\Tool::getDefaultLanguage());
 
-            if ($search) {
-                $search = json_decode($search, true);
-                $search = array_filter($search, function ($value) {
-                    return !($value === "" || $value === null);
-                });
-                if (count($search)) {
-                    foreach ($search as $field => $keyword) {
-                        if ($field == "published") {
-                            continue;
-                        }
-                        if ($field == "nameObject") {
-                            $listing->addConditionParam("LOWER(`key`) likee LOWER('%" . $keyword . "%')");
-                            continue;
-                        }
-                        if (is_array($keyword)) {
-                            // if (count($relation) && in_array($field, $relation)) {
-                            //     $count = count($keyword);
-                            //     $value = $keyword[$count - 1];
-                            //     $listing->addConditionParam("`" . $field . "__id` = '" . $value . "'");
-                            //     continue;
-                            // }
+            $conditionQuery = 'id is not NULL';
+            $conditionParams = [];
 
-                            // if (count($relations) && in_array($field, $relations)) {
-                            //     $count = count($keyword);
-                            //     $value = $keyword[$count - 1];
-                            //     $listing->addConditionParam("`" . $field . "` like '%" . $value . "%'");
-                            //     continue;
-                            // }
+            $filterRule = $this->request->get('filterRule');
+            $filter = $this->request->get('filter');
 
-                            if (array_key_exists('type', $keyword)) {
-                                if ($keyword['type'] == "range") {
-                                    $listing->addConditionParam("`" . $keyword['key'] . "` >= '" . $keyword['from'] . "' AND `" . $keyword['key'] . "` <= '" . $keyword['to'] . "'");
-                                    continue;
-                                }
+            if ($filterRule && $filter) {
+                $arrQuery = $this->getQueryCondition($filterRule, $filter);
 
-                                if ($keyword['type'] == "picker") {
-                                    continue;
-                                }
-                            }
-
-                            continue;
-                        } else {
-                            $listing->addConditionParam("LOWER(`" . $field . "`) like LOWER('%" . $keyword . "%')");
-                        }
-                    }
+                if ($arrQuery['query']) {
+                    $conditionQuery .= ' AND (' . $arrQuery['query'] . ')';
+                    $conditionParams = array_merge($conditionParams, $arrQuery['params']);
                 }
             }
 
+            // dd($conditionQuery, $conditionParams);
+            $listing->setCondition($conditionQuery, $conditionParams);
             $listing->setLocale($locale);
             $listing->setUnpublished(true);
 
@@ -204,9 +172,9 @@ class ObjectController extends BaseController
 
             return $this->sendResponse($data);
 
-        } catch (\Exception $e) {
-            return $this->sendError($e->getMessage(), 500);
-        }
+        // } catch (\Exception $e) {
+        //     return $this->sendError($e->getMessage(), 500);
+        // }
     }
 
     /**
@@ -226,6 +194,50 @@ class ObjectController extends BaseController
 
             if (!$objectFromDatabase) return $this->sendError('Object not found', 500);
 
+            $classId = $objectFromDatabase->getClassId();
+            $checkClass = ClassServices::isValid($classId);
+            $classConfig = ClassServices::getConfig($classId);
+            $visibleFields = json_decode($classConfig['visibleFields'], true);
+
+            $className = $visibleFields['class'];
+            if (!$checkClass || !$className || !class_exists('\\Pimcore\\Model\\DataObject\\' . ucfirst($className))) {
+                return $this->sendError([
+                    'success' => false,
+                    'message' => 'Class not found.'
+                ], 500);
+            }
+
+            if ($this->request->getMethod() == Request::METHOD_POST) {
+
+                $contents = $this->request->getContent();
+                $contents = json_decode($contents,true);
+
+                if ($contents && isset($contents['update'])) {
+                    $object = $objectFromDatabase;
+                    $updateData = $contents['update'];
+
+                    try {
+                        $result = DataObjectServices::saveEdit($object, $updateData);
+
+                        $message = [
+                            'success' => true,
+                            'message' => 'Object update success.'
+                        ];
+
+                        return $this->sendResponse($message);
+                    } catch (\Throwable $th) {
+                        return $this->sendError([
+                            'success' => false,
+                            'message' => $th->getMessage(),
+                        ], 500);
+                    }
+                }
+
+                return $this->sendError([
+                    'success' => false,
+                    'message' => 'Object update false.',
+                ], 500);
+            }
             $objectFromDatabase = clone $objectFromDatabase;
 
             // set the latest available version for editmode
@@ -324,7 +336,7 @@ class ObjectController extends BaseController
             }
         }
 
-        if (isset($vars['children'])) {
+        if (isset($vars['children']) && ( isset($vars['fieldtype']) && $vars['fieldtype'] != 'block' ) ) {
             foreach ($vars['children'] as $key => $value) {
                 if (is_object($value)) {
                     $vars['children'][$key] = $this->getObjectVarsRecursive($object, $value);

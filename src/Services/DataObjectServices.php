@@ -50,4 +50,27 @@ class DataObjectServices
 
         return $field;
     }
+
+    static public function saveEdit($object, $updateData)
+    {
+        foreach ($updateData as $key => $value) {
+            $getClass = '\\CorepulseBundle\\Component\\Field\\' . ucfirst($value['type']);
+            if (class_exists($getClass)) {
+                $layout = null;
+
+                if (ucfirst($value['type']) == 'Fieldcollections') {
+                    $layout = "Pimcore\\Model\\DataObject\\Fieldcollection\\Data\\". ucfirst($key);
+                }
+
+                $component = new $getClass($object, $layout, $value['value']);
+                $data = $component->getDataSave();
+                $func = 'set' . ucfirst($key);
+                $object->{$func}($data);
+            }
+        }
+
+        $object->save();
+
+        return $object;
+    }
 }

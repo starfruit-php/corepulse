@@ -12,8 +12,11 @@ class ArrayHelper
     public static function filterData($data, $key, $value)
     {
         if (count($data)) {
+
             $result = array_filter($data, function ($item) use ($key, $value) {
-                return self::checkValue($item[$key], $value);
+                $itemData = is_object($item) ? get_object_vars($item) : $item;
+                
+                return self::checkValue($itemData[$key], $value);
             });
 
             return $result;
