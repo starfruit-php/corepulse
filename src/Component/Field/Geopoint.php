@@ -4,7 +4,7 @@ namespace CorepulseBundle\Component\Field;
 
 use Pimcore\Model\DataObject\Data\GeoCoordinates;
 
-class Geopoint extends Image
+class Geopoint extends Input
 {
     public function format($value)
     {
@@ -29,5 +29,10 @@ class Geopoint extends Image
         }
 
         return null;
+    }
+
+    public function getFrontEndType():string
+    {
+        return 'geopoint';
     }
 }

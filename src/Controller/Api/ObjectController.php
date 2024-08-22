@@ -87,7 +87,7 @@ class ObjectController extends BaseController
 
             $types = [];
             foreach ($columns as $key => $item) {
-                if (in_array($item['fieldtype'], ClassServices::BACCKLIST_TYPE) ) {
+                if (in_array($item['fieldtype'], ClassServices::BACKLIST_TYPE) ) {
                     unset($columns[$key]);
                     continue;
                 }
@@ -193,7 +193,7 @@ class ObjectController extends BaseController
      */
     public function detail()
     {
-        // try {
+        try {
             $condition = [
                 'id' => 'required',
             ];
@@ -227,7 +227,7 @@ class ObjectController extends BaseController
                     $object = $objectFromDatabase;
                     $updateData = $contents['update'];
 
-                    // try {
+                    try {
                         $result = DataObjectServices::saveEdit($object, $updateData);
 
                         $message = [
@@ -236,12 +236,12 @@ class ObjectController extends BaseController
                         ];
 
                         return $this->sendResponse($message);
-                    // } catch (\Throwable $th) {
-                    //     return $this->sendError([
-                    //         'success' => false,
-                    //         'message' => $th->getMessage(),
-                    //     ], 500);
-                    // }
+                    } catch (\Throwable $th) {
+                        return $this->sendError([
+                            'success' => false,
+                            'message' => $th->getMessage(),
+                        ], 500);
+                    }
                 }
 
                 return $this->sendError([
@@ -282,11 +282,10 @@ class ObjectController extends BaseController
             $objectData['sidebar'] = DataObjectServices::getSidebarData($object);
 
             return $this->sendResponse($objectData);
-        // } catch (\Exception $e) {
-        //     return $this->sendError($e->getMessage(), 500);
-        // }
+        } catch (\Exception $e) {
+            return $this->sendError($e->getMessage(), 500);
+        }
     }
-
 
     /**
      * @Route("/delete", name="api_object_delete", methods={"POST"})
@@ -477,9 +476,12 @@ class ObjectController extends BaseController
             $data  = null;
             $getClass = '\\CorepulseBundle\\Component\\Field\\' . ucfirst($vars['fieldtype']);
             if (class_exists($getClass)) {
-                $value = new $getClass($object, $vars);
-                $data = $value->getValue();
+                $component = new $getClass($object, $vars);
+                $data = $component->getValue();
                 $this->objectLayoutData[$vars['name']] = $data;
+                if ($vars['fieldtype'] == 'fieldcollections') {
+                    $vars['layouts'] = $component->getDefinitions();
+                }
             }
         }
 

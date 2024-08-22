@@ -2,6 +2,10 @@
 
 namespace CorepulseBundle\Component\Field;
 
-class Gender extends Input
+class Gender extends Select
 {
+    public function getFrontEndType():string
+    {
+        return '';
+    }
 }

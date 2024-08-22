@@ -17,4 +17,9 @@ class ManyToManyRelation extends ManyToOneRelation
 
         return null;
     }
+
+    public function getFrontEndType():string
+    {
+        return 'manyToManyRelation';
+    }
 }

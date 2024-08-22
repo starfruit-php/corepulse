@@ -24,7 +24,7 @@ class ManyToOneRelation extends Select
 
         $visibleFields = ['key', 'path', 'fullpath'];
         $displayMode = $this->layout->displayMode;
- 
+
         if (property_exists($this->layout, 'visibleFields') && $this->layout->visibleFields) {
             $visibleFields = explode(',',$this->layout->visibleFields);
         }
@@ -54,7 +54,7 @@ class ManyToOneRelation extends Select
                 'id' => $element->getId(),
                 'subType' => $element->getClassName()
             ];
-           
+
             if ($key = array_search("filename", $visibleFields)) {
                 unset($visibleFields[$key]);
             }
@@ -75,5 +75,10 @@ class ManyToOneRelation extends Select
     public function getOption()
     {
 
+    }
+
+    public function getFrontEndType():string
+    {
+        return 'relation';
     }
 }

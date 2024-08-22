@@ -8,4 +8,9 @@ class Date extends Input
     {
         return $value?->format("Y/m/d");
     }
+
+    public function getFrontEndType():string
+    {
+        return 'date';
+    }
 }

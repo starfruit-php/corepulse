@@ -4,17 +4,15 @@ namespace CorepulseBundle\Component\Field;
 
 use Starfruit\BuilderBundle\Tool\AssetTool;
 
-class ImageGallery extends Image
+class Video extends Image
 {
     public function format($value)
     {
-        $value = AssetTool::getPaths($value, true);
-
-        return $value;
+        return AssetTool::getVideo($value);
     }
 
     public function getFrontEndType():string
     {
-        return 'imageGallery';
+        return 'video';
     }
 }

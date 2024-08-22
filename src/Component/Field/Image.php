@@ -9,16 +9,18 @@ class Image extends Input
 {
     public function format($value)
     {
-        $value = AssetTool::getPath($value, true);
+        $data = AssetTool::getPath($value, true);
 
-        return $value;
+        if ($value) {
+            $data['id'] = $value->getId();
+        }
+
+        return $data;
     }
 
     public function formatBlock($value)
     {
-        $value = AssetTool::getPath($value, true);
-
-        return $value;
+        return  $this->format($value);
     }
 
     public function formatDataSave($value)
@@ -26,5 +28,10 @@ class Image extends Input
         $image = Asset::getById((int)$value);
 
         return $image;
+    }
+
+    public function getFrontEndType():string
+    {
+        return 'image';
     }
 }

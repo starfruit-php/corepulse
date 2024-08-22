@@ -6,19 +6,20 @@ use CorepulseBundle\Services\ClassServices;
 
 class DataObjectServices
 {
+    // get data listing
     static public function getData($object, $fields, $backlist = false)
     {
         $data = [];
         foreach ($fields as $key => $field) {
             $field = self::convertField($field);
 
-            if ($backlist && in_array($field['fieldtype'], ClassServices::BACCKLIST_TYPE) ) {
+            if ($backlist && in_array($field['fieldtype'], ClassServices::BACKLIST_TYPE) ) {
                 continue;
             }
 
-            if (isset($field['invisible']) && $field['invisible']) {
-                continue;
-            }
+            // if (isset($field['invisible']) && $field['invisible']) {
+            //     continue;
+            // }
 
             $getClass = '\\CorepulseBundle\\Component\\Field\\' . ucfirst($field['fieldtype']);
             if (!class_exists($getClass)) {
@@ -43,6 +44,7 @@ class DataObjectServices
         return $data;
     }
 
+    // convert object to array
     static public function convertField($field)
     {
         if (is_object($field)) {
@@ -55,6 +57,7 @@ class DataObjectServices
         return $field;
     }
 
+    // save object detail
     static public function saveEdit($object, $updateData)
     {
         foreach ($updateData as $key => $value) {

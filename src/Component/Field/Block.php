@@ -72,4 +72,9 @@ class Block extends Input
 
         return $datas;
     }
+
+    public function getFrontEndType():string
+    {
+        return '';
+    }
 }

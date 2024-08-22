@@ -2,6 +2,7 @@
 
 namespace CorepulseBundle\Component\Field;
 
+use CorepulseBundle\Services\ClassServices;
 use Pimcore\Model\DataObject;
 use CorepulseBundle\Services\DataObjectServices;
 
@@ -17,10 +18,12 @@ class Fieldcollections extends Input
                 $type = $item->getType();
 
                 $definition = DataObject\Fieldcollection\Definition::getByKey($type);
-
                 $value =  DataObjectServices::getData($item, $definition->getFieldDefinitions());
 
-                $resultItems[] = $value;
+                $resultItems[] = [
+                    'type' => $type,
+                    'value' => $value
+                ];
             }
 
             return $resultItems;
@@ -50,5 +53,34 @@ class Fieldcollections extends Input
         }
 
         return $items;
+    }
+
+    public function getDefinitions()
+    {
+        $layouts = [];
+        $allowedTypes = $this->layout->allowedTypes;
+        if (!empty($allowedTypes)) {
+            foreach ($allowedTypes as $type) {
+                $layouts[$type] = $this->getDefinition($type);
+            }
+        }
+
+        return $layouts;
+    }
+
+    public function getDefinition($type)
+    {
+        $layouts = [];
+        $definition = DataObject\Fieldcollection\Definition::getByKey($type);
+        foreach ($definition->getFieldDefinitions() as $key => $fieldCollection) {
+            $layouts[$key] = ClassServices::getFieldProperty($fieldCollection);
+        }
+
+        return $layouts;
+    }
+
+    public function getFrontEndType():string
+    {
+        return '';
     }
 }

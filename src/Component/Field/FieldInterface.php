@@ -9,4 +9,8 @@ interface FieldInterface
     public function getTitle():string;
 
     public function getValue();
+
+    public function getDataSave();
+
+    public function getFrontEndType():string;
 }

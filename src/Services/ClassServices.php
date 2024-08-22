@@ -16,8 +16,8 @@ use Pimcore\Model\DataObject\ClassDefinition;
 
 class ClassServices
 {
-    const BACCKLIST_TYPE = [
-        "fieldcollections", "block"
+    const BACKLIST_TYPE = [
+        "fieldcollections", "block", "advancedManyToManyRelation", "advancedManyToManyObjectRelation", "password"
     ];
 
     CONST TYPE_RESPONSIVE = [
@@ -41,6 +41,7 @@ class ClassServices
 
     CONST SYSTEM_FIELD = ['id' => 'number', 'key' => 'string', 'path' => 'string', 'published' => 'boolean', 'modificationDate' => 'date', 'creationDate' => 'date' ];
 
+    // check class setting
     public static function isValid($classId)
     {
         $objectSetting = Db::get()->fetchAssociative('SELECT * FROM `vuetify_settings` WHERE `type` = "object"', []);
@@ -55,6 +56,7 @@ class ClassServices
         return false;
     }
 
+    // get full field
     public static function examplesAction($classId)
     {
         $data = [];
@@ -82,24 +84,40 @@ class ClassServices
         return $data;
     }
 
+    // get detail field
     public static function getFieldProperty($fieldDefinition, $localized = false)
     {
-        $type = $fieldDefinition->getFieldType();
+        $fieldtype = $fieldDefinition->getFieldType();
 
-        if (isset(self::TYPE_RESPONSIVE[$type])) {
-            $type = self::TYPE_RESPONSIVE[$type];
+        $getClass = '\\CorepulseBundle\\Component\\Field\\' . ucfirst($fieldtype);
+
+        if (class_exists($getClass)) {
+            $revert = get_object_vars($fieldDefinition);
+
+            $component = new $getClass(null, $revert);
+            $data = [
+                'name' => $component->getName(),
+                'title' => $component->getTitle(),
+                'invisible' => $component->getInvisible(),
+                'visibleSearch' => $component->getVisibleSearch(),
+                'visibleGridView' => $component->getVisibleGridView(),
+                'type' => $component->getFrontEndType(),
+                'fieldtype' => $fieldtype,
+                'localized' => $localized,
+            ];
+        } else {
+            // field chưa có component
+            $data = [
+                'name' => $fieldDefinition->getName(),
+                'title' => $fieldDefinition->getTitle(),
+                'invisible' => $fieldDefinition->getInvisible(),
+                'visibleSearch' => $fieldDefinition->getVisibleSearch(),
+                'visibleGridView' => $fieldDefinition->getVisibleGridView(),
+                'type' => $fieldtype,
+                'fieldtype' => $fieldtype,
+                'localized' => $localized,
+            ];
         }
-
-        $data = [
-            'name' => $fieldDefinition->getName(),
-            'title' => $fieldDefinition->getTitle(),
-            'invisible' => $fieldDefinition->getInvisible(),
-            'visibleSearch' => $fieldDefinition->getVisibleSearch(),
-            'visibleGridView' => $fieldDefinition->getVisibleGridView(),
-            'fieldtype' => $fieldDefinition->getFieldType(),
-            'localized' => $localized,
-            'type' => $type,
-        ];
 
         if (method_exists($fieldDefinition, 'getDisplayMode')) {
             $data['displayMode'] = $fieldDefinition->getDisplayMode();
@@ -141,6 +159,7 @@ class ClassServices
         return false;
     }
 
+    //các field hệ thống
     public static function systemField($propertyVisibility = null)
     {
         $fields = [];
@@ -177,24 +196,19 @@ class ClassServices
         return $item;
     }
 
-    public static function getVisibleGridView($fields)
+    // condition = ['visibleSearch', 'visibleGridView']
+    public static function getVisibleFields($fields, $condition)
     {
-        return array_filter($fields, function($value) {
-            return $value['visibleGridView'] === true;
+        return array_filter($fields, function($value) use ($condition) {
+            return $value[$condition] === true;
         });
     }
 
-    public static function getVisibleSearch($fields)
-    {
-        return array_filter($fields, function($value) {
-            return $value['visibleSearch'] === true;
-        });
-    }
-
+    // filter visibleGridView
     public static function filterFill($fields, $tableView)
     {
         if(empty($tableView)) {
-            return self::getVisibleGridView($fields);
+            return self::getVisibleFields($fields, 'visibleGridView');
         }
 
         $data = [];

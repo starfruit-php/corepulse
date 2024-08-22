@@ -34,6 +34,21 @@ class Input implements FieldInterface
         return $this->layout ? $this->layout->title : $this->data->getTitle();
     }
 
+    public function getInvisible():string
+    {
+        return $this->layout->invisible;
+    }
+
+    public function getVisibleSearch():string
+    {
+        return $this->layout->visibleSearch;
+    }
+
+    public function getVisibleGridView():string
+    {
+        return $this->layout->visibleGridView;
+    }
+
     public function getValue()
     {
         if (!$this->layout) {
@@ -70,5 +85,10 @@ class Input implements FieldInterface
     public function formatDataSave($value)
     {
         return $value;
+    }
+
+    public function getFrontEndType():string
+    {
+        return 'string';
     }
 }

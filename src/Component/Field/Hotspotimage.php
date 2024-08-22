@@ -4,7 +4,7 @@ namespace CorepulseBundle\Component\Field;
 
 use Starfruit\BuilderBundle\Tool\AssetTool;
 
-class Hotspotimage extends Image
+class Hotspotimage extends Geopoint
 {
     public function format($value)
     {
@@ -23,5 +23,10 @@ class Hotspotimage extends Image
         }
 
         return null;
+    }
+
+    public function getFrontEndType():string
+    {
+        return 'hotspotimage';
     }
 }

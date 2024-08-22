@@ -17,4 +17,9 @@ class Multiselect extends Select
 
         return null;
     }
+
+    public function getFrontEndType():string
+    {
+        return 'multiselect';
+    }
 }
