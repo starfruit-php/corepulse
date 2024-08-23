@@ -391,34 +391,51 @@ class ObjectController extends BaseController
                 ], 500);
             }
 
+            // dd($visibleFields);
+            $columns = array_merge(ClassServices::systemField($visibleFields), $visibleFields['fields']);
+            $fields = $columns;
+
             $folderName = $this->request->get('folderName');
             $parentId = $this->request->get('parentId') ? (int)$this->request->get('parentId') : 1;
+            $key = $this->request->get('key');
 
-            $parent = '';
+            $parentItem =  DataObject::getById($parentId);
+            $pathItem = $parentItem->getPath() . $key;
             
-            if ($folderName) {
-                $parent = DataObject::getByPath("/" . $folderName) ?? DataObject\Service::createFolderByPath("/" . $folderName);
+            $item =  DataObject::getByPath($pathItem, 1);
+            
+            if (!$item) {
+                $parent = '';
+    
+                if ($folderName) {
+                    $parent = DataObject::getByPath("/" . $folderName) ?? DataObject\Service::createFolderByPath("/" . $folderName);
+                }
+    
+                if (!$parent) {
+                    $parent = DataObject::getById($parentId);
+                }
+    
+                $func = '\\Pimcore\\Model\\DataObject\\' . ucfirst($className);
+    
+                $object = new $func();
+                $object->setKey($key);
+                // if ($type = $this->request->get('type', 'object')) {
+                //     $object->setType($type);
+                // }
+                $object->setParent($parent);
+                $object->save();
+
+                $data['data'] =  DataObjectServices::getData($object, $fields, true);
+    
+                return $this->sendResponse($data);
+                // return $this->sendResponse([
+                //     'success' => true,
+                //     'message' => 'Create object succes.'
+                // ]);
             }
 
-            if (!$parent) {
-                $parent = DataObject::getById($parentId);
-            }
+            return $this->sendError($className . 'with' . $key . "already exists");
 
-            $func = '\\Pimcore\\Model\\DataObject\\' . ucfirst($className);
-
-            $object = new $func();
-
-            $object->setKey($this->request->get('key'));
-            // if ($type = $this->request->get('type', 'object')) {
-            //     $object->setType($type);
-            // }
-            $object->setParent($parent);
-            $object->save();
-
-            return $this->sendResponse([
-                'success' => true,
-                'message' => 'Create object succes.'
-            ]);
         } catch (\Exception $e) {
             return $this->sendError($e->getMessage(), 500);
         }
