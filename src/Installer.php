@@ -106,6 +106,16 @@ class Installer extends SettingsStoreAwareInstaller
             `updateAt` timestamp DEFAULT current_timestamp() ON UPDATE current_timestamp(),
             PRIMARY KEY (`id`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;',
+        'corepulse_translations' => 'CREATE TABLE `corepulse_translations` (
+            `id` int(11) NOT NULL AUTO_INCREMENT,
+            `key` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+            `type` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+            `language` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+            `text` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+            `creationDate` timestamp DEFAULT current_timestamp(),
+            `modifictionDate` timestamp DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+            PRIMARY KEY (`id`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;',
     ];
 
 

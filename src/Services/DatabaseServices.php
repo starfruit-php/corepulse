@@ -11,6 +11,7 @@ class DatabaseServices
     const COREPULSE_PLAUSIBLE_TABLE = 'corepulse_plausible';
     const COREPULSE_ORDER_TIMELINE_TABLE = 'corepulse_order_timeline';
     const COREPULSE_CLASS_TABLE = 'corepulse_class';
+    const COREPULSE_TRANSLATION_TABLE = 'corepulse_translations';
 
     public static function createTables()
     {
@@ -18,6 +19,7 @@ class DatabaseServices
         self::createCorepulseNotification();
         self::createCorepulseOrderTimeline();
         self::createCorepulseClass();
+        self::createCorepulseTranslation();
     }
 
     public static function updateTables()
@@ -129,6 +131,23 @@ class DatabaseServices
             `id` int(11) NOT NULL AUTO_INCREMENT,
             `className` varchar(255) NOT NULL,
             `visibleFields` LONGTEXT  DEFAULT NULL,
+            PRIMARY KEY (`id`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        COMMIT;";
+
+        Db::get()->executeQuery($query);
+    }
+
+    public static function createCorepulseTranslation()
+    {
+        $query = " CREATE TABLE IF NOT EXISTS " . self::COREPULSE_TRANSLATION_TABLE . " (
+            `id` int(11) NOT NULL AUTO_INCREMENT,
+            `key` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+            `type` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+            `language` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+            `text` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+            `creationDate` timestamp DEFAULT current_timestamp(),
+            `modifictionDate` timestamp DEFAULT current_timestamp() ON UPDATE current_timestamp(),
             PRIMARY KEY (`id`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
         COMMIT;";

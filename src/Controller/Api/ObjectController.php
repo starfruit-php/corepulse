@@ -394,6 +394,8 @@ class ObjectController extends BaseController
             $folderName = $this->request->get('folderName');
             $parentId = $this->request->get('parentId') ? (int)$this->request->get('parentId') : 1;
 
+            $parent = '';
+            
             if ($folderName) {
                 $parent = DataObject::getByPath("/" . $folderName) ?? DataObject\Service::createFolderByPath("/" . $folderName);
             }

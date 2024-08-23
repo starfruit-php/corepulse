@@ -122,7 +122,7 @@ class AssetController extends BaseController
             $item = Asset::getById($id);
             if ($item) {
                 if ($item->getType() != 'folder') {
-                    $data['data'] = self::detailResponse($request, $item);
+                    $data['data'] = self::detailResponse($item);
                     return $this->sendResponse($data);
                 }
                 return $this->sendError('Type asset invalid');
@@ -407,6 +407,79 @@ class AssetController extends BaseController
         }
     }
 
+
+     /**
+     * @Route("/get-meta-data", name="api_asset_get_meta_data", methods={"GET"}, options={"expose"=true})
+     *
+     * {mô tả api}
+     *
+     * @param Cache $cache
+     *
+     * @return JsonResponse
+     *
+     * @throws \Exception
+     */
+    public function getMetaData(
+        Request $request): JsonResponse
+    {
+        try {
+            $condition = [
+                'id' => 'required',
+                'lang' => 'required',
+            ];
+
+            $errorMessages = $this->validator->validate($condition, $request);
+            if ($errorMessages) return $this->sendError($errorMessages);
+
+            $id = $request->get('id');
+            $language = $request->get('lang');
+
+            $item = Asset::getById((int)$id);
+            if ($item) {
+                $alt = '';
+                $caption = '';
+                $description = '';
+                $videoMov = '';
+                $videoWebm = '';
+
+                $metaData = $item->getMetaData();
+                foreach ($metaData as $item) {
+                    if (($item['name'] == 'alt') && ($item['language'] == $language)) {
+                        $alt = $item['data'];
+                    }
+                    if (($item['name'] == 'caption') && ($item['language'] == $language)) {
+                        $caption = $item['data'];
+                    }
+                    if (($item['name'] == 'description') && ($item['language'] == $language)) {
+                        $description = $item['data'];
+                    }
+                    if (($item['name'] == 'mov') && ($item['language'] == $language)) {
+                        $videoMov = $item['data']->getPath() . $item['data']->getFileName();
+                    }
+                    if (($item['name'] == 'webm') && ($item['language'] == $language)) {
+                        $videoWebm = $item['data']->getPath() . $item['data']->getFileName();
+                    }
+                }
+                $data['data'] = [
+                    'language' => $language,
+                    'attribute' => [
+                        'alt' => $alt,
+                        'caption' => $caption,
+                        'description' => $description,
+                        'videoMov' => $videoMov,
+                        'videoWebm' => $videoWebm,
+                    ],
+                ];
+
+                return $this->sendResponse($data);
+            }
+            return $this->sendError('Media not found');
+
+        } catch (\Exception $e) {
+            return $this->sendError($e->getMessage(), 500);
+        }
+    }
+
     // Trả ra dữ liệu
     public function listingResponse($item)
     {
@@ -437,7 +510,7 @@ class AssetController extends BaseController
         return $json;
     }
 
-    public function detailResponse($request, $item) 
+    public function detailResponse($item) 
     {
         $languages = \Pimcore\Tool::getValidLanguages();
         $domain = $_SERVER['HTTP_HOST'];
@@ -458,9 +531,7 @@ class AssetController extends BaseController
         }
 
         $language = $languages[0];
-        if ($request->get('_locale')) {
-            $language = $request->get('_locale');
-        }
+
         $alt = '';
         $caption = '';
         $description = '';
@@ -505,9 +576,9 @@ class AssetController extends BaseController
                 'alt' => $alt,
                 'caption' => $caption,
                 'description' => $description,
+                'videoMov' => $videoMov,
+                'videoWebm' => $videoWebm,
             ],
-            'videoMov' => $videoMov,
-            'videoWebm' => $videoWebm,
             
             'parentId' => $item->getParentId(),            
         ];
