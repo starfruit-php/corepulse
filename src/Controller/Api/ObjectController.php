@@ -402,7 +402,7 @@ class ObjectController extends BaseController
             $parentItem =  DataObject::getById($parentId);
             $pathItem = $parentItem->getPath() . $key;
             
-            $item =  DataObject::getByPath($pathItem, 1);
+            $item =  DataObject::getByPath($pathItem);
             
             if (!$item) {
                 $parent = '';
@@ -434,7 +434,7 @@ class ObjectController extends BaseController
                 // ]);
             }
 
-            return $this->sendError($className . 'with' . $key . "already exists");
+            return $this->sendError($className . ' with ' . $key . " already exists");
 
         } catch (\Exception $e) {
             return $this->sendError($e->getMessage(), 500);
