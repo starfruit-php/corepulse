@@ -106,6 +106,21 @@ class ImportController extends BaseController
             return new JsonResponse(['status' => 200, 'message' => 'You have successfully imported SCENE FIRST data']);
         }
 
+        if ($type == "img_hotel") {
+            foreach ($result as $item) {
+                $hotelItem = Hotel::getByIdVtTour($item['id_prop'], 1);
+
+                if ($hotelItem) {
+                    $img = Asset::getById((int)$item['id_img']);
+                    if ($img) {
+                        $hotelItem->setImage($img);
+                        $hotelItem->save();
+                    }
+                }    
+            }
+            return new JsonResponse(['status' => 200, 'message' => 'You have successfully imported IMAGE HOTEL data']);
+        }
+
 
         if ($type == "tour") {
             foreach ($result as $item) {
