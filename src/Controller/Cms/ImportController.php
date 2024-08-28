@@ -56,6 +56,8 @@ class ImportController extends BaseController
             foreach ($result as $item) {
                 $point = new \Pimcore\Model\DataObject\Data\GeoCoordinates((float)$item['latitude'], (float)$item['longtitude']);
 
+                $country = Country::getById((int)$item['country']);
+
                 $fullPath = '/Hotel/' .  $item['name'];
                 $hotel = Hotel::getByPath($fullPath);
                 if (!$hotel) {
@@ -70,6 +72,9 @@ class ImportController extends BaseController
                 $hotel->setLocation($item['address']);
                 $hotel->setDescription($item['description']);
                 $hotel->setMap($point);
+                if ($country) {
+                    $hotel->setCountry($country);
+                }
 
                 $hotel->setPublished(true);
 
