@@ -3,11 +3,13 @@ pimcore.registerNS("pimcore.plugin.CorepulseBundle");
 pimcore.plugin.CorepulseBundle = Class.create({
 
     initialize: function () {
-        document.addEventListener(pimcore.events.pimcoreReady, this.pimcoreReady.bind(this));
-
         this.isAdmin = pimcore.currentuser.admin;
         this.pimcorePermissions = pimcore.currentuser.permissions;
         this.activePerspective = pimcore.currentuser.activePerspective;
+        
+        if (this.isAdmin) {
+            document.addEventListener(pimcore.events.pimcoreReady, this.pimcoreReady.bind(this));
+        }
     },
 
     pimcoreReady: function (e) {

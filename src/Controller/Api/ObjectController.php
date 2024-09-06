@@ -288,6 +288,39 @@ class ObjectController extends BaseController
     }
 
     /**
+     * @Route("/options", name="api_object_option", methods={"GET", "POST"})
+     */
+    public function options()
+    {
+        try {
+            $condition = [
+                'id' => 'required',
+                'class' => 'required',
+            ];
+            $messageError = $this->validator->validate($condition, $this->request);
+            if($messageError) return $this->sendError($messageError);
+
+            $class = $this->request->get('class');
+            $classDefinition = DataObject\ClassDefinition::getById($class);
+
+            if (!$classDefinition) return $this->sendError('Class not found', 500);
+
+            $fieldDefinitions = $classDefinition->getfieldDefinitions();
+            if (!isset($fieldDefinitions[$this->request->get('id')])) return $this->sendError('Field not found', 500);
+
+            $fieldDefinition = $fieldDefinitions[$this->request->get('id')];
+
+            if (!in_array($fieldDefinition->getFieldType(), ClassServices::TYPE_OPTION))  return $this->sendError('Field not select option', 500);
+
+            $data = ClassServices::getOptions($fieldDefinition);
+
+            return $this->sendResponse($data);
+        } catch (\Exception $e) {
+            return $this->sendError($e->getMessage(), 500);
+        }
+    }
+
+    /**
      * @Route("/delete", name="api_object_delete", methods={"POST"})
      *
      * {mô tả api}
@@ -401,22 +434,22 @@ class ObjectController extends BaseController
 
             $parentItem =  DataObject::getById($parentId);
             $pathItem = $parentItem->getPath() . $key;
-            
+
             $item =  DataObject::getByPath($pathItem);
-            
+
             if (!$item) {
                 $parent = '';
-    
+
                 if ($folderName) {
                     $parent = DataObject::getByPath("/" . $folderName) ?? DataObject\Service::createFolderByPath("/" . $folderName);
                 }
-    
+
                 if (!$parent) {
                     $parent = DataObject::getById($parentId);
                 }
-    
+
                 $func = '\\Pimcore\\Model\\DataObject\\' . ucfirst($className);
-    
+
                 $object = new $func();
                 $object->setKey($key);
                 // if ($type = $this->request->get('type', 'object')) {
@@ -425,8 +458,8 @@ class ObjectController extends BaseController
                 $object->setParent($parent);
                 $object->save();
 
-                $data['data'] =  DataObjectServices::getData($object, $fields, true);
-    
+                $data['data'] =  DataObjectServices::getData($object, $fields);
+
                 return $this->sendResponse($data);
                 // return $this->sendResponse([
                 //     'success' => true,

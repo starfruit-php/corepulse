@@ -16,6 +16,10 @@ use Pimcore\Model\DataObject\ClassDefinition;
 
 class ClassServices
 {
+    const KEY_DOCUMENT = 'Document';
+    const KEY_OBJECT = 'DataObject';
+    const KEY_ASSET = 'Asset';
+
     const BACKLIST_TYPE = [
         "fieldcollections", "block", "advancedManyToManyRelation", "advancedManyToManyObjectRelation", "password"
     ];
@@ -37,6 +41,17 @@ class ClassServices
         "manyToManyRelation" => 'multiselect',
         "advancedManyToManyRelation" => 'multiselect',
         "advancedManyToManyObjectRelation" => 'multiselect',
+    ];
+
+    CONST TYPE_OPTION = [
+        "multiselect",
+        "select",
+        "gender",
+        "manyToOneRelation",
+        "manyToManyObjectRelation",
+        "manyToManyRelation",
+        "advancedManyToManyRelation",
+        "advancedManyToManyObjectRelation",
     ];
 
     CONST SYSTEM_FIELD = ['id' => 'number', 'key' => 'string', 'path' => 'string', 'published' => 'boolean', 'modificationDate' => 'date', 'creationDate' => 'date' ];
@@ -214,6 +229,19 @@ class ClassServices
         $data = [];
         foreach ($tableView as $view) {
             $data[$view] = $fields[$view];
+        }
+
+        return $data;
+    }
+
+    // save object detail
+    static public function getOptions($fieldDefinition)
+    {
+        $data = [];
+        $getClass = '\\CorepulseBundle\\Component\\Field\\' . ucfirst($fieldDefinition->getFieldtype());
+        if (class_exists($getClass)) {
+            $component = new $getClass(null, $fieldDefinition);
+            $data = $component->getOption();
         }
 
         return $data;

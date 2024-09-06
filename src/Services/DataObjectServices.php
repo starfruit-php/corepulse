@@ -41,6 +41,14 @@ class DataObjectServices
 
         $data = self::getData($object, $fields);
 
+        $languages = \Pimcore\Tool::getValidLanguages();
+        foreach ($languages as $language) {
+            $data['languages'][] = [
+                'key' => \Locale::getDisplayLanguage($language),
+                'value' => $language
+            ];
+        }
+
         return $data;
     }
 
