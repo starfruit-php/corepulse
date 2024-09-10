@@ -126,6 +126,20 @@ class ImportController extends BaseController
             return new JsonResponse(['status' => 200, 'message' => 'You have successfully imported IMAGE HOTEL data']);
         }
 
+        if ($type == "country") {
+            foreach ($result as $item) {
+                $country = Country::getById((int)$item['country']);
+
+                $fullPath = '/Hotel/' .  $item['name'];
+                $hotel = Hotel::getByPath($fullPath);
+                if ($hotel) {
+                    $hotel->setCountry($country);
+                    $hotel->save();
+                }
+            }
+            return new JsonResponse(['status' => 200, 'message' => 'You have successfully imported BOOKING data']);
+        }
+
 
         if ($type == "tour") {
             foreach ($result as $item) {
@@ -199,9 +213,15 @@ class ImportController extends BaseController
             }
             if ($type == "scene_view") {
                 foreach ($result as $item) {
-                    $idScene = $item['scene_id'];
+                    $idScene = $item['sceneId'];
                     $scene = Scene::getBySceneId($idScene, 1);
                     if ($scene) {
+                        $scene->setName($item['name']);
+                        $scene->setTitle($item['title']);
+                        $scene->setUrl($item['url']);
+                        $scene->setMenuPath($item['menuPath']);
+                        $scene->setMultires($item['multires']);
+
                         $scene->setHlookat($item['hlookat']);
                         $scene->setVlookat($item['vlookat']);
                         $scene->setFovtype($item['fovtype']);
