@@ -216,11 +216,11 @@ class ImportController extends BaseController
                     $idScene = $item['sceneId'];
                     $scene = Scene::getBySceneId($idScene, 1);
                     if ($scene) {
-                        $scene->setName($item['name']);
-                        $scene->setTitle($item['title']);
-                        $scene->setUrl($item['url']);
-                        $scene->setMenuPath($item['menuPath']);
-                        $scene->setMultires($item['multires']);
+                        // $scene->setName($item['name']);
+                        // $scene->setTitle($item['title']);
+                        // $scene->setUrl($item['url']);
+                        // $scene->setMenuPath($item['menuPath']);
+                        // $scene->setMultires($item['multires']);
 
                         $scene->setHlookat($item['hlookat']);
                         $scene->setVlookat($item['vlookat']);
