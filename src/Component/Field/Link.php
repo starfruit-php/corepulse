@@ -9,7 +9,10 @@ class Link extends Input
     public function format($value)
     {
         if ($value) {
-            return $value->getObjectVars();
+            $data = $value->getObjectVars();
+            $data['path'] = $value->getPath();
+            
+            return $data;
         }
 
         return null;
