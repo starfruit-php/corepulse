@@ -2,16 +2,9 @@
 
 namespace CorepulseBundle\Controller\Api;
 
-use Pimcore\Translation\Translator;
-use Symfony\Component\HttpFoundation\RequestStack;
-use Symfony\Component\Validator\Validator\ValidatorInterface;
-use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
 use Knp\Component\Pager\PaginatorInterface;
-use CorepulseBundle\Services\AssetServices;
-use Pimcore\Model\Asset;
-use DateTime;
 use Pimcore\Model\DataObject\OnlineShopOrder;
 use Pimcore\Model\DataObject;
 
@@ -24,80 +17,135 @@ class EcommerceController extends BaseController
     const PERPAGE_DEFAULT = 10;
 
     /**
-     * @Route("/summary", name="summary", methods={"GET"})
+     * @Route("/summary", name="api_ecommerce_summary", methods={"GET"})
      */
-    public function summary(Request $request, PaginatorInterface $paginator)
+    public function summary()
     {
-        // $user = $request->get('id');
-        $user = 118;
-        $totalPrice = 0;
+        try {
+            $conditions = $this->getPaginationConditions($this->request, []);
+            list($page, $limit, $condition) = $conditions;
 
-        $order = new OnlineShopOrder\Listing();
-        $order->addConditionParam('customer__id', $user);
+            $condition = array_merge($condition, [
+                'customer' => 'required',
+            ]);
 
-        $totalOrder = $order->count();
+            $messageError = $this->validator->validate($condition, $this->request);
+            if($messageError) return $this->sendError($messageError);
 
-        foreach ($order as $items) {
-            $totalPrice += $items->getTotalPrice();
+            $customerId = $this->request->get('customer');
+            $customer = DataObject\Customer::getById($customerId);
+
+            if (!$customer) return $this->sendError([ 'success' => false, 'message' => 'Customer not found.' ]);
+            $filterRule = $this->request->get('filterRule');
+            $filter = $this->request->get('filter');
+
+            $conditionQuery = 'customer__id = ?';
+            $conditionParams = [$customer->getId()];
+
+            if ($filterRule && $filter) {
+                $arrQuery = $this->getQueryCondition($filterRule, $filter);
+
+                if ($arrQuery['query']) {
+                    $conditionQuery .= ' AND (' . $arrQuery['query'] . ')';
+                    $conditionParams = array_merge($conditionParams, $arrQuery['params']);
+                }
+            }
+
+            $orderKey = $this->request->get('order_by');
+            $order = $this->request->get('order');
+            if (empty($order_by)) $orderKey = 'key';
+            if (empty($order)) $order = 'asc';
+
+            if ($limit == -1) {
+                $limit = 10000;
+            }
+
+            $listing = new OnlineShopOrder\Listing();
+            $listing->setCondition($conditionQuery, $conditionParams);
+            $listing->setOrderKey($orderKey);
+            $listing->setOrder($order);
+            $listing->setUnpublished(true);
+
+            $totalPrice = 0;
+            foreach ($listing as $item) {
+                $totalPrice += $item->getTotalPrice();
+            }
+
+            // Bổ sung dữ liệu ở đây
+            $data = [];
+            $data['totalPrice'] = number_format($totalPrice, 0, ".", ".");
+            $data['totalOrder'] = $listing->count();
+            $data['email'] = $customer->getEmail();
+            $data['phone'] = $customer->getPhone();
+            $data['fullName'] = $customer->getFullName();
+            $data['company'] = property_exists($customer, 'company') ? $customer->getCompany() : '';
+            $data['address'] = property_exists($customer, 'address') ? $customer->getAddress() : '';
+
+            return $this->sendResponse($data);
+        } catch (\Exception $e) {
+            return $this->sendError($e->getMessage(), 500);
         }
-
-        $user = DataObject::getById($user);
-
-        // Bổ sung dữ liệu ở đây
-        $data = [];
-        $data['totalPrice'] = number_format($totalPrice, 0, ".", ".");
-        $data['totalOrder'] = $totalOrder;
-        $data['email'] = $user->getEmail();
-        $data['phone'] = $user->getPhone();
-        $data['fullName'] = $user->getFullName();
-        $data['company'] = property_exists($user, 'company') ? $user->getCompany() : '';
-        $data['address'] = property_exists($user, 'address') ? $user->getAddress() : '';
-
-        return $this->sendResponse($data);
     }
 
     /**
-     * @Route("/order/listing", name="order_listing", methods={"GET"})
+     * @Route("/order/listing", name="api_ecommerce_order_listing", methods={"GET"})
      */
     public function order(Request $request, PaginatorInterface $paginator)
     {
-        // $user = $request->get('user');
-        $user = 118;
-        $totalPrice = 0;
-
-        $data = [];
-        $response = [];
         try {
+            $conditions = $this->getPaginationConditions($this->request, []);
+            list($page, $limit, $condition) = $conditions;
 
-            $order_by = $request->get('order_by');
-            $order = $request->get('order');
+            $condition = array_merge($condition, [
+                'customer' => 'numeric',
+            ]);
 
-            $messageError = $this->validator->validate([
-                'customer' => 'required',
-                'page' => $this->request->get('page') ? 'numeric|positive' : '',
-                'limit' => $this->request->get('limit') ? 'numeric|positive' : '',
-                'order_by' => $order_by ? 'choice:title' : '',
-                'order' => $order ? 'choice:desc,asc' : ''
-            ], $request);
+            $messageError = $this->validator->validate($condition, $this->request);
+            if($messageError) return $this->sendError($messageError);
 
-            if ($messageError) return $this->sendError($messageError);
+            $conditionQuery = '';
+            $conditionParams = [];
 
+            $customerId = $this->request->get('customer');
+            if ($customerId) {
+                $customer = DataObject\Customer::getById($customerId);
+                if (!$customer) return $this->sendError([ 'success' => false, 'message' => 'Customer not found.' ]);
+                $conditionQuery = 'customer__id = ?';
+                $conditionParams = [$customer->getId()];
+            }
 
+            $filterRule = $this->request->get('filterRule');
+            $filter = $this->request->get('filter');
 
-            if (empty($order_by)) $order_by = 'ordernumber';
-            if (empty($order)) $order = 'desc';
-            $listing = new OnlineShopOrder\Listing;
-            $listing->addConditionParam('customer__id', $user);
-            if (!empty($request->get('search'))) $listing->addConditionParam("ordernumber LIKE '%" . $request->get('search') . "%'");
-            $listing->setOrderKey($order_by);
+            if ($filterRule && $filter) {
+                $arrQuery = $this->getQueryCondition($filterRule, $filter);
+
+                if ($arrQuery['query']) {
+                    $conditionQuery .= ' AND (' . $arrQuery['query'] . ')';
+                    $conditionParams = array_merge($conditionParams, $arrQuery['params']);
+                }
+            }
+
+            $orderKey = $this->request->get('order_by');
+            $order = $this->request->get('order');
+            if (empty($order_by)) $orderKey = 'key';
+            if (empty($order)) $order = 'asc';
+
+            if ($limit == -1) {
+                $limit = 10000;
+            }
+
+            $listing = new OnlineShopOrder\Listing();
+            $listing->setCondition($conditionQuery, $conditionParams);
+            $listing->setOrderKey($orderKey);
             $listing->setOrder($order);
+            $listing->setUnpublished(true);
 
+            $pagination = $this->paginator($listing, $page, $limit);
 
-            $pagination = $paginator->paginate(
-                $listing,
-                $request->get('page', 1),
-                $request->get('limit', 10),
-            );
+            $data = [
+                'paginationData' => $pagination->getPaginationData(),
+            ];
 
             foreach ($listing as $item) {
                 $child = [];
@@ -107,68 +155,36 @@ class EcommerceController extends BaseController
                         'product' => $value->getProduct() ? $value->getProduct()->getProductName() : '',
                         'amount' => $value->getAmount(),
                         'totalPrice' => $value->getTotalPrice(),
-
                     ];
                 }
 
-                $dataJson = [
+                $data['data'][] = [
                     'id' => $item->getId(),
                     'ordernumber' => $item->getOrdernumber(),
                     'orderdate' => $item->getOrderdate(),
                     'totalPrice' => $item->getTotalPrice(),
                     'totalNetPrice' => $item->getTotalNetPrice(),
-                    'customer' => $item->getCustomer()->getId(),
+                    'customer' => $item->getCustomer()?->getId(),
                     'subTotalNetPrice' => $item->getSubTotalNetPrice(),
-                    'item' => $child
+                    'items' => $child
                 ];
-
-                array_push($data, $dataJson);
             }
 
-            $response['data'] = $data;
-            $response['paginator'] = $pagination->getPaginationData();
-        } catch (\Throwable $e) {
-
+            return $this->sendResponse($data);
+        } catch (\Exception $e) {
             return $this->sendError($e->getMessage(), 500);
         }
-
-        return $this->sendResponse($response);
     }
 
-
     /**
-     * @Route("/order/update", name="order_update", methods={"POST"})
+     * @Route("/order/detail", name="api_ecommerce_order_detail", methods={"GET", "POST"})
      */
-    public function update(Request $request, PaginatorInterface $paginator)
+    public function detail()
     {
-
-        $messageError = $this->validator->validate([
-            'id' => 'required',
-        ], $request);
-        if ($messageError) return $this->sendError($messageError);
-        dd(2);
-        $params = [
-            'username' => $request->get('username'),
-            'phone' => $request->get('phone'),
-            'city' => $request->get('city'),
-            'district' => $request->get('district'),
-            'precinct' => $request->get('precinct'),
-            'address' => $request->get('address'),
-            'referralCode' => $request->get('referralCode'),
-            'typeCooperation' => $request->get('typeCooperation'),
-            'identification' => $request->get('identification'),
-            'cityView' => trim($request->get('cityView')),
-            'districtView' => trim($request->get('districtView')),
-            'precinctView' => trim($request->get('precinctView')),
-        ];
-
-        // $edit = AffiliateService::edit($this->getUser(), $params);
-
-        $data = [
-            'success' => true,
-            'message' => $this->translator->trans('Đã cập nhật thành công chờ duyệt!'),
-        ];
-
-        return $this->sendResponse($data);
+        try {
+            
+        } catch (\Exception $e) {
+            return $this->sendError($e->getMessage(), 500);
+        }
     }
 }

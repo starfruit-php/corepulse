@@ -144,8 +144,6 @@ class ObjectController extends BaseController
             $columns = array_merge(ClassServices::systemField($visibleFields), $visibleFields['fields']);
             $fields = $this->request->get('columns') ? ClassServices::filterFill($columns, $this->request->get('columns')) : $columns;
 
-            $listing = call_user_func_array('\\Pimcore\\Model\\DataObject\\' . $className . '::getList', [["unpublished" => true]]);
-
             $locale = $this->request->get('locale', \Pimcore\Tool::getDefaultLanguage());
 
             $conditionQuery = 'id is not NULL';
@@ -163,13 +161,21 @@ class ObjectController extends BaseController
                 }
             }
 
-            $listing->setCondition($conditionQuery, $conditionParams);
-            $listing->setLocale($locale);
-            $listing->setUnpublished(true);
+            $orderKey = $this->request->get('order_by');
+            $order = $this->request->get('order');
+            if (empty($order_by)) $orderKey = 'key';
+            if (empty($order)) $order = 'asc';
 
             if ($limit == -1) {
                 $limit = 10000;
             }
+
+            $listing = call_user_func_array('\\Pimcore\\Model\\DataObject\\' . $className . '::getList', [["unpublished" => true]]);
+            $listing->setCondition($conditionQuery, $conditionParams);
+            $listing->setLocale($locale);
+            $listing->setUnpublished(true);
+            $listing->setOrderKey($orderKey);
+            $listing->setOrder($order);
 
             $pagination = $this->paginator($listing, $page, $limit);
 
@@ -182,7 +188,6 @@ class ObjectController extends BaseController
             }
 
             return $this->sendResponse($data);
-
         } catch (\Exception $e) {
             return $this->sendError($e->getMessage(), 500);
         }

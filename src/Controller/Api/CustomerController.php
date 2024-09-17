@@ -9,63 +9,72 @@ use Symfony\Component\Routing\Annotation\Route;
 use Pimcore\Model\DataObject\Customer;
 use Knp\Component\Pager\PaginatorInterface;
 
+/**
+ * @Route("/customer")
+ */
 class CustomerController extends BaseController
 {
     /**
-     * @Route("/customer/listing", name="customer_listing", options={"expose"=true}))
+     * @Route("/listing", name="api_customer_listing")
      */
-    public function listing(Request $request, PaginatorInterface $paginator)
+    public function listing()
     {
-        $data = [];
-        $response = [];
         try {
+            $conditions = $this->getPaginationConditions($this->request, []);
+            list($page, $limit, $condition) = $conditions;
 
-            $order_by = $request->get('order_by');
-            $order = $request->get('order');
+            $messageError = $this->validator->validate($condition, $this->request);
+            if($messageError) return $this->sendError($messageError);
 
-            $messageError = $this->validator->validate([
-                'page' => $this->request->get('page') ? 'numeric|positive' : '',
-                'limit' => $this->request->get('limit') ? 'numeric|positive' : '',
-                'order_by' => $order_by ? 'choice:title' : '',
-                'order' => $order ? 'choice:desc,asc' : ''
-            ], $request);
+            $filterRule = $this->request->get('filterRule');
+            $filter = $this->request->get('filter');
 
-            if ($messageError) return $this->sendError($messageError);
+            $conditionQuery = '';
+            $conditionParams = [];
 
-            if (empty($order_by)) $order_by = 'username';
-            if (empty($order)) $order = 'desc';
-            $listing = new Customer\Listing;
+            if ($filterRule && $filter) {
+                $arrQuery = $this->getQueryCondition($filterRule, $filter);
 
-            if (!empty($request->get('search'))) $listing->addConditionParam("username LIKE '%" . $request->get('search') . "%'");
-            $listing->setOrderKey($order_by);
+                if ($arrQuery['query']) {
+                    $conditionQuery .= ' AND (' . $arrQuery['query'] . ')';
+                    $conditionParams = array_merge($conditionParams, $arrQuery['params']);
+                }
+            }
+
+            $orderKey = $this->request->get('order_by');
+            $order = $this->request->get('order');
+            if (empty($order_by)) $orderKey = 'key';
+            if (empty($order)) $order = 'asc';
+
+            if ($limit == -1) {
+                $limit = 10000;
+            }
+
+            $listing = new Customer\Listing();
+            $listing->setCondition($conditionQuery, $conditionParams);
+            $listing->setOrderKey($orderKey);
             $listing->setOrder($order);
+            $listing->setUnpublished(true);
 
+            $pagination = $this->paginator($listing, $page, $limit);
 
-            $pagination = $paginator->paginate(
-                $listing,
-                $request->get('page', 1),
-                $request->get('limit', 10),
-            );
+            $data = [
+                'paginationData' => $pagination->getPaginationData(),
+            ];
 
-            foreach ($listing as $item) {
-                $dataJson = [
+            foreach($pagination as $item) {
+                $data['data'][] =  [
                     'id' => $item->getId(),
                     'email' => $item->getEmail(),
                     'status' => $item->getPublished(),
                     'fullName' => $item->getFullName(),
                     'phone' => $item->getPhone(),
                 ];
-
-                array_push($data, $dataJson);
             }
 
-            $response['data'] = $data;
-            $response['paginator'] = $pagination->getPaginationData();
-        } catch (\Throwable $e) {
-
+            return $this->sendResponse($data);
+        } catch (\Exception $e) {
             return $this->sendError($e->getMessage(), 500);
         }
-
-        return $this->sendResponse($response);
     }
 }
