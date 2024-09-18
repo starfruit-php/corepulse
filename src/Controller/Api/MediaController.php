@@ -46,6 +46,7 @@ class MediaController extends BaseController
                 'id' => '',
                 'filterRule' => '',
                 'filter' => '',
+                'search' => '',
             ]);
 
             $messageError = $this->validator->validate($condition, $request);
@@ -54,8 +55,9 @@ class MediaController extends BaseController
             $order_by = $request->get('order_by') ? $request->get('order_by') : 'mimetype';
             $order = $request->get('order') ? $request->get('order') : 'ASC';
             $parentId = $request->get('id') ? $request->get('id') : '1';
+            $search = $request->get('search');
 
-            $conditionQuery = 'id != 1 AND parentId = :parentId';
+            $conditionQuery = 'id != 1 AND type != "folder" AND parentId = :parentId';
             $conditionParams['parentId'] = $parentId;
 
             $filterRule = $request->get('filterRule');
@@ -68,6 +70,10 @@ class MediaController extends BaseController
                     $conditionQuery .= ' AND (' . $arrQuery['query'] . ')';
                     $conditionParams = array_merge($conditionParams, $arrQuery['params']);
                 }
+            }
+
+            if ($search) {
+                $conditionQuery .= ' AND ' . "LOWER(`filename`)" . " LIKE LOWER('%" . $search . "%')";
             }
 
             $listingAsset = new \Pimcore\Model\Asset\Listing();
