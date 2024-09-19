@@ -199,94 +199,29 @@ class ObjectController extends BaseController
     public function detail()
     {
         try {
-            $condition = [
-                'id' => 'required',
-            ];
+            // Validate request
+            $condition = [ 'id' => 'required' ];
             $messageError = $this->validator->validate($condition, $this->request);
             if($messageError) return $this->sendError($messageError);
 
+            // Retrieve object from database
             $id = $this->request->get('id');
             $objectFromDatabase = DataObject\Concrete::getById($id);
-
             if (!$objectFromDatabase) return $this->sendError('Object not found', 500);
 
+            // Validate class
             $classId = $objectFromDatabase->getClassId();
-            $checkClass = ClassServices::isValid($classId);
-            $classConfig = ClassServices::getConfig($classId);
-            $visibleFields = json_decode($classConfig['visibleFields'], true);
-
-            $className = $visibleFields['class'];
-            if (!$checkClass || !$className || !class_exists('\\Pimcore\\Model\\DataObject\\' . ucfirst($className))) {
-                return $this->sendError([
-                    'success' => false,
-                    'message' => 'Class not found.'
-                ], 500);
+            if (!$this->isClassValid($classId)) {
+                return $this->sendError(['success' => false, 'message' => 'Class not found.'], 500);
             }
 
-            if ($this->request->getMethod() == Request::METHOD_POST) {
-
-                $contents = $this->request->getContent();
-                $contents = json_decode($contents,true);
-
-                if ($contents && isset($contents['update'])) {
-                    $object = $objectFromDatabase;
-                    $updateData = $contents['update'];
-
-                    try {
-                        $result = DataObjectServices::saveEdit($object, $updateData);
-
-                        $message = [
-                            'success' => true,
-                            'message' => 'Object update success.'
-                        ];
-
-                        return $this->sendResponse($message);
-                    } catch (\Throwable $th) {
-                        return $this->sendError([
-                            'success' => false,
-                            'message' => $th->getMessage(),
-                        ], 500);
-                    }
-                }
-
-                return $this->sendError([
-                    'success' => false,
-                    'message' => 'Object update false.',
-                ], 500);
-            }
-            $objectFromDatabase = clone $objectFromDatabase;
-
-            // set the latest available version for editmode
-            $draftVersion = null;
-            $object = $this->getLatestVersion($objectFromDatabase, $draftVersion);
-
-            $objectFromVersion = $object !== $objectFromDatabase;
-
-            $objectData = [];
-
-            if ($draftVersion && $objectFromDatabase->getModificationDate() < $draftVersion->getDate()) {
-                $objectData['draft'] = [
-                    'id' => $draftVersion->getId(),
-                    'modificationDate' => $draftVersion->getDate(),
-                    'isAutoSave' => $draftVersion->isAutoSave(),
-                ];
+            // Handle POST request for updates
+            if ($this->request->isMethod(Request::METHOD_POST)) {
+                return $this->handlePostUpdate($objectFromDatabase);
             }
 
-            try {
-                $this->getDataForObject($object, $objectFromVersion);
-            } catch (\Throwable $e) {
-                $object = $objectFromDatabase;
-                $this->getDataForObject($object, false);
-            }
-
-            // $objectData['data'] = $this->objectData;
-            $objectData['metaData'] = $this->metaData;
-            $layout = DataObject\Service::getSuperLayoutDefinition($object);
-            $objectData['layout'] = $this->getObjectVarsRecursive($object, $layout);
-            $objectData['layoutData'] = $this->objectLayoutData;
-            $objectData['sidebar'] = DataObjectServices::getSidebarData($object);
-
-            return $this->sendResponse($objectData);
+            // Prepare object data for response
+            return $this->prepareObjectDataResponse($objectFromDatabase);
         } catch (\Exception $e) {
             return $this->sendError($e->getMessage(), 500);
         }
@@ -298,10 +233,7 @@ class ObjectController extends BaseController
     public function options()
     {
         try {
-            $condition = [
-                'id' => 'required',
-                'class' => 'required',
-            ];
+            $condition = [ 'id' => 'required', 'class' => 'required'];
             $messageError = $this->validator->validate($condition, $this->request);
             if($messageError) return $this->sendError($messageError);
 
@@ -523,7 +455,69 @@ class ObjectController extends BaseController
         }
     }
 
-    protected function getObjectVarsRecursive($object, $layout)
+    private function isClassValid($classId)
+    {
+        $classConfig = ClassServices::getConfig($classId);
+        $visibleFields = json_decode($classConfig['visibleFields'], true);
+        return ClassServices::isValid($classId) && class_exists('\\Pimcore\\Model\\DataObject\\' . ucfirst($visibleFields['class']));
+    }
+
+    private function handlePostUpdate($objectFromDatabase)
+    {
+        $contents = json_decode($this->request->getContent(), true);
+        if (isset($contents['update'])) {
+            try {
+                DataObjectServices::saveEdit($objectFromDatabase, $contents['update']);
+                return $this->sendResponse(['success' => true, 'message' => 'Object update success.']);
+            } catch (\Throwable $th) {
+                return $this->sendError(['success' => false, 'message' => $th->getMessage()], 500);
+            }
+        }
+        return $this->sendError(['success' => false, 'message' => 'Object update false.'], 500);
+    }
+
+    private function prepareObjectDataResponse($objectFromDatabase)
+    {
+        $objectFromDatabase = clone $objectFromDatabase;
+        $draftVersion = null;
+        $object = $this->getLatestVersion($objectFromDatabase, $draftVersion);
+        $objectFromVersion = $object !== $objectFromDatabase;
+
+        $objectData = $this->getDraftData($objectFromDatabase, $draftVersion);
+        $this->populateObjectData($object, $objectFromVersion, $objectData);
+
+        return $this->sendResponse($objectData);
+    }
+
+    private function getDraftData($objectFromDatabase, $draftVersion)
+    {
+        $objectData = [];
+        if ($draftVersion && $objectFromDatabase->getModificationDate() < $draftVersion->getDate()) {
+            $objectData['draft'] = [
+                'id' => $draftVersion->getId(),
+                'modificationDate' => $draftVersion->getDate(),
+                'isAutoSave' => $draftVersion->isAutoSave(),
+            ];
+        }
+        return $objectData;
+    }
+
+    private function populateObjectData($object, $objectFromVersion, &$objectData)
+    {
+        try {
+            $this->getDataForObject($object, $objectFromVersion);
+        } catch (\Throwable $e) {
+            $this->getDataForObject(clone $object, false);
+        }
+
+        $objectData['metaData'] = $this->metaData;
+        $layout = DataObject\Service::getSuperLayoutDefinition($object);
+        $objectData['layout'] = $this->getObjectVarsRecursive($object, $layout, $object->getClassId());
+        $objectData['layoutData'] = $this->objectLayoutData;
+        $objectData['sidebar'] = DataObjectServices::getSidebarData($object);
+    }
+
+    protected function getObjectVarsRecursive($object, $layout, $classId, $localized = null)
     {
         $vars = get_object_vars($layout);
 
@@ -533,20 +527,31 @@ class ObjectController extends BaseController
             $data  = null;
             $getClass = '\\CorepulseBundle\\Component\\Field\\' . ucfirst($vars['fieldtype']);
             if (class_exists($getClass)) {
-                $component = new $getClass($object, $vars);
+                $component = new $getClass($object, $vars, null, $localized);
                 $data = $component->getValue();
                 $this->objectLayoutData[$vars['name']] = $data;
+                if(in_array($layout->getFieldType(), ClassServices::TYPE_OPTION)) {
+                    $vars['api_options'] = [
+                        'id' => $vars['name'],
+                        'class' => $classId
+                    ];
+                }
+
                 if ($vars['fieldtype'] == 'fieldcollections') {
                     $vars['layouts'] = $component->getDefinitions();
+                }
+
+                if ($vars['fieldtype'] == 'block') {
+                    $vars['children'] = $component->getDefinitions();
                 }
             }
         }
 
-        if (isset($vars['children']) && ( isset($vars['fieldtype']) && $vars['fieldtype'] != 'block' ) ) {
+        $localized = $vars['fieldtype'] == 'localizedfields' ? $this->request->getLocale() : null; 
+
+        if (isset($vars['children']) && (isset($vars['fieldtype']) && $vars['fieldtype'] != 'block') ) {
             foreach ($vars['children'] as $key => $value) {
-                if (is_object($value)) {
-                    $vars['children'][$key] = $this->getObjectVarsRecursive($object, $value);
-                }
+                $vars['children'][$key] = $this->getObjectVarsRecursive($object, $value, $classId, localized: $localized);
             }
         }
 

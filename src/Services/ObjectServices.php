@@ -269,7 +269,7 @@ class ObjectServices
             if (substr($fieldValue, 0, 4) == "http") {
                 $prefix = \Pimcore::getContainer()->getParameter('pimcore.config')['assets']['frontend_prefixes']['source'];
                 if ($prefix) {
-                    $fieldValue = substr($fieldValue, strlen($prefix)); 
+                    $fieldValue = substr($fieldValue, strlen($prefix));
                 }
             }
 

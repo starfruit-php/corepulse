@@ -8,20 +8,19 @@ use Pimcore\Model\DataObject\Data\BlockElement;
 class Input implements FieldInterface
 {
     const SYSTEM_CONVERT_DATE = ['creationDate', 'modificationDate'];
-
     protected $data;
-
     protected $layout;
-
     protected $value;
+    protected $localized;
 
-    public function __construct($data, $layout = null, $value = null)
+    public function __construct($data, $layout = null, $value = null, $localized = false)
     {
         if (is_array($layout)) $layout = (object)$layout;
 
         $this->layout = $layout;
         $this->data = $data;
         $this->value = $value;
+        $this->localized = $localized;
     }
 
     public function getName():string

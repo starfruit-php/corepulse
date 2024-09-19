@@ -59,15 +59,11 @@ class ClassServices
     // check class setting
     public static function isValid($classId)
     {
-        $objectSetting = Db::get()->fetchAssociative('SELECT * FROM `vuetify_settings` WHERE `type` = "object"', []);
-        if ($objectSetting !== null && $objectSetting) {
-            $data = json_decode($objectSetting['config']) ?? [];
-
-            if (!empty($data) && in_array($classId, $data)) {
-                return true;
-            }
+        $objectSetting = Db::get()->fetchAssociative('SELECT * FROM `vuetify_settings` WHERE `type` = "object"');
+        if ($objectSetting) {
+            $data = json_decode($objectSetting['config'], true) ?? [];
+            return in_array($classId, $data);
         }
-
         return false;
     }
 
@@ -100,37 +96,30 @@ class ClassServices
     }
 
     // get detail field
-    public static function getFieldProperty($fieldDefinition, $localized = false)
+    public static function getFieldProperty($fieldDefinition, $localized = false, $classId = null)
     {
         $fieldtype = $fieldDefinition->getFieldType();
 
-        $getClass = '\\CorepulseBundle\\Component\\Field\\' . ucfirst($fieldtype);
+        $data = get_object_vars($fieldDefinition);
 
+        $data = array_merge($data, [
+            'type' => $fieldtype,
+            'fieldtype' => $fieldtype,
+            'localized' => $localized,
+        ]);
+
+        $getClass = '\\CorepulseBundle\\Component\\Field\\' . ucfirst($fieldtype);
         if (class_exists($getClass)) {
             $revert = get_object_vars($fieldDefinition);
 
             $component = new $getClass(null, $revert);
-            $data = [
-                'name' => $component->getName(),
-                'title' => $component->getTitle(),
-                'invisible' => $component->getInvisible(),
-                'visibleSearch' => $component->getVisibleSearch(),
-                'visibleGridView' => $component->getVisibleGridView(),
-                'type' => $component->getFrontEndType(),
-                'fieldtype' => $fieldtype,
-                'localized' => $localized,
-            ];
-        } else {
-            // field chưa có component
-            $data = [
-                'name' => $fieldDefinition->getName(),
-                'title' => $fieldDefinition->getTitle(),
-                'invisible' => $fieldDefinition->getInvisible(),
-                'visibleSearch' => $fieldDefinition->getVisibleSearch(),
-                'visibleGridView' => $fieldDefinition->getVisibleGridView(),
-                'type' => $fieldtype,
-                'fieldtype' => $fieldtype,
-                'localized' => $localized,
+            $data['type'] = $component->getFrontEndType();
+        }
+
+        if($classId && in_array($fieldDefinition->getFieldType(), self::TYPE_OPTION)) {
+            $data['api_options'] = [
+                'id' => $data['name'],
+                'class' => $classId
             ];
         }
 
@@ -139,7 +128,13 @@ class ClassServices
         }
 
         if (method_exists($fieldDefinition, 'getChildren')) {
-            $data['children'] = $fieldDefinition->getChildren();
+            if ($fieldtype != 'block') {
+                foreach ($fieldDefinition->getChildren() as $k => $v) {
+                    if (is_object($v)) {
+                        $data['children'][$k] = ClassServices::getFieldProperty($v, $localized, $classId);
+                    }
+                }
+            }
         }
 
         return $data;
@@ -148,29 +143,12 @@ class ClassServices
     public static function updateTable($className, $visibleFields, $tableView = false)
     {
         $config = self::getConfig($className);
-
         if ($config) {
             $saveData = json_decode($config['visibleFields'], true);
-            if ($tableView) {
-                $saveData['tableView'] = $visibleFields;
-            } else if (!isset($visibleFields['tableView'])) {
-                $visibleFields['tableView'] = isset($saveData['tableView']) ? $saveData['tableView'] : [];
-                $saveData = $visibleFields;
-            }
-
-            Db::get()->update(
-                'corepulse_class',
-                [
-                    'visibleFields' => json_encode($saveData),
-                ],
-                [
-                    'className' => $className,
-                ]
-            );
-
+            $saveData['tableView'] = $tableView ? $visibleFields : ($visibleFields['tableView'] ?? $saveData['tableView'] ?? []);
+            Db::get()->update('corepulse_class', ['visibleFields' => json_encode($saveData)], ['className' => $className]);
             return true;
         }
-
         return false;
     }
 

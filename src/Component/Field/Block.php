@@ -5,6 +5,7 @@ namespace CorepulseBundle\Component\Field;
 use CorepulseBundle\Services\DataObjectServices;
 use CorepulseBundle\Services\Helper\ArrayHelper;
 use Pimcore\Model\DataObject\Data\BlockElement;
+use CorepulseBundle\Services\ClassServices;
 
 class Block extends Input
 {
@@ -19,7 +20,7 @@ class Block extends Input
                 $resultItem = [];
                 /**
                  * @var  string $key
-                 * @var  DataObject\Data\BlockElement $fieldValue
+                 * @var  BlockElement $fieldValue
                  */
                 foreach ($block as $key => $fieldValue) {
                     $fd = ArrayHelper::filterData($fieldDefinitions, 'name', $key);
@@ -71,6 +72,19 @@ class Block extends Input
         }
 
         return $datas;
+    }
+
+    public function getDefinitions()
+    {
+        $layouts = [];
+        $children = $this->layout->children;
+        if (!empty($children)) {
+            foreach ($children as $key => $value) {
+                $layouts[$key] = ClassServices::getFieldProperty($value, $this->localized, $this->data?->getClassId());
+            }
+        }
+        
+        return $layouts;
     }
 
     public function getFrontEndType():string

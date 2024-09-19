@@ -11,7 +11,7 @@ class Link extends Input
         if ($value) {
             $data = $value->getObjectVars();
             $data['path'] = $value->getPath();
-            
+
             return $data;
         }
 
@@ -22,10 +22,11 @@ class Link extends Input
     {
         $link = new DataLink();
 
-        foreach ($value as $k => $v) {
-            $func = 'set' . ucfirst($k);
-            if ($v) {
-                $link->{$func}($v);
+        $fields = ['path', 'text', 'title', 'target', 'parameters', 'anchorLink', 'accessKey', 'rel', 'tabIndex', 'class'];
+        foreach ($fields as $key) {
+            if (isset($value[$key])) {
+                $func = 'set' . ucfirst( $key);
+                $link->{$func}($value[$key]);
             }
         }
 
