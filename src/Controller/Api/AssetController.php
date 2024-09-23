@@ -183,58 +183,43 @@ class AssetController extends BaseController
     }
 
     /**
-     * @Route("/upload-file", name="api_asset_upload_file", methods={"GET"}, options={"expose"=true})
+     * @Route("/upload-file", name="api_asset_upload_file", methods={"POST"})
      *
      * {mô tả api}
      *
      * @param Cache $cache
      *
-     * @return JsonResponse
-     *
      * @throws \Exception
      */
-    public function uploadFile(
-        Request $request): JsonResponse
+    public function uploadFile()
     {
         try {
             $condition = [
-                'file' => 'required',
-                'parentId' => '',
+                'file' => 'required|file',
+                'parentId' => 'numeric',
                 'path' => '',
             ];
 
-            $errorMessages = $this->validator->validate($condition, $request);
+            $errorMessages = $this->validator->validate($condition, $this->request);
             if ($errorMessages) return $this->sendError($errorMessages);
 
-            $files = $request->files->get("file");
-            $infoFile = $request->get('test');
+            $file = $this->request->files->get("file");
 
-            if ($files) {
-                $infoFile = json_decode($infoFile);
-                $folderId = $request->get('parentId') ?  $request->get('parentId') : 1;
+            $folder = Asset::getById($this->request->get('parentId') ?? 1);
 
-                $folder = Asset::getById(1);
-                $checkFolder = Asset::getById((int)$folderId);
-                if ($checkFolder) {
-                    $folder = $checkFolder;
-                } 
+            $path = $this->request->get('path') ?? '';
+            if ($path) {
+                $parentPath = $folder->getFullPath();
+                $fullPathNew = $parentPath . dirname($path);
 
-                $path = $request->get('path') ?  $request->get('path') : '';
-                if ($path) {
-                    $parentPath = $folder->getFullPath();
-                    $basePath = dirname($path);
-                    $fullPathNew = $parentPath . $basePath;
-
-                    $folder = Asset::getByPath($fullPathNew) ?? Asset\Service::createFolderByPath($fullPathNew);
-                }
-
-                $file = AssetServices::createFile($files, $folder);
-                if ($file) {
-                    return $this->sendResponse('file.create.success');
-                } else {
-                    return $this->sendError('file.create.error');
-                }
+                $folder = Asset::getByPath($fullPathNew) ?? Asset\Service::createFolderByPath($fullPathNew);
             }
+
+            $upload = AssetServices::createFile($file, $folder);
+
+            if(!$upload) return $this->sendError(['success' => false, 'message' => 'Upload file error']);
+
+            return $this->sendResponse([ 'success' => true, 'message' => 'Upload file success' ]);
         } catch (\Exception $e) {
             return $this->sendError($e->getMessage(), 500);
         }
@@ -282,7 +267,7 @@ class AssetController extends BaseController
                     }
                 }
             }
-            
+
             return $this->sendResponse("Delete photos or folders success");
 
         } catch (\Exception $e) {
@@ -315,7 +300,7 @@ class AssetController extends BaseController
 
             $id = $request->get('id');
             $file = $request->files->get("file");
-            
+
             if ($file) {
                 $asset = Asset::getById($id);
                 $asset->setData(file_get_contents($file));
@@ -510,7 +495,7 @@ class AssetController extends BaseController
         return $json;
     }
 
-    public function detailResponse($item) 
+    public function detailResponse($item)
     {
         $languages = \Pimcore\Tool::getValidLanguages();
         $domain = $_SERVER['HTTP_HOST'];
@@ -569,7 +554,7 @@ class AssetController extends BaseController
             'width' => $width,
             'dimensions' => $width . " x " . $height,
             'uploadOn' => date("M j, Y  H:i", $item->getModificationDate()),
-            
+
             'data' => ($item->getType() == 'text') ? $item->getData() : '',
             'languages' => $languages,
             'attribute' => [
@@ -579,8 +564,8 @@ class AssetController extends BaseController
                 'videoMov' => $videoMov,
                 'videoWebm' => $videoWebm,
             ],
-            
-            'parentId' => $item->getParentId(),            
+
+            'parentId' => $item->getParentId(),
         ];
 
         return $json;
