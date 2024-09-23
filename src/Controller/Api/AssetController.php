@@ -205,7 +205,16 @@ class AssetController extends BaseController
 
             $file = $this->request->files->get("file");
 
-            $folder = Asset::getById($this->request->get('parentId') ?? 1);
+            $parentId = $this->request->get('parentId') ;
+            if (!$parentId) {
+                $parent = Asset::getByPath('/_default_upload_bucket');
+                if (!$parent) {
+                    $parentId = Asset\Service::createFolderByPath('/_default_upload_bucket')->getId();
+                } else {
+                    $parentId = $parent->getId();
+                }
+            }
+            $folder = Asset::getById($parentId);
 
             $path = $this->request->get('path') ?? '';
             if ($path) {
@@ -219,7 +228,7 @@ class AssetController extends BaseController
 
             if(!$upload) return $this->sendError(['success' => false, 'message' => 'Upload file error']);
 
-            return $this->sendResponse([ 'success' => true, 'message' => 'Upload file success' ]);
+            return $this->sendResponse([ 'success' => true, 'message' => 'Upload file success', 'id' =>  $upload->getId() ]);
         } catch (\Exception $e) {
             return $this->sendError($e->getMessage(), 500);
         }

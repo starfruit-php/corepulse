@@ -80,7 +80,7 @@ class MediaController extends BaseController
             }
 
             if ($type) {
-                $conditionQuery .= 'AND type = :type';
+                $conditionQuery .= ' AND type = :type';
                 $conditionParams['type'] = $type;
             }
 
