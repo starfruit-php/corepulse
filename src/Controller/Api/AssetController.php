@@ -228,7 +228,7 @@ class AssetController extends BaseController
 
             if(!$upload) return $this->sendError(['success' => false, 'message' => 'Upload file error']);
 
-            return $this->sendResponse([ 'success' => true, 'message' => 'Upload file success', 'id' =>  $upload->getId() ]);
+            return $this->sendResponse([ 'success' => true, 'message' => 'Upload file success', 'id' =>  $upload->getId(), 'parentId' =>  $upload->getParentId() ]);
         } catch (\Exception $e) {
             return $this->sendError($e->getMessage(), 500);
         }

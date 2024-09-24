@@ -36,7 +36,7 @@ class MediaController extends BaseController
         PaginatorInterface $paginator
     ): JsonResponse {
         try {
-            $orderByOptions = ['mimetype'];
+            $orderByOptions = ['creationDate'];
             $conditions = $this->getPaginationConditions($request, $orderByOptions);
             list($page, $limit, $condition) = $conditions;
 
@@ -53,8 +53,8 @@ class MediaController extends BaseController
             $messageError = $this->validator->validate($condition, $request);
             if ($messageError) return $this->sendError($messageError);
 
-            $order_by = $request->get('order_by') ? $request->get('order_by') : 'mimetype';
-            $order = $request->get('order') ? $request->get('order') : 'ASC';
+            $order_by = $request->get('order_by') ? $request->get('order_by') : 'creationDate';
+            $order = $request->get('order') ? $request->get('order') : 'DESC';
             $parentId = $request->get('id') ? $request->get('id') : '1';
             $search = $request->get('search');
             $type = $request->get('type');
