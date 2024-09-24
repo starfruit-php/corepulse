@@ -28,6 +28,7 @@ class DatabaseServices
         self::updateCorepulseIndexing();
         self::updateCorepulseUser();
         self::updateCorepulsePlausible();
+        self::updateCorepulseOrderTimeline();
     }
 
     public static function createCorepulseIndexing()
@@ -113,7 +114,7 @@ class DatabaseServices
     {
         $query = " CREATE TABLE IF NOT EXISTS " . self::COREPULSE_ORDER_TIMELINE_TABLE . " (
             `id` int(11) NOT NULL AUTO_INCREMENT,
-            `idOrder` int(11) NOT NULL,
+            `orderId` int(11) NOT NULL,
             `title` varchar(255)  DEFAULT NULL,
             `description` varchar(255)  DEFAULT NULL,
             `createAt` timestamp DEFAULT current_timestamp(),
@@ -121,6 +122,20 @@ class DatabaseServices
             PRIMARY KEY (`id`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
         COMMIT;";
+
+        Db::get()->executeQuery($query);
+    }
+
+    public static function updateCorepulseOrderTimeline()
+    {
+        $query = " ALTER TABLE " . self::COREPULSE_ORDER_TIMELINE_TABLE . "
+            ADD COLUMN IF NOT EXISTS `id` int(11) NOT NULL AUTO_INCREMENT,
+            ADD COLUMN IF NOT EXISTS `orderId` int(11) NOT NULL,
+            ADD COLUMN IF NOT EXISTS `title` varchar(255)  DEFAULT NULL,
+            ADD COLUMN IF NOT EXISTS `description` varchar(255)  DEFAULT NULL,
+            ADD COLUMN IF NOT EXISTS `createAt` timestamp DEFAULT current_timestamp(),
+            ADD COLUMN IF NOT EXISTS `updateAt` timestamp DEFAULT current_timestamp() ON UPDATE current_timestamp();
+        ";
 
         Db::get()->executeQuery($query);
     }

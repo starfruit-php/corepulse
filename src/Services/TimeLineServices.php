@@ -5,7 +5,7 @@ namespace CorepulseBundle\Services;
 use Pimcore\Db;
 use \CorepulseBundle\Model\TimeLine;
 
-class TimeLineService
+class TimeLineServices
 {
     public static function create($params)
     {
@@ -51,5 +51,45 @@ class TimeLineService
         }
 
         return true;
+    }
+
+    static public function getListingByOrder($idOrIds = null)
+    {
+        $conditions = null;
+        $params = [];
+        if (is_array($idOrIds)) {
+            $conditionsArray = [];
+            foreach ($idOrIds as $id) {
+                $conditionsArray[] = 'idOrder = ?';
+                $params[] = $id;
+            }
+
+            $conditions = implode(' OR ', $conditionsArray);
+        } else {
+            $conditions = 'idOrder = ?';
+            $params = [$idOrIds];
+        }
+
+        $listing = new TimeLine\Listing;
+        $listing->setCondition($conditions, $params);
+        $listing->setOrderKey('updateAt');
+        $listing->setOrder('desc');
+        $listing->setUnpublished(true);
+
+        return $listing;
+    }
+
+    static public function getData($item)
+    {
+        $data = [
+            'id' => $item->getId(),
+            'title' => $item->getTitle(),
+            'description' => $item->getDescription(),
+            'idOrder' => $item->getOrderId(),
+            'updateAt' => $item->getUpdateAt(),
+            'createAt'=> $item->getCreateAt(),
+        ];
+
+        return $data;
     }
 }

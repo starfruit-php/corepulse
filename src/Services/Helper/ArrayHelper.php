@@ -15,7 +15,7 @@ class ArrayHelper
 
             $result = array_filter($data, function ($item) use ($key, $value) {
                 $itemData = is_object($item) ? get_object_vars($item) : $item;
-                
+
                 return self::checkValue($itemData[$key], $value);
             });
 

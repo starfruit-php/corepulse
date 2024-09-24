@@ -30,6 +30,26 @@ class Dao extends AbstractDao
     }
 
     /**
+     * get vote by id
+     *
+     * @throws NotFoundException
+     */
+    public function getByOrderId(?int $id = null): void
+    {
+        if ($id !== null) {
+            $this->model->setOrderId($id);
+        }
+
+        $data = $this->db->fetchAssociative('SELECT * FROM ' . $this->tableName . ' WHERE orderId = ?', [$this->model->getOrderId()]);
+
+        if (!$data) {
+            throw new NotFoundException("Object with the Order Id " . $this->model->getOrderId() . " doesn't exists");
+        }
+
+        $this->assignVariablesToModel($data);
+    }
+
+    /**
      * save vote
      */
     public function save(): void

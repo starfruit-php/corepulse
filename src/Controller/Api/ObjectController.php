@@ -128,23 +128,16 @@ class ObjectController extends BaseController
 
             $classId = $this->request->get("id");
 
-            $checkClass = ClassServices::isValid($classId);
-
-            $classConfig = ClassServices::getConfig($classId);
-            $visibleFields = json_decode($classConfig['visibleFields'], true);
-
-            $className = $visibleFields['class'];
-            if (!$checkClass || !$className || !class_exists('\\Pimcore\\Model\\DataObject\\' . ucfirst($className))) {
-                return $this->sendError([
-                    'success' => false,
-                    'message' => 'Class not found.'
-                ], 500);
+            $classValidation = $this->validateClass($classId);
+            if (!$classValidation['success']) {
+                return $this->sendError($classValidation, 500);
             }
 
-            $columns = array_merge(ClassServices::systemField($visibleFields), $visibleFields['fields']);
+            $className = $classValidation['className'];
+            $columns = $classValidation['columns'];
             $fields = $this->request->get('columns') ? ClassServices::filterFill($columns, $this->request->get('columns')) : $columns;
 
-            $locale = $this->request->get('locale', \Pimcore\Tool::getDefaultLanguage());
+            $locale = $this->request->get('_locale', $this->request->getLocale());
 
             $conditionQuery = 'id is not NULL';
             $conditionParams = [];
@@ -211,8 +204,9 @@ class ObjectController extends BaseController
 
             // Validate class
             $classId = $objectFromDatabase->getClassId();
-            if (!$this->isClassValid($classId)) {
-                return $this->sendError(['success' => false, 'message' => 'Class not found.'], 500);
+            $classValidation = $this->validateClass($classId);
+            if (!$classValidation['success']) {
+                return $this->sendError($classValidation, 500);
             }
 
             // Handle POST request for updates
@@ -280,17 +274,9 @@ class ObjectController extends BaseController
             if ($errorMessages) return $this->sendError($errorMessages);
 
             $classId = $this->request->get('classId');
-            $checkClass = ClassServices::isValid($classId);
-
-            $classConfig = ClassServices::getConfig($classId);
-            $visibleFields = json_decode($classConfig['visibleFields'], true);
-
-            $className = $visibleFields['class'];
-            if (!$checkClass || !$className || !class_exists('\\Pimcore\\Model\\DataObject\\' . ucfirst($className))) {
-                return $this->sendError([
-                    'success' => false,
-                    'message' => 'Class not found.'
-                ], 500);
+            $classValidation = $this->validateClass($classId);
+            if (!$classValidation['success']) {
+                return $this->sendError($classValidation, 500);
             }
 
             $ids = $this->request->get('id');
@@ -348,22 +334,13 @@ class ObjectController extends BaseController
             if ($errorMessages) return $this->sendError($errorMessages);
 
             $classId = $this->request->get('classId');
-            $checkClass = ClassServices::isValid($classId);
-
-            $classConfig = ClassServices::getConfig($classId);
-            $visibleFields = json_decode($classConfig['visibleFields'], true);
-
-            $className = $visibleFields['class'];
-            if (!$checkClass || !$className || !class_exists('\\Pimcore\\Model\\DataObject\\' . ucfirst($className))) {
-                return $this->sendError([
-                    'success' => false,
-                    'message' => 'Class not found.'
-                ], 500);
+            $classValidation = $this->validateClass($classId);
+            if (!$classValidation['success']) {
+                return $this->sendError($classValidation, 500);
             }
 
-            // dd($visibleFields);
-            $columns = array_merge(ClassServices::systemField($visibleFields), $visibleFields['fields']);
-            $fields = $columns;
+            $className = $classValidation['className'];
+            $fields = $classValidation['columns'];
 
             $folderName = $this->request->get('folderName');
             $parentId = $this->request->get('parentId') ? (int)$this->request->get('parentId') : 1;
@@ -389,19 +366,12 @@ class ObjectController extends BaseController
 
                 $object = new $func();
                 $object->setKey($key);
-                // if ($type = $this->request->get('type', 'object')) {
-                //     $object->setType($type);
-                // }
                 $object->setParent($parent);
                 $object->save();
 
                 $data['data'] =  DataObjectServices::getData($object, $fields);
 
                 return $this->sendResponse($data);
-                // return $this->sendResponse([
-                //     'success' => true,
-                //     'message' => 'Create object succes.'
-                // ]);
             }
 
             return $this->sendError($className . ' with ' . $key . " already exists");
@@ -455,11 +425,32 @@ class ObjectController extends BaseController
         }
     }
 
-    private function isClassValid($classId)
+    private function validateClass($classId)
     {
+        $checkClass = ClassServices::isValid($classId);
         $classConfig = ClassServices::getConfig($classId);
-        $visibleFields = json_decode($classConfig['visibleFields'], true);
-        return ClassServices::isValid($classId) && class_exists('\\Pimcore\\Model\\DataObject\\' . ucfirst($visibleFields['class']));
+
+        if (!isset($classConfig['visibleFields']) || ($visibleFields = json_decode($classConfig['visibleFields'], true)) === null) {
+            return [
+                'success' => false,
+                'message' => 'Invalid or missing visible fields.'
+            ];
+        }
+
+        $className = $visibleFields['class'] ?? null;
+
+        if (!$checkClass || !$className || !class_exists('\\Pimcore\\Model\\DataObject\\' . ucfirst($className))) {
+            return [
+                'success' => false,
+                'message' => 'Class not found.'
+            ];
+        }
+
+        return [
+            'success' => true,
+            'className' => $className,
+            'columns' => array_merge(ClassServices::systemField($visibleFields), $visibleFields['fields'])
+        ];
     }
 
     private function handlePostUpdate($objectFromDatabase)
@@ -514,7 +505,7 @@ class ObjectController extends BaseController
         $layout = DataObject\Service::getSuperLayoutDefinition($object);
         $objectData['layout'] = $this->getObjectVarsRecursive($object, $layout, $object->getClassId());
         $objectData['layoutData'] = $this->objectLayoutData;
-        $objectData['sidebar'] = DataObjectServices::getSidebarData($object);
+        $objectData['sidebar'] = DataObjectServices::getSidebarData($object, $this->request->get('_locale', $this->request->getLocale()));
     }
 
     protected function getObjectVarsRecursive($object, $layout, $classId, $localized = null)
@@ -547,7 +538,7 @@ class ObjectController extends BaseController
             }
         }
 
-        $localized = $vars['fieldtype'] == 'localizedfields' ? $this->request->getLocale() : null; 
+        $localized = $this->request->get('_locale', $this->request->getLocale());
 
         if (isset($vars['children']) && (isset($vars['fieldtype']) && $vars['fieldtype'] != 'block') ) {
             foreach ($vars['children'] as $key => $value) {

@@ -1,19 +1,15 @@
 <?php
-// src/Model/User.php
 
 namespace CorepulseBundle\Model;
 
 use Pimcore\Model\AbstractModel;
 use Pimcore\Model\Exception\NotFoundException;
 
-/**
- * Our custom user class implementing Symfony's UserInterface.
- */
 class TimeLine extends AbstractModel
 {
     public ?int $id = null;
 
-    public ?int $idOrder = null;
+    public ?int $orderId = null;
 
     public ?string $title = null;
 
@@ -28,9 +24,6 @@ class TimeLine extends AbstractModel
         return 'corepulse_order_timeline';
     }
 
-    /**
-     * get score by id
-     */
     public static function getById(int $id): ?self
     {
         try {
@@ -44,14 +37,14 @@ class TimeLine extends AbstractModel
         return null;
     }
 
-    public function setIdOrder(?int $idOrder): void
+    public function setOrderId(?int $orderId): void
     {
-        $this->idOrder = $idOrder;
+        $this->orderId = $orderId;
     }
 
-    public function getIdOrder(): ?int
+    public function getOrderId(): ?int
     {
-        return $this->idOrder;
+        return $this->orderId;
     }
 
     public function setTitle(?string $title): void
@@ -63,8 +56,6 @@ class TimeLine extends AbstractModel
     {
         return $this->title;
     }
-
-
 
     public function setCreateAt(string $createAt): void
     {

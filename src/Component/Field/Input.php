@@ -50,15 +50,15 @@ class Input implements FieldInterface
 
     public function getValue()
     {
-        if (!$this->layout) {
-            return $this->formatDocument($this->data->getData());
-        }
+        if (!$this->layout) return $this->formatDocument($this->data->getData());
 
-        if ($this->data instanceof BlockElement) {
-            return $this->formatBlock($this->data->getData());
-        }
+        if ($this->data instanceof BlockElement) return $this->formatBlock($this->data->getData());
 
-        return $this->format($this->data->{'get' . ucfirst($this->getName())}());
+        $value = $this->data->{'get' . ucfirst($this->getName())}();
+
+        if ($this->localized) $value = $this->data->{'get' . ucfirst($this->getName())}($this->localized);
+
+        return $this->format($value);
     }
 
     public function format($value)

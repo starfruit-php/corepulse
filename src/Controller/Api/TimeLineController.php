@@ -3,152 +3,151 @@
 namespace CorepulseBundle\Controller\Api;
 
 use CorepulseBundle\Controller\Api\BaseController;
-use Symfony\Component\HttpFoundation\Request;
-use Pimcore\Model\DataObject;
 use Symfony\Component\Routing\Annotation\Route;
-use Pimcore\Model\DataObject\Customer;
-use Knp\Component\Pager\PaginatorInterface;
 use CorepulseBundle\Model\TimeLine;
-use CorepulseBundle\Services\TimeLineService;
+use CorepulseBundle\Services\TimeLineServices;
 
 class TimeLineController extends BaseController
 {
     /**
-     * @Route("/timeline/listing", name="timeline_listing", options={"expose"=true}))
+     * @Route("/timeline/listing", name="api_timeline_listing"))
      */
-    public function listing(Request $request, PaginatorInterface $paginator)
+    public function listing()
     {
-        $data = [];
-        $response = [];
         try {
+            $conditions = $this->getPaginationConditions($this->request, []);
+            list($page, $limit, $condition) = $conditions;
 
-            $order_by = $request->get('order_by');
-            $order = $request->get('order');
-
-            $messageError = $this->validator->validate([
+            $condition = array_merge($condition, [
                 'orderId' => 'required',
-                'page' => $this->request->get('page') ? 'numeric|positive' : '',
-                'limit' => $this->request->get('limit') ? 'numeric|positive' : '',
-                'order_by' => $order_by ? 'choice:title' : '',
-                'order' => $order ? 'choice:desc,asc' : ''
-            ], $request);
+            ]);
 
-            if ($messageError) return $this->sendError($messageError);
+            $messageError = $this->validator->validate($condition, $this->request);
+            if($messageError) return $this->sendError($messageError);
 
-            if (empty($order_by)) $order_by = 'createAt';
-            if (empty($order)) $order = 'desc';
-            $listing = new TimeLine\Listing;
+            $order = $this->getOrderById($this->request->get('orderId'));
+            if (!$order) return $this->sendError([ 'success' => false, 'message' => 'Order not found.' ]);
 
-            if (!empty($request->get('search'))) $listing->addConditionParam("username LIKE '%" . $request->get('search') . "%'");
-            $listing->setOrderKey($order_by);
-            $listing->setOrder($order);
+            $listing = TimeLineServices::getListingByOrder($order->getId());
 
+            $pagination = $this->paginator($listing, $page, $limit);
 
-            $pagination = $paginator->paginate(
-                $listing,
-                $request->get('page', 1),
-                $request->get('limit', 10),
-            );
+            $data = [
+                'paginationData' => $pagination->getPaginationData(),
+            ];
 
-            foreach ($listing as $item) {
-                $dataJson = [
-                    'id' => $item->getId(),
-                    'idOrder' => $item->getIdOrder(),
-                    'title' => $item->getTitle(),
-                    'description' => $item->getDescription(),
-                    'updateAt' => $item->getUpdateAt(),
-                    'createAt' => $item->getCreateAt(),
-                ];
-
-                array_push($data, $dataJson);
+            foreach($pagination as $item) {
+                $data['data'][] = TimeLineServices::getData($item);
             }
 
-            $response['data'] = $data;
-            $response['paginator'] = $pagination->getPaginationData();
+            return $this->sendResponse($data);
         } catch (\Throwable $e) {
-
             return $this->sendError($e->getMessage(), 500);
         }
-
-        return $this->sendResponse($response);
-    }
-
-
-    /**
-     * @Route("/timeline/create", name="timeline_create", options={"expose"=true}))
-     */
-    public function create(Request $request, PaginatorInterface $paginator)
-    {
-        $options = [
-            'idOrder' => 'required',
-        ];
-
-        $messageError = $this->validator->validate($options, $this->request);
-
-        if ($messageError) return $this->sendError($messageError);
-
-        $timeLine = TimeLineService::create([
-            'title' => $request->get('title'),
-            'idOrder' => $request->get('idOrder'),
-            'description' => $request->get('description'),
-        ]);
-        if ($timeLine instanceof TimeLine) {
-            return $this->sendResponse('timeLine.create.success');
-        }
-
-        return $this->sendError('timeLine.create.error');
     }
 
     /**
-     * @Route("/timeline/update", name="timeline_update", options={"expose"=true}))
+     * @Route("/timeline/create", name="api_timeline_create"))
      */
-    public function update(Request $request, PaginatorInterface $paginator)
+    public function create()
     {
-        $options = [
-            'id' => 'required',
-            'description' => 'required',
-        ];
+        try {
+            $conditions = [
+                'orderId' => 'required',
+                'title' => 'required',
+                'description' => 'required',
+            ];
 
-        $messageError = $this->validator->validate($options, $this->request);
+            $messageError = $this->validator->validate($conditions, $this->request);
+            if ($messageError) return $this->sendError($messageError);
 
-        if ($messageError) return $this->sendError($messageError);
+            $order = $this->getOrderById($this->request->get('orderId'));
+            if (!$order) return $this->sendError([ 'success' => false, 'message' => 'Order not found.' ]);
 
-        $timeLine = TimeLine::getById($request->get('id'));
+            $timeLine = TimeLineServices::create([
+                'title' => $this->request->get('title'),
+                'orderId' => $this->request->get('orderId'),
+                'description' => $this->request->get('description'),
+            ]);
 
-        $timeLine = TimeLineService::edit([
-            'title' => $request->get('title'),
-            'idOrder' => $request->get('idOrder'),
-            'description' => $request->get('description'),
-        ], $timeLine);
+            $data = [
+                'success' => true,
+                'message' => 'Create TimeLine Success.'
+            ];
 
-        if ($timeLine instanceof TimeLine) {
-            return $this->sendResponse('timeLine.edit.success');
+            return $this->sendResponse($data);
+        } catch (\Throwable $e) {
+            return $this->sendError($e->getMessage(), 500);
         }
-
-        return $this->sendError('timeLine.edit.error');
     }
 
     /**
-     * @Route("/timeline/delete", name="timeline_delete", options={"expose"=true}))
+     * @Route("/timeline/update", name="api_timeline_update"))
      */
-    public function delete(Request $request, PaginatorInterface $paginator)
+    public function update()
     {
-        $options = [
-            'id' => 'required'
-        ];
+        try {
+            $conditions = [
+                'id' => 'required',
+                'title' => '',
+                'description' => '',
+            ];
 
-        $messageError = $this->validator->validate($options, $this->request);
+            $messageError = $this->validator->validate($conditions, $this->request);
+            if ($messageError) return $this->sendError($messageError);
 
-        if ($messageError) return $this->sendError($messageError);
+            $timeLine = TimeLine::getById($this->request->get('id'));
+            if (!$timeLine) return $this->sendError([ 'success' => false, 'message' => 'TimeLine not found.' ]);
 
-        $timeLine = TimeLine::getById($request->get('id'));
+            $timeLine = TimeLineServices::edit([
+                'title' => $this->request->get('title'),
+                'orderId' => $this->request->get('orderId'),
+                'description' => $this->request->get('description'),
+            ], $timeLine);
 
-        if ($timeLine instanceof TimeLine) {
-            $timeLine = TimeLineService::delete($timeLine->getId());
+            $data = [
+                'success' => true,
+                'message' => 'Update TimeLine Success.'
+            ];
 
-            return $this->sendResponse('timeLine.delete.success');
+            return $this->sendResponse($data);
+        } catch (\Throwable $e) {
+            return $this->sendError($e->getMessage(), 500);
         }
+    }
 
-        return $this->sendError('timeLine.delete.error');
+    /**
+     * @Route("/timeline/delete", name="api_timeline_delete", options={"expose"=true}))
+     */
+    public function delete()
+    {
+        try {
+            $conditions = [
+                'id' => 'required'
+            ];
+
+            $messageError = $this->validator->validate($conditions, $this->request);
+            if ($messageError) return $this->sendError($messageError);
+
+            $timeLine = TimeLine::getById($this->request->get('id'));
+            if (!$timeLine) return $this->sendError([ 'success' => false, 'message' => 'TimeLine not found.' ]);
+
+            TimeLineServices::delete($timeLine->getId());
+
+            $data = [
+                'success' => true,
+                'message' => 'Delete TimeLine Success.'
+            ];
+
+            return $this->sendResponse($data);
+        } catch (\Throwable $e) {
+            return $this->sendError($e->getMessage(), 500);
+        }
+    }
+
+    private function getOrderById($orderId) {
+        $orderManager = $this->factory->getOrderManager()->buildOrderList();
+        $func = '\\Pimcore\\Model\\DataObject\\' . ucfirst($orderManager->getClassName());
+        return $func::getById($orderId);
     }
 }

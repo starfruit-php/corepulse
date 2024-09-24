@@ -13,29 +13,35 @@ class DataObjectServices
         foreach ($fields as $key => $field) {
             $field = self::convertField($field);
 
-            if ($backlist && in_array($field['fieldtype'], ClassServices::BACKLIST_TYPE) ) {
+            // Check if field is in the blacklist
+            if ($backlist && in_array($field['fieldtype'], ClassServices::BACKLIST_TYPE)) {
                 continue;
             }
 
-            // if (isset($field['invisible']) && $field['invisible']) {
-            //     continue;
-            // }
-
-            $getClass = '\\CorepulseBundle\\Component\\Field\\' . ucfirst($field['fieldtype']);
-            if (!class_exists($getClass)) {
-                $data[$key] = null;
+            // Handle localized fields
+            if (isset($field['children']) && $field['fieldtype'] === 'localizedfields') {
+                foreach ($field['children'] as $k => $vars) {
+                    $data[$key][$k] = self::getComponentValue($object, $vars);
+                }
                 continue;
             }
 
-            $value = new $getClass($object, $field);
-
-            $data[$key] = $value->getValue();
+            // For other fields
+            $data[$key] = self::getComponentValue($object, $field);
         }
 
         return $data;
     }
 
-    static public function getSidebarData($object)
+    static private function getComponentValue($object, $field)
+    {
+        $field = self::convertField($field);
+        $getClass = '\\CorepulseBundle\\Component\\Field\\' . ucfirst($field['fieldtype']);
+
+        return class_exists($getClass) ? (new $getClass($object, $field))->getValue() : null;
+    }
+
+    static public function getSidebarData($object, $locale = null)
     {
         $fields = ClassServices::systemField();
 
@@ -45,7 +51,8 @@ class DataObjectServices
         foreach ($languages as $language) {
             $data['languages'][] = [
                 'key' => \Locale::getDisplayLanguage($language),
-                'value' => $language
+                'value' => $language,
+                'selected' => $locale === $language
             ];
         }
 

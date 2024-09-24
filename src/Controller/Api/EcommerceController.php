@@ -2,11 +2,11 @@
 
 namespace CorepulseBundle\Controller\Api;
 
-use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
-use Knp\Component\Pager\PaginatorInterface;
 use Pimcore\Model\DataObject\OnlineShopOrder;
 use Pimcore\Model\DataObject;
+use CorepulseBundle\Services\CustomerServices;
+use CorepulseBundle\Services\EcommerceServices;
 
 /**
  * @Route("/ecommerce")
@@ -32,54 +32,43 @@ class EcommerceController extends BaseController
             $messageError = $this->validator->validate($condition, $this->request);
             if($messageError) return $this->sendError($messageError);
 
-            $customerId = $this->request->get('customer');
-            $customer = DataObject\Customer::getById($customerId);
-
+            $customer = DataObject\Customer::getById($this->request->get('customer'));
             if (!$customer) return $this->sendError([ 'success' => false, 'message' => 'Customer not found.' ]);
-            $filterRule = $this->request->get('filterRule');
-            $filter = $this->request->get('filter');
 
-            $conditionQuery = 'customer__id = ?';
-            $conditionParams = [$customer->getId()];
+            $this->environment->setCurrentUserId($customer->getId());
+            $this->environment->save();
 
-            if ($filterRule && $filter) {
-                $arrQuery = $this->getQueryCondition($filterRule, $filter);
-
-                if ($arrQuery['query']) {
-                    $conditionQuery .= ' AND (' . $arrQuery['query'] . ')';
-                    $conditionParams = array_merge($conditionParams, $arrQuery['params']);
-                }
-            }
+            $cartManager = $this->factory->getCartManager();
+            $carts = $cartManager->getCartByName(name: 'cart');
 
             $orderKey = $this->request->get('order_by');
             $order = $this->request->get('order');
-            if (empty($order_by)) $orderKey = 'key';
-            if (empty($order)) $order = 'asc';
+            if (empty($orderKey)) $orderKey = 'creationDate';
+            if (empty($order)) $order = 'desc';
 
-            if ($limit == -1) {
-                $limit = 10000;
-            }
-
-            $listing = new OnlineShopOrder\Listing();
-            $listing->setCondition($conditionQuery, $conditionParams);
+            $listing = $this->factory->getOrderManager()->buildOrderList();
+            $listing->setCondition('customer__id = ?', [$customer->getId()]);
             $listing->setOrderKey($orderKey);
             $listing->setOrder($order);
             $listing->setUnpublished(true);
 
             $totalPrice = 0;
-            foreach ($listing as $item) {
+            $lastOrder = [];
+            foreach ($listing as $key => $item) {
+                if ($key < 10) {
+                    $lastOrder[] = EcommerceServices::getOrderData($item, true, true);
+                }
                 $totalPrice += $item->getTotalPrice();
             }
 
             // Bổ sung dữ liệu ở đây
-            $data = [];
-            $data['totalPrice'] = number_format($totalPrice, 0, ".", ".");
-            $data['totalOrder'] = $listing->count();
-            $data['email'] = $customer->getEmail();
-            $data['phone'] = $customer->getPhone();
-            $data['fullName'] = $customer->getFullName();
-            $data['company'] = property_exists($customer, 'company') ? $customer->getCompany() : '';
-            $data['address'] = property_exists($customer, 'address') ? $customer->getAddress() : '';
+            $data = [
+                'totalCart' => $carts ? $carts->getItemCount() : 0,
+                'totalPrice' => number_format($totalPrice, 0, ".", "."),
+                'totalOrder' => $listing->count(),
+                'customer' => CustomerServices::getData($customer),
+                'lastOrder' => $lastOrder,
+            ];
 
             return $this->sendResponse($data);
         } catch (\Exception $e) {
@@ -90,7 +79,7 @@ class EcommerceController extends BaseController
     /**
      * @Route("/order/listing", name="api_ecommerce_order_listing", methods={"GET"})
      */
-    public function order(Request $request, PaginatorInterface $paginator)
+    public function order()
     {
         try {
             $conditions = $this->getPaginationConditions($this->request, []);
@@ -128,14 +117,10 @@ class EcommerceController extends BaseController
 
             $orderKey = $this->request->get('order_by');
             $order = $this->request->get('order');
-            if (empty($order_by)) $orderKey = 'key';
-            if (empty($order)) $order = 'asc';
+            if (empty($orderKey)) $orderKey = 'creationDate';
+            if (empty($order)) $order = 'desc';
 
-            if ($limit == -1) {
-                $limit = 10000;
-            }
-
-            $listing = new OnlineShopOrder\Listing();
+            $listing = $this->factory->getOrderManager()->buildOrderList();
             $listing->setCondition($conditionQuery, $conditionParams);
             $listing->setOrderKey($orderKey);
             $listing->setOrder($order);
@@ -148,26 +133,7 @@ class EcommerceController extends BaseController
             ];
 
             foreach ($listing as $item) {
-                $child = [];
-
-                foreach ($item->getItems() as $value) {
-                    $child[] = [
-                        'product' => $value->getProduct() ? $value->getProduct()->getProductName() : '',
-                        'amount' => $value->getAmount(),
-                        'totalPrice' => $value->getTotalPrice(),
-                    ];
-                }
-
-                $data['data'][] = [
-                    'id' => $item->getId(),
-                    'ordernumber' => $item->getOrdernumber(),
-                    'orderdate' => $item->getOrderdate(),
-                    'totalPrice' => $item->getTotalPrice(),
-                    'totalNetPrice' => $item->getTotalNetPrice(),
-                    'customer' => $item->getCustomer()?->getId(),
-                    'subTotalNetPrice' => $item->getSubTotalNetPrice(),
-                    'items' => $child
-                ];
+                $data['data'][] = EcommerceServices::getOrderData($item);
             }
 
             return $this->sendResponse($data);
@@ -182,7 +148,7 @@ class EcommerceController extends BaseController
     public function detail()
     {
         try {
-            
+
         } catch (\Exception $e) {
             return $this->sendError($e->getMessage(), 500);
         }
