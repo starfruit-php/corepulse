@@ -20,6 +20,30 @@ class ManyToOneRelation extends Select
         return null;
     }
 
+    public function formatDataSave($value)
+    {
+        $data = null;
+        if ($value && isset($value["type"])) {
+            switch ($value["type"]) {
+                case 'asset':
+                    $data = Asset::getById($value['id']);
+                    break;
+                case 'document':
+                    $data = Document::getById($value['id']);
+                    break;
+                case 'object':
+                    $data = DataObject::getById($value['id']);
+                    break;
+
+                default:
+                    $data = DataObject::getById($value['id']);
+                    break;
+            }
+        }
+
+        return $data;
+    }
+
     public function getElementType(ElementInterface $element)
     {
         $data = null;
@@ -52,7 +76,7 @@ class ManyToOneRelation extends Select
 
         if ($element instanceof DataObject\AbstractObject) {
             $data = [
-                'type' => 'Object',
+                'type' => 'object',
                 'id' => $element->getId(),
                 'subType' => $element->getClassName()
             ];

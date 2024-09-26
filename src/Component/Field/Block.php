@@ -83,7 +83,7 @@ class Block extends Input
                 $layouts[$key] = ClassServices::getFieldProperty($value, $this->localized, $this->data?->getClassId());
             }
         }
-        
+
         return $layouts;
     }
 

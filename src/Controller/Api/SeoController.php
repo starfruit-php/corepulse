@@ -32,18 +32,27 @@ class SeoController extends BaseController
             $messageError = $this->validator->validate($condition, $this->request);
             if($messageError) return $this->sendError($messageError);
 
-            $order_by = $this->request->get('order_by', 'uri');
-            $order = $this->request->get('order', 'asc');
+            $orderKey = $this->request->get('order_by', 'date');
+            $order = $this->request->get('order', 'desc');
 
-            $condition = '';
+            $conditionQuery = '';
+            $conditionParams = [];
+
+            $filterRule = $this->request->get('filterRule');
+            $filter = $this->request->get('filter');
+            if ($filterRule && $filter) {
+                $arrQuery = $this->getQueryCondition($filterRule, $filter);
+
+                if ($arrQuery['query']) {
+                    $conditionQuery .= ' WHERE (' . $arrQuery['query'] . ')';
+                    $conditionParams = array_merge($conditionParams, $arrQuery['params']);
+                }
+            }
 
             $db = Db::get();
-            $listData = $db->fetchAllAssociative('SELECT id, code, uri, `count`, FROM_UNIXTIME(date, "%Y-%m-%d %h:%i") AS "date" FROM http_error_log ? ORDER BY ?', [$condition, $order_by]);
+            $listData = $db->fetchAllAssociative("SELECT id, code, uri, count, FROM_UNIXTIME(date, '%Y-%m-%d %h:%i') AS 'date' FROM http_error_log $conditionQuery ORDER BY $orderKey $order;", $conditionParams);
 
-
-            $filter = ArrayHelper::sortArrayByField($listData, $order_by, $order);
-
-            $pagination = $this->paginator($filter, $page, $limit);
+            $pagination = $this->paginator($listData, $page, $limit);
 
             $data = [
                 'paginationData' => $pagination->getPaginationData(),
@@ -167,14 +176,31 @@ class SeoController extends BaseController
             $messageError = $this->validator->validate($condition, $this->request);
             if($messageError) return $this->sendError($messageError);
 
-            $order_by = $this->request->get('order_by', 'creationDate');
+            $orderKey = $this->request->get('order_by', 'creationDate');
             $order = $this->request->get('order', 'asc');
 
+            $conditionQuery = '';
+            $conditionParams = [];
+
+            $filterRule = $this->request->get('filterRule');
+            $filter = $this->request->get('filter');
+            if ($filterRule && $filter) {
+                $arrQuery = $this->getQueryCondition($filterRule, $filter);
+
+                if ($arrQuery['query']) {
+                    $conditionQuery .= ' (' . $arrQuery['query'] . ')';
+                    $conditionParams = array_merge($conditionParams, $arrQuery['params']);
+                }
+            }
+            
             $listing = new Redirect\Listing();
+            $listing->setCondition($conditionQuery, $conditionParams);
+            $listing->setOrderKey($orderKey);
+            $listing->setOrder($order);
 
-            $filter = ArrayHelper::sortArrayByField($listing->getRedirects(), $order_by, $order);
+            // $filter = ArrayHelper::sortArrayByField($listing->getRedirects(), $order_by, $order);
 
-            $pagination = $this->paginator($filter, $page, $limit);
+            $pagination = $this->paginator($listing->getRedirects(), $page, $limit);
 
             $data = [
                 'paginationData' => $pagination->getPaginationData(),

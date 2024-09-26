@@ -2,12 +2,35 @@
 
 namespace CorepulseBundle\Component\Field;
 
+use Carbon\Carbon;
+use Carbon\CarbonPeriod;
+
 class DateRange extends Date
 {
     public function format($value)
     {
-        $format = $value?->getStartDate()?->format("Y/m/d") . " - " . $value?->getEndDate()?->format("Y/m/d");
+        if ($value) {
+            $data = $value->getStartDate()?->format("Y/m/d") . " - " . $value->getEndDate()?->format("Y/m/d");
 
-        return $format;
+            return $data;
+        }
+
+        return null;
+    }
+
+    public function formatDataSave($value)
+    {
+        if ($value) {
+            $dates = explode(' - ', $value);
+
+            $startDate = Carbon::createFromFormat('Y/m/d', trim($dates[0]));
+            $endDate = Carbon::createFromFormat('Y/m/d', trim($dates[1]));
+
+            $data = CarbonPeriod::create($startDate, $endDate);
+
+            return $data;
+        }
+
+        return null;
     }
 }

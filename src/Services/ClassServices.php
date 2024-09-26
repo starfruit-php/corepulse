@@ -145,7 +145,8 @@ class ClassServices
         $config = self::getConfig($className);
         if ($config) {
             $saveData = json_decode($config['visibleFields'], true);
-            $saveData['tableView'] = $tableView ? $visibleFields : ($visibleFields['tableView'] ?? $saveData['tableView'] ?? []);
+            
+            $saveData = $tableView ? $visibleFields : ($visibleFields ?? $saveData ?? []);
             Db::get()->update('corepulse_class', ['visibleFields' => json_encode($saveData)], ['className' => $className]);
             return true;
         }
