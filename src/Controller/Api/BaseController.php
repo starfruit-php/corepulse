@@ -14,8 +14,6 @@ use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Knp\Component\Pager\PaginatorInterface;
 use Symfony\Component\Process\Process;
-use Pimcore\Bundle\EcommerceFrameworkBundle\Factory;
-use Pimcore\Bundle\EcommerceFrameworkBundle\EnvironmentInterface;
 
 class BaseController extends FrontendController
 {
@@ -24,17 +22,13 @@ class BaseController extends FrontendController
     protected $validator;
     protected $paginator;
     protected $params;
-    protected $factory;
-    protected $environment;
 
     public function __construct(
         RequestStack $requestStack,
         Translator $translator,
         ValidatorInterface $validator,
         PaginatorInterface $paginator,
-        ParameterBagInterface $params,
-        Factory $factory,
-        EnvironmentInterface $environment
+        ParameterBagInterface $params
         )
     {
         $this->request = $requestStack->getCurrentRequest();
@@ -49,8 +43,6 @@ class BaseController extends FrontendController
         $this->paginator = $paginator;
         $this->params = $params;
         $this->setLocaleRequest();
-        $this->factory = $factory;
-        $this->environment = $environment;
     }
 
      /**

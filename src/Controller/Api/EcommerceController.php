@@ -7,6 +7,8 @@ use Pimcore\Model\DataObject\OnlineShopOrder;
 use Pimcore\Model\DataObject;
 use CorepulseBundle\Services\CustomerServices;
 use CorepulseBundle\Services\EcommerceServices;
+use Pimcore\Bundle\EcommerceFrameworkBundle\Factory;
+use Pimcore\Bundle\EcommerceFrameworkBundle\EnvironmentInterface;
 
 /**
  * @Route("/ecommerce")
@@ -19,7 +21,7 @@ class EcommerceController extends BaseController
     /**
      * @Route("/summary", name="api_ecommerce_summary", methods={"GET"})
      */
-    public function summary()
+    public function summary(Factory $factory, EnvironmentInterface $environment)
     {
         try {
             $conditions = $this->getPaginationConditions($this->request, []);
@@ -35,10 +37,10 @@ class EcommerceController extends BaseController
             $customer = DataObject\Customer::getById($this->request->get('customer'));
             if (!$customer) return $this->sendError([ 'success' => false, 'message' => 'Customer not found.' ]);
 
-            $this->environment->setCurrentUserId($customer->getId());
-            $this->environment->save();
+            $$environment->setCurrentUserId($customer->getId());
+            $$environment->save();
 
-            $cartManager = $this->factory->getCartManager();
+            $cartManager = $factory->getCartManager();
             $carts = $cartManager->getCartByName(name: 'cart');
 
             $orderKey = $this->request->get('order_by');
@@ -46,7 +48,7 @@ class EcommerceController extends BaseController
             if (empty($orderKey)) $orderKey = 'creationDate';
             if (empty($order)) $order = 'desc';
 
-            $listing = $this->factory->getOrderManager()->buildOrderList();
+            $listing = $factory->getOrderManager()->buildOrderList();
             $listing->setCondition('customer__id = ?', [$customer->getId()]);
             $listing->setOrderKey($orderKey);
             $listing->setOrder($order);
@@ -79,7 +81,7 @@ class EcommerceController extends BaseController
     /**
      * @Route("/order/listing", name="api_ecommerce_order_listing", methods={"GET"})
      */
-    public function order()
+    public function order(Factory $factory, EnvironmentInterface $environment)
     {
         try {
             $conditions = $this->getPaginationConditions($this->request, []);
@@ -120,7 +122,7 @@ class EcommerceController extends BaseController
             if (empty($orderKey)) $orderKey = 'creationDate';
             if (empty($order)) $order = 'desc';
 
-            $listing = $this->factory->getOrderManager()->buildOrderList();
+            $listing = $factory->getOrderManager()->buildOrderList();
             $listing->setCondition($conditionQuery, $conditionParams);
             $listing->setOrderKey($orderKey);
             $listing->setOrder($order);
