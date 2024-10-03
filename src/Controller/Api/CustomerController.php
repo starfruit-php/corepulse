@@ -15,7 +15,7 @@ use Knp\Component\Pager\PaginatorInterface;
 class CustomerController extends BaseController
 {
     /**
-     * @Route("/listing", name="api_customer_listing")
+     * @Route("/listing", name="corepulse_api_customer_listing")
      */
     public function listing()
     {
@@ -43,7 +43,7 @@ class CustomerController extends BaseController
 
             $orderKey = $this->request->get('order_by');
             $order = $this->request->get('order');
-            if (empty($order_by)) $orderKey = 'key';
+            if (empty($orderKey)) $orderKey = 'key';
             if (empty($order)) $order = 'asc';
 
             if ($limit == -1) {

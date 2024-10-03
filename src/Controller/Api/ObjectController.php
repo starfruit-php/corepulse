@@ -26,7 +26,7 @@ class ObjectController extends BaseController
     private array $metaData = [];
 
     /**
-     * @Route("/submit-column-setting", name="api_object_submit_column_setting", methods={"POST"}, options={"expose"=true})
+     * @Route("/submit-column-setting", name="corepulse_api_object_submit_column_setting", methods={"POST"}, options={"expose"=true})
      */
     public function submitColumnSetting()
     {
@@ -54,7 +54,7 @@ class ObjectController extends BaseController
     }
 
     /**
-     * @Route("/get-column-setting", name="api_object_get_column_setting", methods={"GET"}, options={"expose"=true})
+     * @Route("/get-column-setting", name="corepulse_api_object_get_column_setting", methods={"GET"}, options={"expose"=true})
      */
     public function getColumnSetting()
     {
@@ -110,7 +110,7 @@ class ObjectController extends BaseController
     }
 
     /**
-     * @Route("/listing-by-object", name="api_object_listing", methods={"GET"}, options={"expose"=true})
+     * @Route("/listing-by-object", name="corepulse_api_object_listing", methods={"GET"}, options={"expose"=true})
      */
     public function listingByObject()
     {
@@ -187,11 +187,11 @@ class ObjectController extends BaseController
     }
 
     /**
-     * @Route("/detail/{id}", name="api_object_detail", methods={"GET", "POST"})
+     * @Route("/detail/{id}", name="corepulse_api_object_detail", methods={"GET", "POST"})
      */
     public function detail()
     {
-        // try {
+        try {
             // Validate request
             $condition = [ 'id' => 'required' ];
             $messageError = $this->validator->validate($condition, $this->request);
@@ -216,13 +216,13 @@ class ObjectController extends BaseController
 
             // Prepare object data for response
             return $this->prepareObjectDataResponse($objectFromDatabase);
-        // } catch (\Exception $e) {
-        //     return $this->sendError($e->getMessage(), 500);
-        // }
+        } catch (\Exception $e) {
+            return $this->sendError($e->getMessage(), 500);
+        }
     }
 
     /**
-     * @Route("/options", name="api_object_option", methods={"GET", "POST"})
+     * @Route("/options", name="corepulse_api_object_option", methods={"GET", "POST"})
      */
     public function options()
     {
@@ -252,7 +252,7 @@ class ObjectController extends BaseController
     }
 
     /**
-     * @Route("/delete", name="api_object_delete", methods={"POST"})
+     * @Route("/delete", name="corepulse_api_object_delete", methods={"POST"})
      *
      * {mô tả api}
      *
@@ -309,7 +309,7 @@ class ObjectController extends BaseController
     }
 
     /**
-     * @Route("/add", name="api_object_add", methods={"POST"})
+     * @Route("/add", name="corepulse_api_object_add", methods={"POST"})
      *
      * {mô tả api}
      *
@@ -382,7 +382,7 @@ class ObjectController extends BaseController
     }
 
     /**
-     * @Route("/get-sidebar", name="api_object_slider_bar", methods={"GET"}, options={"expose"=true})
+     * @Route("/get-sidebar", name="corepulse_api_object_slider_bar", methods={"GET"}, options={"expose"=true})
      *
      * {mô tả api}
      *

@@ -22,50 +22,27 @@ class SeoServices
         ];
 
         $connect = self::sendCompletions($content, $key);
-        if ($connect && isset($connect['error'])) {
+        if ($connect && !$connect['success']) {
             return false;
         }
 
-        $item = self::getApiKey();
-        if (!$item) {
-            Db::get()->insert(
-                'vuetify_settings',
-                [
-                    'config' => $key,
-                    'type' => 'setting-ai',
-                ]
-            );
-        } else {
-            Db::get()->update(
-                'vuetify_settings',
-                [
-                    'config' => $key,
-                ],
-                [
-                    'type' => 'setting-ai',
-                ]
-            );
-        }
+        $data = ['config' => $key, 'type' => 'setting-ai'];
+        // Insert or update in a single query
+        $setting = self::getApiKey();
+        $setting ? Db::get()->update('vuetify_settings', $data, ['type' => 'setting-ai']) : Db::get()->insert('vuetify_settings', $data);
 
         return true;
     }
 
     static public function getApiKey()
     {
-        $item = Db::get()->fetchAssociative('SELECT * FROM `vuetify_settings` WHERE `type` = "setting-ai"', []);
-
-        if ($item && isset($item['config'])) {
-            return $item['config'];
-        }
-
-        return null;
+        $setting = Db::get()->fetchAssociative('SELECT * FROM `vuetify_settings` WHERE `type` = "setting-ai"');
+        return $setting['config'] ?? null; // Use null coalescing operator
     }
 
     static public function sendCompletions($content, $key = null)
     {
-        if (!$key) {
-            $key = self::getApiKey();
-        }
+        $key = $key ?? self::getApiKey(); // Use null coalescing assignment
 
         $url = 'https://api.openai.com/v1/chat/completions';
         $header = [
@@ -73,57 +50,36 @@ class SeoServices
             'Authorization' => 'Bearer ' . $key,
         ];
         $params = [
+            // "model" => "gpt-4o-mini",
             "model" => "gpt-3.5-turbo",
             "messages" => $content,
             "temperature" => 0.7
         ];
 
-        $result = [
-            'success' => false,
-            'data' => '',
-        ];
-
         $response = APIService::post($url, 'POST', $params, $header);
 
-        if ($response && isset($response['choices'])) {
-            $data = $response['choices'][0]['message']['content'];
+        $data = $response && isset($response['choices']) ? ['success' => true,'data' => $response['choices'][0]['message']['content']] : ['success' => false, 'data' => ''];
 
-            $result = [
-                'success' => true,
-                'data' => $data,
-            ];
-        }
-
-        return $result;
+        return $data;
     }
 
     static public function choicesContent($keyword, $type, $language = null)
     {
-        if (!$language) {
-            $language = LanguageTool::getDefault();
-        }
+        $language = $language ?? LanguageTool::getDefault(); // Use null coalescing assignment
         $languageName = \Locale::getDisplayLanguage($language);
-        // $languageName = 'English';
-
         $keyword = str_replace('"', "", $keyword);
 
         $content = [];
         if ($type == 'sematic') {
-            $content = [
-                [
-                    'role' => 'user',
-                    'content' => "I have a blog post about '$keyword' Can you give me 10 keywords and semantic entities in  $languageName that
-                    I can include in the content to make it better and more relevant so that Google understands my content faster and more accurately?
-                    returns me the results in list style html",
-                ]
-            ];
+            $content = [[
+                'role' => 'user',
+                'content' => "I have a blog post about '$keyword' Can you give me 10 keywords and semantic entities in  $languageName that I can include in the content to make it better and more relevant so that Google understands my content faster and more accurately? Please return only the results as an unordered list directly in HTML code format, without any explanation or introduction",
+            ]];
         } else if ($type == 'outline') {
-            $content = [
-                [
-                    'role' => 'user',
-                    'content' => "Give the keyword '$keyword' Draw on EEAT principles or guidelines to analyze and compare them for depth and detail of content, demonstration of expertise and credibility, and how well they meet user intent. I want you to create an outline for the keyword content I have provided. Should the outline be better than the competitor's or at least as good as theirs? The returned language is $languageName and  format in a visual list style by html level only taking the body content h1 h2 h3 ol li.",
-                ]
-            ];
+            $content = [[
+                'role' => 'user',
+                'content' => "Please create an outline for the keyword '$keyword' based on EEAT principles. The outline should focus on depth and detail of content, demonstration of expertise and credibility, and how well it meets user intent. Ensure the outline is at least as good as the competitors'. Please return only the results as an unordered list directly in HTML code format, without any explanation or introduction the outline in a visual list style using HTML with appropriate heading levels (h1, h2, h3) and list formats (ol, li) in the language $languageName.",
+            ]];
         }
 
         return $content;
@@ -132,75 +88,52 @@ class SeoServices
     static public function saveData($seo, $params)
     {
         $keyUpdate = ['keyword', 'title', 'slug', 'description', 'image', 'canonicalUrl', 'redirectLink',
-        'nofollow', 'indexing', 'redirectType', 'destinationUrl', 'schemaBlock', 'image', 'imageAsset'];
+        'nofollow', 'indexing', 'redirectType', 'destinationUrl', 'schemaBlock', 'imageAsset'];
 
         foreach ($params as $key => $value) {
             $function = 'set' . ucfirst($key);
-
             if (in_array($key, $keyUpdate) && method_exists($seo, $function)) {
-                if ($key == 'nofollow' || $key == 'indexing' || $key == 'redirectLink') {
-                   $value = filter_var($value, FILTER_VALIDATE_BOOLEAN);
+                if (in_array($key, ['nofollow', 'indexing', 'redirectLink'])) {
+                    $value = filter_var($value, FILTER_VALIDATE_BOOLEAN);
                 }
                 $seo->$function($value);
             }
         }
         $seo->save();
-
         return $seo;
     }
 
     static public function saveMetaData($seo, $params)
     {
-        $ogMeta = [];
-        $twitterMeta = [];
-        $customMeta = [];
-
-        if (isset($params['ogMeta'])) {
-            $ogMeta = $params['ogMeta'];
-            $ogMeta = self::revertMetaData($ogMeta);
-        }
-
-        if (isset($params['twitterMeta'])) {
-            $twitterMeta = $params['twitterMeta'];
-            $twitterMeta = self::revertMetaData($twitterMeta);
-        }
-
-        if (isset($params['customMeta'])) {
-            $customMeta = $params['customMeta'];
-            $twitterMeta = self::revertMetaData($twitterMeta);
-        }
+        $ogMeta = self::revertMetaData($params['ogMeta'] ?? []);
+        $twitterMeta = self::revertMetaData($params['twitterMeta'] ?? []);
+        $customMeta = self::revertMetaData($params['customMeta'] ?? []);
 
         $seo->setMetaDatas($ogMeta, $twitterMeta, $customMeta);
         $seo->save();
-
         return $seo;
     }
 
     static public function revertMetaData($array)
     {
-        $data = array_reduce($array, function ($carry, $item) {
+        return array_reduce($array, function ($carry, $item) {
             return array_merge($carry, $item);
         }, []);
-
-        return $data;
     }
 
     static public function getSetting()
     {
-        $setting = Option::getByName('seo_setting');
-        if (!$setting) {
+        $setting = Option::getByName('seo_setting') ?? new Option(); // Use null coalescing operator
+        if (!$setting->getId()) {
             $data = [
                 'type' => null,
                 'defaultValue' => null,
                 'customValue' => null,
             ];
-
-            $setting = new Option();
             $setting->setName('seo_setting');
             $setting->setContent(json_encode($data));
             $setting->save();
         }
-
         return $setting;
     }
 
@@ -222,31 +155,24 @@ class SeoServices
             $setting->setContent(json_encode($data));
             $setting->save();
         }
-
         return $setting;
     }
 
     static public function updateRedirect($redirect, $data = [])
     {
-        if (!empty($data['target'])) {
-            if ($doc = Document::getByPath($data['target'])) {
-                $data['target'] = $doc->getId();
-            }
+        if (!empty($data['target']) && $doc = Document::getByPath($data['target'])) {
+            $data['target'] = $doc->getId();
         }
 
-        if (isset($data['regex']) && !$data['regex'] && isset($data['source']) && $data['source']) {
+        if (isset($data['regex']) && !$data['regex'] && !empty($data['source'])) {
             $data['source'] = str_replace('+', ' ', $data['source']);
         }
 
         $redirect->setValues($data, true);
-
         $redirect->save();
 
-        $redirectTarget = $redirect->getTarget();
-        if (is_numeric($redirectTarget)) {
-            if ($doc = Document::getById((int)$redirectTarget)) {
-                $redirect->setTarget($doc->getRealFullPath());
-            }
+        if (is_numeric($redirectTarget = $redirect->getTarget()) && $doc = Document::getById((int)$redirectTarget)) {
+            $redirect->setTarget($doc->getRealFullPath());
         }
 
         return $redirect;

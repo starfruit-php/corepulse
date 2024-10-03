@@ -19,7 +19,7 @@ class EcommerceController extends BaseController
     const PERPAGE_DEFAULT = 10;
 
     /**
-     * @Route("/summary", name="api_ecommerce_summary", methods={"GET"})
+     * @Route("/summary", name="corepulse_api_ecommerce_summary", methods={"GET"})
      */
     public function summary(Factory $factory, EnvironmentInterface $environment)
     {
@@ -37,8 +37,8 @@ class EcommerceController extends BaseController
             $customer = DataObject\Customer::getById($this->request->get('customer'));
             if (!$customer) return $this->sendError([ 'success' => false, 'message' => 'Customer not found.' ]);
 
-            $$environment->setCurrentUserId($customer->getId());
-            $$environment->save();
+            $environment->setCurrentUserId($customer->getId());
+            $environment->save();
 
             $cartManager = $factory->getCartManager();
             $carts = $cartManager->getCartByName(name: 'cart');
@@ -79,7 +79,7 @@ class EcommerceController extends BaseController
     }
 
     /**
-     * @Route("/order/listing", name="api_ecommerce_order_listing", methods={"GET"})
+     * @Route("/order/listing", name="corepulse_api_ecommerce_order_listing", methods={"GET"})
      */
     public function order(Factory $factory, EnvironmentInterface $environment)
     {
@@ -145,7 +145,7 @@ class EcommerceController extends BaseController
     }
 
     /**
-     * @Route("/order/detail", name="api_ecommerce_order_detail", methods={"GET", "POST"})
+     * @Route("/order/detail", name="corepulse_api_ecommerce_order_detail", methods={"GET", "POST"})
      */
     public function detail()
     {

@@ -11,6 +11,8 @@ use CorepulseBundle\Services\Helper\ArrayHelper;
 use CorepulseBundle\Services\SeoServices;
 use Pimcore\Bundle\SeoBundle\Model\Redirect;
 use Pimcore\Model\Document;
+use Pimcore\Model\DataObject;
+use Starfruit\BuilderBundle\Model\Seo;
 
 /**
  * @Route("/seo")
@@ -18,7 +20,7 @@ use Pimcore\Model\Document;
 class SeoController extends BaseController
 {
     /**
-     * @Route("/404/listing", name="api_seo_monitor_listing", methods={"GET", "POST"})
+     * @Route("/404/listing", name="corepulse_api_seo_monitor_listing", methods={"GET", "POST"})
      *
      * {mô tả api}
      */
@@ -69,7 +71,7 @@ class SeoController extends BaseController
     }
 
     /**
-     * @Route("/404/detail", name="api_seo_monitor_detail", methods={"GET"})
+     * @Route("/404/detail", name="corepulse_api_seo_monitor_detail", methods={"GET"})
      */
     public function monitorDetail()
     {
@@ -97,7 +99,7 @@ class SeoController extends BaseController
     }
 
     /**
-     * @Route("/404/truncate", name="api_seo_monitor_truncate", methods={"POST"})
+     * @Route("/404/truncate", name="corepulse_api_seo_monitor_truncate", methods={"POST"})
      */
     public function monitorTruncate()
     {
@@ -116,7 +118,7 @@ class SeoController extends BaseController
     }
 
     /**
-     * @Route("/404/delete", name="api_seo_monitor_delete", methods={"POST"})
+     * @Route("/404/delete", name="corepulse_api_seo_monitor_delete", methods={"POST"})
      */
     public function monitorDelete()
     {
@@ -162,7 +164,7 @@ class SeoController extends BaseController
     }
 
     /**
-     * @Route("/301/listing", name="api_seo_redirect_listing", methods={"GET", "POST"})
+     * @Route("/301/listing", name="corepulse_api_seo_redirect_listing", methods={"GET", "POST"})
      *
      * {mô tả api}
      */
@@ -192,7 +194,7 @@ class SeoController extends BaseController
                     $conditionParams = array_merge($conditionParams, $arrQuery['params']);
                 }
             }
-            
+
             $listing = new Redirect\Listing();
             $listing->setCondition($conditionQuery, $conditionParams);
             $listing->setOrderKey($orderKey);
@@ -225,7 +227,7 @@ class SeoController extends BaseController
     }
 
     /**
-     * @Route("/301/create", name="api_seo_redirect_detail", methods={"POST"})
+     * @Route("/301/create", name="corepulse_api_seo_redirect_detail", methods={"POST"})
      */
     public function redirectCreate()
     {
@@ -248,7 +250,7 @@ class SeoController extends BaseController
     }
 
     /**
-     * @Route("/301/update", name="api_seo_redirect_update", methods={"POST"})
+     * @Route("/301/update", name="corepulse_api_seo_redirect_update", methods={"POST"})
      */
     public function redirectUpdate()
     {
@@ -285,7 +287,7 @@ class SeoController extends BaseController
     }
 
     /**
-     * @Route("/301/delete", name="api_seo_redirect_delete", methods={"POST"})
+     * @Route("/301/delete", name="corepulse_api_seo_redirect_delete", methods={"POST"})
      */
     public function redirectDelete()
     {
@@ -326,6 +328,221 @@ class SeoController extends BaseController
 
             return $this->sendResponse($data);
         } catch (\Exception $e) {
+            return $this->sendError($e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * @Route("/301/redirect-type", name="corepulse_api_seo_redirect_type")
+     */
+    public function redirectType()
+    {
+        $data = [
+            [
+                'key' => '301 Permanent Move',
+                'value' => 301
+            ],
+            [
+                'key' => '302 Temporary Move',
+                'value' => 302
+            ],
+            [
+                'key' => '307 Temporary Redirect',
+                'value' => 307
+            ],
+            [
+                'key' => '401 Content Deleted',
+                'value' => 401
+            ],
+            [
+                'key' => '451 Content Unavailable',
+                'value' => 451
+            ]
+        ];
+
+        return $this->sendResponse($data);
+    }
+
+    /**
+     * @Route("/301/redirect-type-option", name="corepulse_api_seo_redirect_type_option")
+     */
+    public function redirectTypeOption()
+    {
+        $data = [
+            [
+                'key' => 'Path: /foo',
+                'value' => 'path'
+            ],
+            [
+                'key' => 'Auto create',
+                'value' => 'auto_create'
+            ],
+            [
+                'key' => 'Path and Query: /foo?key=value',
+                'value' => 'path_query'
+            ],
+            [
+                'key' => 'Entire URI: https://host.com/foo?key=value',
+                'value' => 'entire_uri'
+            ],
+        ];
+
+        return $this->sendResponse($data);
+    }
+
+    /**
+     * @Route("/object/detail", name="corepulse_api_seo_object_detail", methods={"GET", "POST"})
+     */
+    public function objectDetail()
+    {
+        try {
+            $language = $this->request->get('_locale');
+            $object = DataObject::getById($this->request->get('id'));
+
+            $seo = Seo::getOrCreate($object, $language);
+
+            if(!$seo) return $this->sendError(['success' => false, 'message' => 'Object or seo config not found.']);
+
+            if ($this->request->isMethod('POST')) {
+                // $condition = [ 'saveMetaData' => 'required' ];
+                // $messageError = $this->validator->validate($condition, $this->request);
+                // if($messageError) return $this->sendError($messageError);
+
+                 //lưu dữ liệu vào bảng seo
+                if ($this->request->get('update')) {
+                    $params = $this->request->request->all();
+                    $seo = SeoServices::saveData($seo, $params);
+                }
+
+                if ($this->request->get('saveMetaData')) {
+                    $params = [
+                        'ogMeta' => $this->request->get('ogMeta') ? json_decode($this->request->get('ogMeta'), true) : [],
+                        'twitterMeta' => $this->request->get('twitterMeta') ? json_decode($this->request->get('twitterMeta'), true) : [],
+                    ];
+                    $seo = SeoServices::saveMetaData($seo, $params);
+                }
+            }
+
+            $metaData = $seo->getMetaDatas();
+
+            // lấy danh sách dữ liệu seoscoring
+            $scoring = $seo->getScoring(true);
+            $settingAi = ['settingAi' => SeoServices::getApiKey()];
+            $data = array_merge($scoring, $metaData, $settingAi);
+
+            return $this->sendResponse($data);
+        } catch (\Throwable $e) {
+            return $this->sendError($e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * @Route("/object/meta-type", name="corepulse_api_seo_meta_type", methods={"GET"})
+     */
+    public function metaType()
+    {
+        $data = [
+            'ogMeta' => [
+                [
+                    'key' => 'Meta Title',
+                    'value' => 'og:title',
+                ],
+                [
+                    'key' => 'Meta Description',
+                    'value' => 'og:description',
+                ],
+                [
+                    'key' => 'Meta Type',
+                    'value' => 'og:type',
+                ],
+                [
+                    'key' => 'Meta Image',
+                    'value' => 'og:image',
+                ],
+                [
+                    'key' => 'Meta Url',
+                    'value' => 'og:url',
+                ],
+                [
+                    'key' => 'Meta Image Alt',
+                    'value' => 'og:image:alt',
+                ],
+            ],
+            'twitterMeta' => [
+                [
+                    'key' => 'Twitter Title',
+                    'value' => 'twitter:title',
+                ],
+                [
+                    'value' => 'twitter:description',
+                    'key' => 'Twitter Description',
+                ],
+                [
+                    'key' => 'Twitter Card',
+                    'value' => 'twitter:card',
+                ],
+                [
+                    'key' => 'Twitter Site',
+                    'value' => 'twitter:site',
+                ],
+                [
+                    'key' => 'Twitter Image',
+                    'value' => 'twitter:image',
+                ],
+                [
+                    'key' => 'Twitter Image Alt',
+                    'value' => 'twitter:image:alt',
+                ],
+            ],
+        ];
+
+        return $this->sendResponse($data);
+    }
+
+    /**
+     * @Route("/object/setting-ai", name="corepulse_api_seo_setting_ai", methods={"POST"})
+     */
+    public function settingAi()
+    {
+        try {
+            $condition = [ 'setting' => 'required' ];
+            $messageError = $this->validator->validate($condition, $this->request);
+            if($messageError) return $this->sendError($messageError);
+
+            $data = [
+                'success' => SeoServices::checkApi($this->request->get('setting'))
+            ];
+
+            return $this->sendResponse($data);
+        } catch (\Throwable $e) {
+            return $this->sendError($e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * @Route("/object/send-keyword", name="corepulse_api_seo_send_keyword", methods={"GET"}))
+     */
+    public function sendKeyword(Request $request)
+    {
+        try {
+            $condition = [
+                'keyword' => 'required',
+                '_locale' => 'required',
+                'type' => 'required|choice:sematic,outline'
+            ];
+            $messageError = $this->validator->validate($condition, $this->request);
+            if($messageError) return $this->sendError($messageError);
+
+            $keyword = $request->get('keyword');
+            $language = $request->get('_locale');
+            $type = $request->get('type');
+
+            $content =  SeoServices::choicesContent($keyword, $type, $language);
+
+            $response = SeoServices::sendCompletions(content: $content);
+
+            return $this->sendResponse($response);
+        } catch (\Throwable $e) {
             return $this->sendError($e->getMessage(), 500);
         }
     }

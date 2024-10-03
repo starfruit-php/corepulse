@@ -10,6 +10,7 @@ use CorepulseBundle\Services\ReportServices;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use CorepulseBundle\Services\Helper\ArrayHelper;
 
 /**
  * @Route("/report")
@@ -59,7 +60,7 @@ class ReportController extends BaseController
                     if (count($search)) {
                         $dataOld = $data;
                         foreach ($search as $key => $value) {
-                            $data = ReportServices::filterData($data, $key, $value);
+                            $data = ArrayHelper::filterData($data, $key, $value);
 
                             if($key == 'id') {
                                 if (!count($data)) {
@@ -113,7 +114,7 @@ class ReportController extends BaseController
 
                     if (count($search)) {
                         foreach ($search as $key => $value) {
-                            $data = ReportServices::filterData($data, $key, $value);
+                            $data = ArrayHelper::filterData($data, $key, $value);
                         }
                     }
                 }
@@ -127,7 +128,7 @@ class ReportController extends BaseController
                 }
 
                 if ($orderKey && $order) {
-                    $data = ReportServices::sortArrayByField($data, $orderKey, $order);
+                    $data = ArrayHelper::sortArrayByField($data, $orderKey, $order);
                 }
 
                 $datas = array_chunk($data, $limit);
