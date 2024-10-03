@@ -191,7 +191,7 @@ class ObjectController extends BaseController
      */
     public function detail()
     {
-        try {
+        // try {
             // Validate request
             $condition = [ 'id' => 'required' ];
             $messageError = $this->validator->validate($condition, $this->request);
@@ -216,9 +216,9 @@ class ObjectController extends BaseController
 
             // Prepare object data for response
             return $this->prepareObjectDataResponse($objectFromDatabase);
-        } catch (\Exception $e) {
-            return $this->sendError($e->getMessage(), 500);
-        }
+        // } catch (\Exception $e) {
+        //     return $this->sendError($e->getMessage(), 500);
+        // }
     }
 
     /**
@@ -455,14 +455,15 @@ class ObjectController extends BaseController
 
     private function handlePostUpdate($objectFromDatabase)
     {
+        $localized = $this->request->get('_locale', $this->request->getLocale());
         $contents = json_decode($this->request->getContent(), true);
         if (isset($contents['update'])) {
-            try {
-                DataObjectServices::saveEdit($objectFromDatabase, $contents['update']);
+            // try {
+                DataObjectServices::saveEdit($objectFromDatabase, $contents['update'], $localized);
                 return $this->sendResponse(['success' => true, 'message' => 'Object update success.']);
-            } catch (\Throwable $th) {
-                return $this->sendError(['success' => false, 'message' => $th->getMessage()], 500);
-            }
+            // } catch (\Throwable $th) {
+            //     return $this->sendError(['success' => false, 'message' => $th->getMessage()], statusCode: 500);
+            // }
         }
         return $this->sendError(['success' => false, 'message' => 'Object update false.'], 500);
     }

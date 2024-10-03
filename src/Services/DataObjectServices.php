@@ -73,15 +73,19 @@ class DataObjectServices
     }
 
     // save object detail
-    static public function saveEdit($object, $updateData)
+    static public function saveEdit($object, $updateData, $locale)
     {
+        $classDefinition = $object->getClass();
+        $fieldDefinitions = $classDefinition->getFieldDefinitions();
+
         foreach ($updateData as $key => $value) {
             $getClass = '\\CorepulseBundle\\Component\\Field\\' . ucfirst($value['type']);
-            if (class_exists($getClass)) {
-                $component = new $getClass($object, null, $value['value']);
+            if (class_exists($getClass) && isset($fieldDefinitions[$key])) {
+                $component = new $getClass($object, $fieldDefinitions[$key], $value['value'], $locale);
                 $data = $component->getDataSave();
                 $func = 'set' . ucfirst($key);
-                $object->{$func}($data);
+                if ($value['type'] != 'block') $object->{$func}($data);
+                else $object->{$func}($data, $locale);
             }
         }
 

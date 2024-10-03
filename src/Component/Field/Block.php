@@ -6,6 +6,7 @@ use CorepulseBundle\Services\DataObjectServices;
 use CorepulseBundle\Services\Helper\ArrayHelper;
 use Pimcore\Model\DataObject\Data\BlockElement;
 use CorepulseBundle\Services\ClassServices;
+use Pimcore\Model\DataObject\Localizedfields;
 
 class Block extends Input
 {
@@ -42,7 +43,7 @@ class Block extends Input
                         continue;
                     }
 
-                    $componentData = new $getClass($fieldValue, $field);
+                    $componentData = new $getClass($fieldValue, $field, $this->value, $this->localized);
 
                     $resultItem[$key] = $componentData->getValue();
                 }
@@ -60,15 +61,35 @@ class Block extends Input
             $data = [];
             foreach ($value as $k => $v) {
                 $getClass = '\\CorepulseBundle\\Component\\Field\\' . ucfirst($v['type']);
-                if (class_exists($getClass)) {
-                    $component = new $getClass($this->data, null, $v['value']);
-
-                    $valueData =  $component->getDataSave();
-                    $blockElement = new BlockElement($k, $v['type'], $valueData);
-                    $data[$k] = $blockElement;
+                if (!class_exists($getClass)) {
+                    continue;
                 }
+
+                $component = new $getClass($this->data, $this->layout, $v['value'], $this->localized);
+
+                $valueData =  $component->getDataSave();
+
+                if($v['type'] == 'localizedfields' && $this->getValue()) {
+                    $revertItems = $valueData->getItems();
+                    $valueOld = $this->getValue()[$key]['localizedfields'];
+                    unset($valueOld[$this->localized]);
+                    $valueData->setItems(array_merge($valueOld, $revertItems));
+                }
+                $blockElement = new BlockElement($k, $v['type'], $valueData);
+                $data[$k] = $blockElement;
             }
             $datas[] = $data;
+        }
+
+        if ($this->getValue() && ($countDatas = count($datas)) < count($this->getValue())) {
+            foreach ($this->getValue() as $key => $value) {
+                if ($key > $countDatas - 1 && $value && isset($value['localizedfields'])) {
+                    unset($value['localizedfields'][$this->localized]);
+                    $valueData = new \Pimcore\Model\DataObject\Localizedfield($value['localizedfields']);
+                    $data = new BlockElement('localizedfields', 'localizedfields', $valueData);
+                    $datas[] = $data;
+                }
+            }
         }
 
         return $datas;
