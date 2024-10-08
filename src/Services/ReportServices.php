@@ -26,19 +26,19 @@ class ReportServices
         return $data;
     }
 
-    static public function getSql($config, $where = '')
-    {
-        $data = [];
-        $sql = '';
 
+
+    static public function getSql($config, $conditions = '', $params = [])
+    {
+        $sql = '';
         $type = $config->type;
         if ($type == 'sql') {
             $sql = 'SELECT ' . $config->sql . ' FROM ' . $config->from;
 
-            if ($where && $config->where) {
-                $sql .= ' WHERE ' . $config->where . ' AND ' . $where;
-            } elseif ($where) {
-                $sql .= ' WHERE ' . $where;
+            if ($conditions && $config->where) {
+                $sql .= ' WHERE ' . $config->where . ' AND ' . $conditions;
+            } elseif ($conditions) {
+                $sql .= ' WHERE ' . $conditions;
             } elseif ($config->where) {
                 $sql .= ' WHERE ' . $config->where;
             }
@@ -52,19 +52,14 @@ class ReportServices
                 $sql .= ' GROUP BY ' . $config->groupby;
             }
             // }
+
+            $db = Db::get();
+            $data = $db->fetchAllAssociative($sql, $params);
+
+            return $data;
         }
 
-        $db = Db::get();
-
-        $data = $db->fetchAllAssociative($sql);
-
-        if ($data) {
-            foreach ($data as $key => $value) {
-                $data[$key] = array_merge($value, ["unSelecte" => true]);
-            }
-        }
-
-        return $data;
+        return null;
     }
 
     static public function getColumn($column)
@@ -124,15 +119,10 @@ class ReportServices
             $chartData['series'] =  $datas;
         } else {
             foreach ($chart['column'] as $k => $i) {
-                // Tạo màu ngẫu nhiên
                 $color = sprintf('#%06X', mt_rand(0, 0xFFFFFF));
-
-                // Kiểm tra xem màu đã được sử dụng chưa, nếu đã sử dụng, tạo lại
                 while (in_array($color, $colors)) {
                     $color = sprintf('#%06X', mt_rand(0, 0xFFFFFF));
                 }
-
-                // Thêm màu vào mảng
                 $colors[] = $color;
 
                 $data = [];
@@ -142,7 +132,6 @@ class ReportServices
 
                 $datas[] = [
                     'name' => $i,
-                    // 'backgroundColor' => $color,
                     'data' => $data
                 ];
             }

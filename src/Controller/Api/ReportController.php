@@ -36,7 +36,9 @@ class ReportController extends BaseController
 
                 $data = array_merge($data, ArrayHelper::filterData($dataOld, 'niceName', $search));
 
-                if(!empty($data)) $data = array_values($data);
+                if (!empty($data)) {
+                    $data = array_values($data);
+                }
             }
 
             return $this->sendResponse($data);
@@ -56,90 +58,73 @@ class ReportController extends BaseController
 
             $condition = array_merge($condition, [
                 'id' => 'required',
+                'type' => 'choice:table'
             ]);
             $messageError = $this->validator->validate($condition, $this->request);
-            if($messageError) return $this->sendError($messageError);
+            if ($messageError) {
+                return $this->sendError($messageError);
+            }
 
             $id = $this->request->get('id');
-            $report = Tool\Config::getByName( $id);
+            $report = Tool\Config::getByName($id);
 
-            $data = [];
+            if (!$report) {
+                return $this->sendError('Report not found', 500);
+            }
+
             $fields = [];
-            $reportJson = [];
             $chartData = [];
             $chart = [];
             $orderKey = $this->request->get('order_by');
             $order = $this->request->get('order');
 
-            if ($report) {
-                $reportJson = [
-                    'name' => $report->getName()
-                ];
+            $fields = ReportServices::getColumn($report->getColumnConfiguration());
 
-                $data = ReportServices::getSql($report->getDataSourceConfig());
+            $conditionQuery = '';
+            $conditionParams = [];
 
-                if ($this->request->isMethod('POST')) {
-                    $search = $this->request->get("search");
-                    $search = json_decode($search, true);
+            $filterRule = $this->request->get('filterRule');
+            $filter = $this->request->get('filter');
 
-                    if ($search) {
-                        $search = array_filter($search, function ($value) {
-                            return !($value === "" || $value === null);
-                        });
+            if ($filterRule && $filter) {
+                $arrQuery = $this->getQueryCondition($filterRule, $filter);
 
-                        if (count($search)) {
-                            foreach ($search as $key => $value) {
-                                $data = ArrayHelper::filterData($data, $key, $value);
-                            }
-                        }
-                    }
-                }
-
-                $fields = ReportServices::getColumn($report->getColumnConfiguration());
-
-                if ($data) {
-                    if($limit == '-1') {
-                        $limit = count($data);
-                    }
-
-                    if ($orderKey && $order) {
-                        $data = ArrayHelper::sortArrayByField($data, $orderKey, $order);
-                    }
-
-                    $datas = array_chunk($data, $limit);
-
-                    $chart = ReportServices::getChart($report);
-
-                    if ($chart) {
-                        // $chartData = ReportServices::getChartData($datas[(int)$page - 1], $chart);
-                        $chartData = ReportServices::getChartData($data, $chart);
-                    }
-
-                    if(count($datas)) {
-                        return new JsonResponse([
-                            'listing' => $datas[(int)$page - 1],
-                            'fields' => $fields,
-                            'totalItems' => count($data),
-                            'reportJson' => $reportJson,
-                            'chart' => $chart,
-                            'chartData' => $chartData,
-                            'limit' => $limit,
-                        ]);
-                    }
+                if ($arrQuery['query']) {
+                    $conditionQuery = $arrQuery['query'];
+                    $conditionParams = $arrQuery['params'];
                 }
             }
 
-            $result = [
-                'listing' => $data,
+            $listing = ReportServices::getSql($report->getDataSourceConfig(), $conditionQuery, $conditionParams);
+
+            if ($listing && $orderKey && $order) {
+                $listing = ArrayHelper::sortArrayByField($listing, $orderKey, $order);
+            }
+
+            $pagination = $this->paginator($listing, $page, $limit);
+
+            if ($this->request->get('type') == 'table') {
+                return $this->sendResponse([
+                    'paginationData' => $pagination->getPaginationData(),
+                    'data' => $pagination->getItems()
+                ]);
+            }
+
+            $chart = ReportServices::getChart($report);
+
+            if ($chart) {
+                $chartData = ReportServices::getChartData($listing, $chart);
+            }
+
+            $data = [
+                'paginationData' => $pagination->getPaginationData(),
+                'data' => $pagination->getItems(),
                 'fields' => $fields,
-                'totalItems' => count($data),
-                'reportJson' => $reportJson,
                 'chart' => $chart,
                 'chartData' => $chartData,
-                'limit' => $limit,
             ];
 
-            return $this->sendResponse($result);
+            return $this->sendResponse($data);
         } catch (\Throwable $th) {
             return $this->sendError($th->getMessage(), 500);
         }

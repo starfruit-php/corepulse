@@ -13,10 +13,10 @@ class Video extends Image
     {
         $data = [
             'type' => $value?->getType() ?? null,
-            'data' => $value?->getData() instanceof Asset ? $value->getData()?->getFullPath() : $value?->getData(),
+            'path' => $value?->getData() instanceof Asset ? $value->getData()?->getFrontendPath() : $value?->getData(),
             'title' => $value?->getTitle() ?? null,
             'description' => $value?->getDescription() ?? null,
-            'poster' => $value?->getPoster() ? $value->getPoster()?->getFullPath() : null,
+            'poster' => $value?->getPoster() ? $value->getPoster()?->getFrontendPath() : null,
         ];
 
         if ($value?->getData() instanceof Asset) {
@@ -26,6 +26,7 @@ class Video extends Image
 
         return $data;
     }
+
     public function getFrontEndType():string
     {
         return 'video';
@@ -47,7 +48,7 @@ class Video extends Image
 
                 if (isset($value['title'])) $video->setTitle($value['title']);
                 if (isset($value['description'])) $video->setDescription($value['description']);
-                
+
                 if (isset($value['dataId'])) $video->setData(Asset::getById($value['dataId']));
                 if (isset($value['data']) && !$video->getData()) {
                     $dataPrefix =  str_replace($prefix, '', $value['data']);
