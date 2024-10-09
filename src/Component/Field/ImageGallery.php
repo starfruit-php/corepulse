@@ -16,8 +16,11 @@ class ImageGallery extends Image
             if ($item) {
                 $image = $item->getImage();
                 if($image) {
-                    $data = AssetTool::getPath($image, true);
-                    $data['id'] = $image->getId();
+                    // $data = AssetTool::getPath($image, true);
+                    $data = [
+                        'path' => $image->getFrontendPath(),
+                        'id' => $image->getId()
+                    ];
 
                     $datas[] = $data;
                 }
