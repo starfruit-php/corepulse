@@ -9,11 +9,11 @@ class ClassDefinitionListener
 {
     public function postClassUpdate(ClassDefinitionEvent $event)
     {
-        // try {/
+        try {
             $classDefinition = $event->getClassDefinition();
             $params = ClassServices::examplesAction($classDefinition->getId());
             $update = ClassServices::updateTable($classDefinition->getId(), $params);
-        // } catch (\Throwable $th) {
-        // }
+        } catch (\Throwable $th) {
+        }
     }
 }

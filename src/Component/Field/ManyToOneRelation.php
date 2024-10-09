@@ -46,7 +46,7 @@ class ManyToOneRelation extends Select
 
     public function getElementType(ElementInterface $element)
     {
-        $data = null;
+        $data = [];
 
         $visibleFields = ['key', 'path', 'fullpath'];
         $displayMode = $this->layout->displayMode;
@@ -55,35 +55,8 @@ class ManyToOneRelation extends Select
             $visibleFields = explode(',', $this->layout->visibleFields);
         }
 
-        if ($element instanceof Asset) {
-            $data = [
-                'type' => 'asset',
-                'id' => $element->getId(),
-                'subType' => $element->getType()
-            ];
-        }
-
-        if ($element instanceof Document) {
-            $data = [
-                'type' => 'document',
-                'id' => $element->getId(),
-                'subType' => $element->getType()
-            ];
-            if ($key = array_search("filename", $visibleFields)) {
-                unset($visibleFields[$key]);
-            }
-        }
-
-        if ($element instanceof DataObject\AbstractObject) {
-            $data = [
-                'type' => 'object',
-                'id' => $element->getId(),
-                'subType' => $element->getClassName()
-            ];
-
-            if ($key = array_search("filename", $visibleFields)) {
-                unset($visibleFields[$key]);
-            }
+        if ($key = array_search("filename", $visibleFields)) {
+            unset($visibleFields[$key]);
         }
 
         foreach ($visibleFields as $field) {
@@ -93,6 +66,36 @@ class ManyToOneRelation extends Select
             }
 
             $data[$field] = $value;
+        }
+
+        if ($element instanceof Asset) {
+            $data = array_merge( $data, [
+                'type' => 'asset',
+                'id' => $element->getId(),
+                'subType' => $element->getType()
+            ]);
+
+            $data['fullpath'] = 'Asset' . $data['fullpath'];
+        }
+
+        if ($element instanceof Document) {
+            $data = array_merge( $data, [
+                'type' => 'document',
+                'id' => $element->getId(),
+                'subType' => $element->getType()
+            ]);
+
+            $data['fullpath'] = 'Asset' . $data['fullpath'];
+        }
+
+        if ($element instanceof DataObject\AbstractObject) {
+            $data = array_merge( $data, [
+                'type' => 'object',
+                'id' => $element->getId(),
+                'subType' => $element->getClassName()
+            ]);
+
+            $data['fullpath'] = 'DataObject' . $data['fullpath'];
         }
 
         return $data;
