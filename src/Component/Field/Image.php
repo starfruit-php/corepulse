@@ -9,16 +9,11 @@ class Image extends Input
 {
     public function format($value)
     {
-        // $data = AssetTool::getPath($value, true);
-
-        // if ($value) {
-        //     $data['path'] =
-        //     $data['id'] = $value->getId();
-        // }
-
         $data = [
-            'path' => $value?->getFrontendPath(),
-            'id' => $value?->getId()
+            [
+                'path' => $value?->getFrontendPath(),
+                'id' => $value?->getId()
+            ]
         ];
 
         return $data;

@@ -10,13 +10,11 @@ class ImageGallery extends Image
 {
     public function format($value)
     {
-        // $value = AssetTool::getPaths($value, true);
         $datas = [];
         foreach ($value->getItems() as $item) {
             if ($item) {
                 $image = $item->getImage();
                 if($image) {
-                    // $data = AssetTool::getPath($image, true);
                     $data = [
                         'path' => $image->getFrontendPath(),
                         'id' => $image->getId()
