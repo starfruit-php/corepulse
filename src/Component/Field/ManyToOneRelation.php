@@ -11,6 +11,8 @@ use Pimcore\Db;
 
 class ManyToOneRelation extends Select
 {
+    const SYSTEM_CONVERT_DATE = ['creationDate', 'modificationDate'];
+
     public function format($value)
     {
         if ($value) {
@@ -48,59 +50,60 @@ class ManyToOneRelation extends Select
     {
         $data = [];
 
+        // Các trường hiển thị mặc định
         $visibleFields = ['key', 'path', 'fullpath'];
         $displayMode = $this->layout->displayMode;
 
-        if (property_exists($this->layout, 'visibleFields') && $this->layout->visibleFields) {
+        // Kiểm tra và cập nhật các trường hiển thị nếu được chỉ định trong layout
+        if (property_exists($this->layout, 'visibleFields') && !empty($this->layout->visibleFields)) {
             $visibleFields = explode(',', $this->layout->visibleFields);
         }
 
-        if ($key = array_search("filename", $visibleFields)) {
+        // Loại bỏ trường 'filename' khỏi danh sách các trường hiển thị
+        if (($key = array_search("filename", $visibleFields)) !== false) {
             unset($visibleFields[$key]);
         }
 
+        // Lấy giá trị của các trường hiển thị
         foreach ($visibleFields as $field) {
-            $value = $element->{'get' . ucfirst($field)}();
-            if (in_array($field, self::SYSTEM_CONVERT_DATE)) {
-                $value = date('Y/m/d', $value);
+            $method = 'get' . ucfirst($field);
+            if (method_exists($element, $method)) {
+                $value = $element->$method();
+                // Chuyển đổi ngày cho các trường thuộc loại SYSTEM_CONVERT_DATE
+                if (in_array($field, self::SYSTEM_CONVERT_DATE)) {
+                    $value = date('Y/m/d', $value);
+                }
+                $data[$field] = $value;
             }
-
-            $data[$field] = $value;
         }
 
+        // Xử lý các loại element khác nhau (Asset, Document, DataObject)
         if ($element instanceof Asset) {
-            $data = array_merge( $data, [
+            $data = array_merge($data, [
                 'type' => 'asset',
                 'id' => $element->getId(),
-                'subType' => $element->getType()
+                'subType' => $element->getType(),
+                'fullpath' => 'Asset/' . $element->getType() . '/' . $element->getId(),
             ]);
-
-            $data['fullpath'] = 'Asset' . $data['fullpath'];
-        }
-
-        if ($element instanceof Document) {
-            $data = array_merge( $data, [
+        } elseif ($element instanceof Document) {
+            $data = array_merge($data, [
                 'type' => 'document',
                 'id' => $element->getId(),
-                'subType' => $element->getType()
+                'subType' => $element->getType(),
+                'fullpath' => 'Document/' . $element->getType() . '/' . $element->getId(),
             ]);
-
-            $data['fullpath'] = 'Document' . $data['fullpath'];
-        }
-
-        if ($element instanceof DataObject\AbstractObject) {
-            $data = array_merge( $data, [
+        } elseif ($element instanceof DataObject\AbstractObject) {
+            $data = array_merge($data, [
                 'type' => 'object',
                 'id' => $element->getId(),
-                'subType' => $element->getClassName()
+                'subType' => $element->getClassName(),
+                'fullpath' => 'DataObject/' . $element->getClassName() . '/' . $element->getId(),
             ]);
-
-            $data['fullpath'] = 'DataObject' . $data['fullpath'];
         }
 
         return $data;
     }
-
+    
     public function getOption()
     {
         $layoutDefinition = $this->layout;

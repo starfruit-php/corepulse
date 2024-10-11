@@ -24,7 +24,7 @@ class ExportController extends BaseController
         $header = [];
 
         if (is_array($data)) {
-           
+
             foreach ($data as $key => $value) {
                 $data[$key] = json_decode($value);
             }
@@ -46,7 +46,7 @@ class ExportController extends BaseController
 
                 $filterData[] = $result;
             }
-            
+
             array_unshift($filterData, $header);
 
             $spreadsheet = self::getExcel($filterData);
@@ -83,7 +83,13 @@ class ExportController extends BaseController
                 }
                 $i++;
                 $cellCoordinate = Coordinate::stringFromColumnIndex($i) . ($rowIndex + 1);
-                $sheet->setCellValue($cellCoordinate, $value);
+                if(is_object($value)) $value = $value->key;
+
+                try {
+                    $sheet->setCellValue($cellCoordinate, $value);
+                } catch (\Throwable $th) {
+                    $sheet->setCellValue($cellCoordinate, '');
+                }
             }
         }
 

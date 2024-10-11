@@ -26,39 +26,11 @@ class ObjectController extends BaseController
     private array $metaData = [];
 
     /**
-     * @Route("/submit-column-setting", name="corepulse_api_object_submit_column_setting", methods={"POST"}, options={"expose"=true})
-     */
-    public function submitColumnSetting()
-    {
-        try {
-            $condition = [
-                'id' => 'required',
-                'columns' => 'required|array',
-            ];
-            $messageError = $this->validator->validate($condition, $this->request);
-            if($messageError) return $this->sendError($messageError);
-
-            $classId = $this->request->get("id");
-            $columns = $this->request->get('columns');
-
-            $update = ClassServices::updateTable($classId, $columns, true);
-
-            $data = [
-                'success' => true,
-                'message' => 'class update table view success'
-            ];
-            return $this->sendResponse($data);
-        } catch (\Throwable $th) {
-            return $this->sendError($th->getMessage(), 500);
-        }
-    }
-
-    /**
      * @Route("/get-column-setting", name="corepulse_api_object_get_column_setting", methods={"GET"}, options={"expose"=true})
      */
     public function getColumnSetting()
     {
-        // try {
+        try {
             $condition = [
                 'id' => 'required',
             ];
@@ -78,6 +50,13 @@ class ObjectController extends BaseController
 
             $classConfig = ClassServices::getConfig($classId);
             $visibleFields = json_decode($classConfig['visibleFields'], true);
+
+            if (!$visibleFields) {
+                return $this->sendError([
+                    'success' => false,
+                    'message' => 'Invalid or missing visible fields.'
+                ], 500);
+            }
 
             $fields = $visibleFields['fields'];
             $columns = array_merge(ClassServices::systemField($visibleFields), $fields);
@@ -104,9 +83,9 @@ class ObjectController extends BaseController
             ];
 
             return $this->sendResponse($data);
-        // } catch (\Throwable $th) {
-        //     return $this->sendError($th->getMessage(), 500);
-        // }
+        } catch (\Throwable $th) {
+            return $this->sendError($th->getMessage(), 500);
+        }
     }
 
     /**
@@ -286,7 +265,7 @@ class ObjectController extends BaseController
                     if ($object) {
                         $object->delete();
                     } else {
-                        return $this->sendError('Can not find object to be deleted');
+                        return $this->sendError("Can not find object $id to be deleted");
                     }
                 }
             } else {

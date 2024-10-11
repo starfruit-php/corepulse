@@ -18,7 +18,7 @@ use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 class ExportController extends BaseController
 {
      /**
-     * @Route("/excel", name="vuetify_export_excel", methods={"GET","POST"}, options={"expose"=true}))
+     * @Route("/excel", name="corepulse_api_export_excel", methods={"GET","POST"})
      */
     public function exportAction(Request $request)
     {
@@ -43,7 +43,7 @@ class ExportController extends BaseController
                 foreach ($data as $key => $value) {
                     $data[$key] = json_decode($value);
                 }
-    
+
                 $fields = json_decode($fields);
                 foreach ($data as $key => $value) {
                     $result = [];
@@ -51,27 +51,27 @@ class ExportController extends BaseController
                         if ($item->removable) {
                             $v = $item->key;
                             $result[$item->key] = isset($value->$v) ? $value->$v : '';
-    
+
                             if (!in_array($v, $header)) {
                                 $header[] = $v;
                             }
                         }
                     }
-    
+
                     $filterData[] = $result;
                 }
-                
+
                 array_unshift($filterData, $header);
                 $spreadsheet = self::getExcel($filterData);
-    
+
                 $response->headers->set('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
                 $response->headers->set('Content-Disposition', 'attachment;filename="' . $fileName . '.xlsx"');
-    
+
                 // Lưu tệp Excel
                 $writer = new Xlsx($spreadsheet);
                 $writer->save('php://output');
             }
-    
+
             return $response;
 
         } catch (\Exception $e) {
@@ -83,14 +83,14 @@ class ExportController extends BaseController
      static public function getExcel($data)
      {
          ob_start();
- 
+
          $spreadsheet = new Spreadsheet();
          $sheet = $spreadsheet->getActiveSheet();
- 
+
          // Duyệt qua dữ liệu và ghi vào các ô tương ứng
          foreach ($data as $rowIndex => $row) {
              $i = 0;
- 
+
              foreach ($row as $colIndex => $value) {
                  if (is_array($value)) {
                      $value = json_encode($value);
@@ -100,7 +100,7 @@ class ExportController extends BaseController
                  $sheet->setCellValue($cellCoordinate, $value);
              }
          }
- 
+
          return $spreadsheet;
      }
 

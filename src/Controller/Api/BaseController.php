@@ -109,7 +109,7 @@ class BaseController extends FrontendController
 
         $condition = [
             'page' => 'numeric|positive',
-            'limit' => 'numeric|positive|lessthan:51',
+            'limit' => 'numeric|positive|lessthan:101',
             'order_by' => $request->get('order_by') ? 'choice:' . implode(',', $orderByOptions) : '',
             'order' => $request->get('order') ? 'choice:desc,asc' : '',
         ];

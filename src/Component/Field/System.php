@@ -6,6 +6,8 @@ use App\Controller\BaseController;
 
 class System extends Input
 {
+    const SYSTEM_CONVERT_DATE = ['creationDate', 'modificationDate'];
+    
     public function format($value)
     {
         if (in_array($this->layout->subtype, self::SYSTEM_CONVERT_DATE)) {

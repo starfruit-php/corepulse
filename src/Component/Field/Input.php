@@ -7,7 +7,6 @@ use Pimcore\Model\DataObject\Data\BlockElement;
 
 class Input implements FieldInterface
 {
-    const SYSTEM_CONVERT_DATE = ['creationDate', 'modificationDate'];
     protected $data;
     protected $layout;
     protected $value;
