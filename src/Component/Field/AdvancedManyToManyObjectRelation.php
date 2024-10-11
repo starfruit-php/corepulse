@@ -2,6 +2,6 @@
 
 namespace CorepulseBundle\Component\Field;
 
-class AdvancedManyToManyObjectRelation extends ManyToManyObjectRelation
+class AdvancedManyToManyObjectRelation extends AdvancedManyToManyRelation
 {
 }

@@ -58,7 +58,7 @@ class ObjectController extends BaseController
      */
     public function getColumnSetting()
     {
-        try {
+        // try {
             $condition = [
                 'id' => 'required',
             ];
@@ -81,7 +81,7 @@ class ObjectController extends BaseController
 
             $fields = $visibleFields['fields'];
             $columns = array_merge(ClassServices::systemField($visibleFields), $fields);
-            $tableView = $visibleFields['tableView'];
+            $tableView = isset($visibleFields['tableView']) ? $visibleFields['tableView'] : null;
 
             $visibleGridView = ClassServices::filterFill($columns, $tableView);
 
@@ -104,9 +104,9 @@ class ObjectController extends BaseController
             ];
 
             return $this->sendResponse($data);
-        } catch (\Throwable $th) {
-            return $this->sendError($th->getMessage(), 500);
-        }
+        // } catch (\Throwable $th) {
+        //     return $this->sendError($th->getMessage(), 500);
+        // }
     }
 
     /**

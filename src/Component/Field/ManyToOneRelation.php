@@ -85,7 +85,7 @@ class ManyToOneRelation extends Select
                 'subType' => $element->getType()
             ]);
 
-            $data['fullpath'] = 'Asset' . $data['fullpath'];
+            $data['fullpath'] = 'Document' . $data['fullpath'];
         }
 
         if ($element instanceof DataObject\AbstractObject) {
