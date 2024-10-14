@@ -25,6 +25,8 @@ class ObjectController extends BaseController
 
     private array $metaData = [];
 
+    private array $optionData = [];
+
     /**
      * @Route("/get-column-setting", name="corepulse_api_object_get_column_setting", methods={"GET"}, options={"expose"=true})
      */
@@ -486,6 +488,7 @@ class ObjectController extends BaseController
         $objectData['layout'] = $this->getObjectVarsRecursive($object, $layout, $object->getClassId());
         $objectData['layoutData'] = $this->objectLayoutData;
         $objectData['sidebar'] = DataObjectServices::getSidebarData($object, $this->request->get('_locale', $this->request->getLocale()));
+        $objectData['optionData'] = $this->optionData;
     }
 
     protected function getObjectVarsRecursive($object, $layout, $classId, $localized = null)
@@ -502,10 +505,14 @@ class ObjectController extends BaseController
                 $data = $component->getValue();
                 $this->objectLayoutData[$vars['name']] = $data;
                 if(in_array($layout->getFieldType(), ClassServices::TYPE_OPTION)) {
-                    $vars['api_options'] = [
+                    $this->optionData[$vars['name']] = [
                         'id' => $vars['name'],
                         'class' => $classId
                     ];
+                    // $vars['api_options'] = [
+                    //     'id' => $vars['name'],
+                    //     'class' => $classId
+                    // ];
                 }
 
                 if ($vars['fieldtype'] == 'fieldcollections') {
