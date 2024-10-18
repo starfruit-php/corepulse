@@ -145,7 +145,7 @@ class ClassServices
         $config = self::getConfig($className);
         if ($config) {
             $saveData = json_decode($config['visibleFields'], true);
-            
+
             $saveData = $tableView ? $visibleFields : ($visibleFields ?? $saveData ?? []);
             Db::get()->update('corepulse_class', ['visibleFields' => json_encode($saveData)], ['className' => $className]);
             return true;
@@ -169,8 +169,8 @@ class ClassServices
             ];
 
             if ($propertyVisibility) {
-                $fields[$key]["visibleSearch"] = $propertyVisibility['search'][$key];
-                $fields[$key]["visibleGridView"] = $propertyVisibility['grid'][$key];
+                $fields[$key]["visibleSearch"] = $propertyVisibility['search'][$key] ?? false;
+                $fields[$key]["visibleGridView"] = $propertyVisibility['grid'][$key] ?? false;
             }
         }
 

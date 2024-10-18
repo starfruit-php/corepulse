@@ -58,6 +58,7 @@ class SeoController extends BaseController
 
             $data = [
                 'paginationData' => $pagination->getPaginationData(),
+                'data' => []
             ];
 
             foreach($pagination as $item) {
@@ -206,6 +207,7 @@ class SeoController extends BaseController
 
             $data = [
                 'paginationData' => $pagination->getPaginationData(),
+                'data' => []
             ];
 
             foreach($pagination as $item) {

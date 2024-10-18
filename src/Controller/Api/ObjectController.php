@@ -47,7 +47,7 @@ class ObjectController extends BaseController
                 return $this->sendError([
                     'success' => false,
                     'message' => 'Class not found.'
-                ], 500);
+                ]);
             }
 
             $classConfig = ClassServices::getConfig($classId);
@@ -57,7 +57,7 @@ class ObjectController extends BaseController
                 return $this->sendError([
                     'success' => false,
                     'message' => 'Invalid or missing visible fields.'
-                ], 500);
+                ]);
             }
 
             $fields = $visibleFields['fields'];
@@ -86,12 +86,12 @@ class ObjectController extends BaseController
 
             return $this->sendResponse($data);
         } catch (\Throwable $th) {
-            return $this->sendError($th->getMessage(), 500);
+            return $this->sendError($th->getMessage());
         }
     }
 
     /**
-     * @Route("/listing-by-object", name="corepulse_api_object_listing", methods={"GET"}, options={"expose"=true})
+     * @Route("/listing-by-object", name="corepulse_api_object_listing", methods={"GET"})
      */
     public function listingByObject()
     {
@@ -111,7 +111,7 @@ class ObjectController extends BaseController
 
             $classValidation = $this->validateClass($classId);
             if (!$classValidation['success']) {
-                return $this->sendError($classValidation, 500);
+                return $this->sendError($classValidation);
             }
 
             $className = $classValidation['className'];
@@ -137,7 +137,7 @@ class ObjectController extends BaseController
 
             $orderKey = $this->request->get('order_by');
             $order = $this->request->get('order');
-            if (empty($order_by)) $orderKey = 'key';
+            if (empty($orderKey)) $orderKey = 'key';
             if (empty($order)) $order = 'asc';
 
             if ($limit == -1) {
@@ -155,6 +155,7 @@ class ObjectController extends BaseController
 
             $data = [
                 'paginationData' => $pagination->getPaginationData(),
+                'data' => []
             ];
 
             foreach($pagination as $item) {
@@ -163,7 +164,7 @@ class ObjectController extends BaseController
 
             return $this->sendResponse($data);
         } catch (\Exception $e) {
-            return $this->sendError($e->getMessage(), 500);
+            return $this->sendError($e->getMessage());
         }
     }
 
@@ -181,13 +182,13 @@ class ObjectController extends BaseController
             // Retrieve object from database
             $id = $this->request->get('id');
             $objectFromDatabase = DataObject\Concrete::getById($id);
-            if (!$objectFromDatabase) return $this->sendError('Object not found', 500);
+            if (!$objectFromDatabase) return $this->sendError('Object not found');
 
             // Validate class
             $classId = $objectFromDatabase->getClassId();
             $classValidation = $this->validateClass($classId);
             if (!$classValidation['success']) {
-                return $this->sendError($classValidation, 500);
+                return $this->sendError($classValidation);
             }
 
             // Handle POST request for updates
@@ -198,7 +199,7 @@ class ObjectController extends BaseController
             // Prepare object data for response
             return $this->prepareObjectDataResponse($objectFromDatabase);
         } catch (\Exception $e) {
-            return $this->sendError($e->getMessage(), 500);
+            return $this->sendError($e->getMessage());
         }
     }
 
@@ -215,20 +216,20 @@ class ObjectController extends BaseController
             $class = $this->request->get('class');
             $classDefinition = DataObject\ClassDefinition::getById($class);
 
-            if (!$classDefinition) return $this->sendError('Class not found', 500);
+            if (!$classDefinition) return $this->sendError('Class not found');
 
             $fieldDefinitions = $classDefinition->getfieldDefinitions();
-            if (!isset($fieldDefinitions[$this->request->get('id')])) return $this->sendError('Field not found', 500);
+            if (!isset($fieldDefinitions[$this->request->get('id')])) return $this->sendError('Field not found');
 
             $fieldDefinition = $fieldDefinitions[$this->request->get('id')];
 
-            if (!in_array($fieldDefinition->getFieldType(), ClassServices::TYPE_OPTION))  return $this->sendError('Field not select option', 500);
+            if (!in_array($fieldDefinition->getFieldType(), ClassServices::TYPE_OPTION))  return $this->sendError('Field not select option');
 
             $data = ClassServices::getOptions($fieldDefinition);
 
             return $this->sendResponse($data);
         } catch (\Exception $e) {
-            return $this->sendError($e->getMessage(), 500);
+            return $this->sendError($e->getMessage());
         }
     }
 
@@ -256,36 +257,36 @@ class ObjectController extends BaseController
 
             $classId = $this->request->get('classId');
             $classValidation = $this->validateClass($classId);
+
             if (!$classValidation['success']) {
-                return $this->sendError($classValidation, 500);
+                return $this->sendError($classValidation);
             }
 
             $ids = $this->request->get('id');
             if (is_array($ids)) {
                 foreach ($ids as $id) {
-                    $object = DataObject::getById((int) $id);
-                    if ($object) {
-                        $object->delete();
-                    } else {
-                        return $this->sendError("Can not find object $id to be deleted");
-                    }
+                    $this->deleteAction($id);
                 }
             } else {
-                $object = DataObject::getById((int) $ids);
-                if ($object) {
-                    $object->delete();
-                } else {
-                    return $this->sendError('Can not find object to be deleted');
-                }
+                $this->deleteAction($ids);
             }
 
             return $this->sendResponse([
                 'success' => true,
                 'message' => "Delete object success."
             ]);
-
         } catch (\Exception $e) {
-            return $this->sendError($e->getMessage(), 500);
+            return $this->sendError($e->getMessage());
+        }
+    }
+
+    public function deleteAction($id)
+    {
+        $object = DataObject::getById((int) $id);
+        if ($object) {
+            $object->delete();
+        } else {
+            return $this->sendError("Can not find object $id to be deleted");
         }
     }
 
@@ -317,7 +318,7 @@ class ObjectController extends BaseController
             $classId = $this->request->get('classId');
             $classValidation = $this->validateClass($classId);
             if (!$classValidation['success']) {
-                return $this->sendError($classValidation, 500);
+                return $this->sendError($classValidation);
             }
 
             $className = $classValidation['className'];
@@ -358,12 +359,12 @@ class ObjectController extends BaseController
             return $this->sendError($className . ' with ' . $key . " already exists");
 
         } catch (\Exception $e) {
-            return $this->sendError($e->getMessage(), 500);
+            return $this->sendError($e->getMessage());
         }
     }
 
     /**
-     * @Route("/get-sidebar", name="corepulse_api_object_slider_bar", methods={"GET"}, options={"expose"=true})
+     * @Route("/get-sidebar", name="corepulse_api_object_slider_bar", methods={"GET"})
      *
      * {mô tả api}
      *
@@ -402,12 +403,13 @@ class ObjectController extends BaseController
             return $this->sendResponse($data);
 
         } catch (\Exception $e) {
-            return $this->sendError($e->getMessage(), 500);
+            return $this->sendError($e->getMessage());
         }
     }
 
     private function validateClass($classId)
     {
+        if ($classId == 'customer') return ['success' => true];
         $checkClass = ClassServices::isValid($classId);
         $classConfig = ClassServices::getConfig($classId);
 
@@ -446,7 +448,7 @@ class ObjectController extends BaseController
             //     return $this->sendError(['success' => false, 'message' => $th->getMessage()], statusCode: 500);
             // }
         }
-        return $this->sendError(['success' => false, 'message' => 'Object update false.'], 500);
+        return $this->sendError(['success' => false, 'message' => 'Object update false.']);
     }
 
     private function prepareObjectDataResponse($objectFromDatabase)

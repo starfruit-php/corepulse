@@ -21,10 +21,8 @@ class DateRange extends Date
     public function formatDataSave($value)
     {
         if ($value) {
-            $dates = explode(' - ', $value);
-
-            $startDate = Carbon::createFromFormat('Y/m/d', trim($dates[0]));
-            $endDate = Carbon::createFromFormat('Y/m/d', trim($dates[1]));
+            $startDate = Carbon::createFromFormat('Y/m/d', trim($value[0]));
+            $endDate = Carbon::createFromFormat('Y/m/d', trim($value[1]));
 
             $data = CarbonPeriod::create($startDate, $endDate);
 

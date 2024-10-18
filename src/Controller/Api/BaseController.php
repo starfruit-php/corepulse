@@ -32,13 +32,7 @@ class BaseController extends FrontendController
         )
     {
         $this->request = $requestStack->getCurrentRequest();
-
         $this->translator = $translator;
-
-        if ($this->request->headers->has('locale')) {
-            $this->translator->setLocale($this->request->headers->get('locale'));
-        }
-
         $this->validator = new Validator($validator, $this->translator);
         $this->paginator = $paginator;
         $this->params = $params;
@@ -52,6 +46,10 @@ class BaseController extends FrontendController
     {
         if ($this->request->get('_locale')) {
             $this->request->setLocale($this->request->get('_locale'));
+        }
+
+        if ($this->request->headers->has('locale')) {
+            $this->translator->setLocale($this->request->headers->get('locale'));
         }
     }
 
@@ -67,7 +65,6 @@ class BaseController extends FrontendController
         $result = [];
 
         if ($message) {
-
             $result['message'] = $this->translator->trans($message);
         }
 
@@ -86,7 +83,6 @@ class BaseController extends FrontendController
      */
     public function sendError($error, $statusCode = Response::HTTP_BAD_REQUEST)
     {
-
         // log if status code = 500
         if ($statusCode == Response::HTTP_INTERNAL_SERVER_ERROR) {
             // Lưu log vào db hoặc file
@@ -110,7 +106,7 @@ class BaseController extends FrontendController
         $condition = [
             'page' => 'numeric|positive',
             'limit' => 'numeric|positive|lessthan:101',
-            'order_by' => $request->get('order_by') ? 'choice:' . implode(',', $orderByOptions) : '',
+            'order_by' => $request->get('order_by') ? (!empty($orderByOptions) ? 'choice:' . implode(',', $orderByOptions) : '' ) : '',
             'order' => $request->get('order') ? 'choice:desc,asc' : '',
         ];
 

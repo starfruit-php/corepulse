@@ -9,13 +9,33 @@ use CorepulseBundle\Services\Helper\ObjectHelper;
 
 class CustomerServices
 {
-    static public function getData($customer)
+    static public function getData($customer, $factory = null)
     {
         $data = [];
-        $params = ["gender", "active", "email", "phone", "fullName", "username", "firstname", "lastname", "city", "street", "zip", "countryCode", "customerLanguage"];
+        $params = ["id", "key", "email", "phone", "published", "gender", "active", "fullName", "username", "firstname", "lastname", "city", "street", "zip", "countryCode", "customerLanguage"];
         foreach ($params as $key => $value) {
             $data[$value] = ObjectHelper::getMethodData($customer, $value);
         }
+
+        $orderTotal = 0;
+        $priceTotal = 0;
+        if ($factory) {
+            $listing = $factory->getOrderManager()->buildOrderList();
+            $listing->setCondition('customer__id = ?', [$customer->getId()]);
+            $listing->setUnpublished(true);
+
+            foreach ($listing as $key => $value) {
+                $orderTotal++;
+                $priceTotal += $value->getTotalPrice();
+            }
+        }
+
+        $data = array_merge($data, [
+            "creationDate" => date('Y/m/d', $customer->getCreationDate()),
+            "modificationDate" => date('Y/m/d', $customer->getModificationDate()),
+            "orderTotal" => $orderTotal,
+            "priceTotal" => $priceTotal,
+        ]);
 
         return $data;
     }

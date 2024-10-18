@@ -132,6 +132,7 @@ class EcommerceController extends BaseController
 
             $data = [
                 'paginationData' => $pagination->getPaginationData(),
+                'data' => []
             ];
 
             foreach ($listing as $item) {

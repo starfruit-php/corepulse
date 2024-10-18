@@ -43,6 +43,7 @@ class IndexingController extends BaseController
 
             $data = [
                 'paginationData' => $pagination->getPaginationData(),
+                'data' => []
             ];
 
             foreach($pagination as $item) {
