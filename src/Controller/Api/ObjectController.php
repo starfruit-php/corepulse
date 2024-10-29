@@ -531,7 +531,7 @@ class ObjectController extends BaseController
 
         if (isset($vars['children']) && (isset($vars['fieldtype']) && $vars['fieldtype'] != 'block') ) {
             foreach ($vars['children'] as $key => $value) {
-                $vars['children'][$key] = $this->getObjectVarsRecursive($object, $value, $classId, localized: $localized);
+                $vars['children'][$key] = $this->getObjectVarsRecursive($object, $value, $classId, $localized);
             }
         }
 

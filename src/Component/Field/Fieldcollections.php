@@ -71,13 +71,30 @@ class Fieldcollections extends Input
 
     public function getDefinition($type)
     {
-        $layouts = [];
         $definition = DataObject\Fieldcollection\Definition::getByKey($type);
-        foreach ($definition->getFieldDefinitions() as $key => $fieldCollection) {
-            $layouts[$key] = ClassServices::getFieldProperty($fieldCollection, $this->localized, $this->data?->getClassId());
-        }
+
+        // foreach ($definition->getFieldDefinitions() as $key => $fieldCollection) {
+        //     $layouts[$key] = ClassServices::getFieldProperty($fieldCollection, $this->localized, $this->data?->getClassId());
+        // }
+        $layouts = $this->getObjectVarsRecursive($definition->getLayoutDefinitions());
 
         return $layouts;
+    }
+
+    public function getObjectVarsRecursive($layout)
+    {
+        $vars = get_object_vars($layout);
+        if (method_exists($layout, 'getFieldType')) {
+            $vars['fieldtype'] = $layout->getFieldType();
+        }
+
+        if (isset($vars['children']) && (isset($vars['fieldtype']) && $vars['fieldtype'] != 'block') ) {
+            foreach ($vars['children'] as $key => $value) {
+                $vars['children'][$key] = $this->getObjectVarsRecursive($value);
+            }
+        }
+
+        return $vars;
     }
 
     public function getFrontEndType(): string

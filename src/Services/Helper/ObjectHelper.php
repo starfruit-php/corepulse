@@ -8,7 +8,18 @@ class ObjectHelper
     {
         $func = "get" . ucfirst(($method));
 
-        return property_exists($object, $method) ? ($method === 'published' ? self::getPublished($object) : $object->$func()) : null;
+        if (property_exists($object, $method)) {
+            switch ($method) {
+                case 'published':
+                    return self::getPublished($object);
+                case 'creationDate':
+                case 'modificationDate':
+                    return date('Y/m/d', $object->$func());
+                default:
+                    return $object->$func();
+            }
+        }
+        return null;
     }
     
     static public function getPublished($object)

@@ -7,10 +7,13 @@ use Symfony\Component\Routing\Annotation\Route;
 use CorepulseBundle\Model\TimeLine;
 use CorepulseBundle\Services\TimeLineServices;
 
+/**
+ * @Route("/timeline"))
+ */
 class TimeLineController extends BaseController
 {
     /**
-     * @Route("/timeline/listing", name="api_timeline_listing"))
+     * @Route("/listing", name="corepulse_api_timeline_listing"))
      */
     public function listing()
     {
@@ -47,7 +50,7 @@ class TimeLineController extends BaseController
     }
 
     /**
-     * @Route("/timeline/create", name="api_timeline_create"))
+     * @Route("/create", name="corepulse_api_timeline_create"))
      */
     public function create()
     {
@@ -82,7 +85,7 @@ class TimeLineController extends BaseController
     }
 
     /**
-     * @Route("/timeline/update", name="api_timeline_update"))
+     * @Route("/update", name="corepulse_api_timeline_update"))
      */
     public function update()
     {
@@ -117,7 +120,7 @@ class TimeLineController extends BaseController
     }
 
     /**
-     * @Route("/timeline/delete", name="api_timeline_delete", options={"expose"=true}))
+     * @Route("/delete", name="corepulse_api_timeline_delete", options={"expose"=true}))
      */
     public function delete()
     {

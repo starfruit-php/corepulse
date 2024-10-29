@@ -279,12 +279,43 @@ class FieldController extends BaseController
 
         $optionTypes = ['gender', 'select', 'multiselect', 'booleanSelect'];
         if (in_array($type, $optionTypes)) {
-            $optionsProviderClass = $layoutDefinition->optionsProviderClass;
-            if ($optionsProviderClass && class_exists($optionsProviderClass) && $object) {
-                $optionProvider = new $optionsProviderClass;
-                $options = $optionProvider->getOptions(compact('object'), $layoutDefinition);
-            } else {
-                $options = $layoutDefinition->getOptions();
+            // $optionsProviderClass = $layoutDefinition->optionsProviderClass;
+            // if ($optionsProviderClass && class_exists($optionsProviderClass) && $object) {
+            //     $optionProvider = new $optionsProviderClass;
+            //     $options = $optionProvider->getOptions(compact('object'), $layoutDefinition);
+            // } else {
+            //     $options = $layoutDefinition->getOptions();
+            // }
+            switch ($layoutDefinition->optionsProviderType) {
+                case 'class':
+                    $optionsProviderClass = $layoutDefinition->optionsProviderClass;
+                    if (class_exists($optionsProviderClass)) {
+                        $optionProvider = new $optionsProviderClass;
+                        $options = $optionProvider->getOptions(compact('object'), $layoutDefinition);
+                    } else {
+                        $options = $layoutDefinition->getOptions();
+                    }
+
+                    break;
+                case 'select_options':
+                    $optionsProviderClass = 'Pimcore\\Model\\DataObject\\SelectOptions\\' . $layoutDefinition->optionsProviderData;
+                    if (method_exists($optionsProviderClass, 'cases')) {
+                        $cases = $optionsProviderClass::cases();
+
+                        foreach ($cases as $key => $value) {
+                            $options[] = [
+                                'key' => $value->getLabel(),
+                                'value' => $value->value,
+                            ];
+                        }
+                    } else {
+                        $options = $layoutDefinition->options;
+                    }
+                    break;
+
+                default:
+                    $options = $layoutDefinition->options;
+                    break;
             }
         }
 
