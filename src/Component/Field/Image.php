@@ -26,7 +26,10 @@ class Image extends Input
 
     public function formatDataSave($value)
     {
-        $image = Asset::getById((int)$value);
+        $image = null;
+        if ($value && $format = reset($value)) {
+            $image = Asset::getById((int)$format['id']);
+        }
 
         return $image;
     }

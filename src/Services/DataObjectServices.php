@@ -79,18 +79,34 @@ class DataObjectServices
         $fieldDefinitions = $classDefinition->getFieldDefinitions();
 
         foreach ($updateData as $key => $value) {
-            $getClass = '\\CorepulseBundle\\Component\\Field\\' . ucfirst($value['type']);
-            if (class_exists($getClass) && isset($fieldDefinitions[$key])) {
-                $component = new $getClass($object, $fieldDefinitions[$key], $value['value'], $locale);
-                $data = $component->getDataSave();
-                $func = 'set' . ucfirst($key);
-                if ($value['type'] != 'block') $object->{$func}($data);
-                else $object->{$func}($data, $locale);
+            if (isset($fieldDefinitions[$key])) {
+                $object = self::processField($object, $fieldDefinitions[$key], $key, $value, $locale);
+            } elseif (isset($fieldDefinitions['localizedfields'])) {
+                $object->getLocalizedfields()->setObject($object);
+                foreach ($fieldDefinitions['localizedfields']->getChildren() as $k => $v) {
+                    if ($v->getName() == $key) {
+                        $object = self::processField($object, $v, $key, $value, $locale);
+                    }
+                }
             }
         }
 
         $object->save();
+        return $object;
+    }
 
+    static public function processField($object, $fieldDefinition, $key, $value, $locale) {
+        
+            $fieldType = $fieldDefinition->getFieldType();
+            $getClass = '\\CorepulseBundle\\Component\\Field\\' . ucfirst($fieldType);
+
+            if (class_exists($getClass)) {
+                $component = new $getClass($object, $fieldDefinition, $value, $locale);
+                $func = 'set' . ucfirst($key);
+
+                $object->{$func}($component->getDataSave(), $locale);
+            }
+        
         return $object;
     }
 }

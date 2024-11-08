@@ -27,21 +27,40 @@ class ManyToManyRelation extends ManyToOneRelation
         $datas = [];
         if ($values) {
             foreach ($values as $key => $value) {
-                switch ($value["type"]) {
-                    case 'asset':
-                        $data = Asset::getById($value['id']);
-                        break;
-                    case 'document':
-                        $data = Document::getById($value['id']);
-                        break;
-                    case 'object':
-                        $data = DataObject::getById($value['id']);
-                        break;
+                $data = null;
+                if (is_array($value)) {
+                    $type = $value[0] ?? $value['type'] ?? null;
+                    $subType = $value[1] ?? $value['subType'] ?? null;
+                    $id = $value[2] ?? $value['id'] ?? null;
+                    switch (strtolower($type)) {
+                        case 'asset':
+                            $data = Asset::getById($id);
+                            break;
+                        case 'document':
+                            $data = Document::getById($id);
+                            break;
+                        case 'object':
+                        case 'dataobject':
+                            if ($id) $data = DataObject::getById($id);
+                            else if ($subType) {
+                                $listing = new DataObject\Listing();
+                                $listing->setCondition('className = ?', $subType);
 
-                    default:
-                        $data = DataObject::getById($value['id']);
-                        break;
+                                foreach ($listing as $key => $value) {
+                                    $dataList = DataObject::getById($value->getId());
+                                    if ($dataList) {
+                                        $datas[] = $dataList;
+                                    }
+                                }
+                            }
+                            break;
+
+                        default:
+                            $data = null;
+                            break;
+                    }
                 }
+
                 if ($data) {
                     $datas[] = $data;
                 }

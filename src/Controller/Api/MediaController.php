@@ -58,7 +58,7 @@ class MediaController extends BaseController
             $parentId = $request->get('id') ? $request->get('id') : '1';
             $search = $request->get('search');
             $type = $request->get('type');
-            
+
 
             $conditionQuery = 'id != 1 AND type != "folder" AND parentId = :parentId';
             $conditionParams['parentId'] = $parentId;
@@ -99,7 +99,8 @@ class MediaController extends BaseController
 
             foreach ($listingAsset as $item) {
                 if ($item->getType() != "folder") {
-                    $publicURL = AssetServices::getThumbnailPath($item);
+                    // $publicURL = AssetServices::getThumbnailPath($item);
+                    $publicURL = $item?->getFrontendPath();
                     $data['data'][] = [
                         'id' => $item->getId(),
                         'type' => $item->getType(),
@@ -185,8 +186,8 @@ class MediaController extends BaseController
                     }
                 }
 
-                $publicURL = AssetServices::getThumbnailPath($item);
-
+                // $publicURL = AssetServices::getThumbnailPath($item);
+                $publicURL = $item?->getFrontendPath();
                 $datas['data'][] = [
                     'id' => $item->getId(),
                     'filename' => $item->getFileName() ? $item->getFileName() : "Home",
@@ -235,10 +236,10 @@ class MediaController extends BaseController
             $conditionParams = [
                 'parentId' => 1,
             ];
-    
+
             $checkType = $request->get('types');
             if (!$checkType) $checkType = 'image';
-    
+
             $list = new \Pimcore\Model\Asset\Listing();
             $list->setCondition($conditionQuery, $conditionParams);
             $list->setOrderKey('creationDate');
@@ -252,7 +253,7 @@ class MediaController extends BaseController
                 ],
                 $paginationData,
             );
-    
+
             $data['data']['folders'][] = [
                 'id' => 1,
                 'name' => 'Home',
@@ -267,7 +268,8 @@ class MediaController extends BaseController
                         'icon' => "/bundles/pimcoreadmin/img/flat-color-icons/folder.svg",
                     ];
                 } else {
-                    $publicURL = AssetServices::getThumbnailPath($item);
+                    // $publicURL = AssetServices::getThumbnailPath($item);
+                    $publicURL = $item?->getFrontendPath();
                     $data['data']['images'][] = [
                         'id' => $item->getId(),
                         'type' => $item->getType(),
@@ -318,26 +320,26 @@ class MediaController extends BaseController
             $config = $request->get('config');
 
             $datas['data'] = [];
-    
+
             $conditions = '`parentId` = ? AND type = "folder"';
             $params = [ $id ];
-    
+
             if($config) {
                 $conditions .= ' AND (';
-    
+
                 foreach($config as $key) {
                     $conditions .= ' `classId` = ? OR ';
                     $params[] = $key;
                 }
-    
+
                 $conditions .= ' `classId` IS NULL)';
             }
-    
+
             $listing = new Asset\Listing();
             $listing->setCondition($conditions, $params);
             $listing->setOrderKey('mimetype');
             $listing->setOrder('ASC');
-    
+
             foreach ($listing as $item) {
                 $data = [];
                 foreach ($item->getChildren() as $children) {
@@ -345,7 +347,8 @@ class MediaController extends BaseController
                         $data[] = (string)$children->getId();
                     }
                 }
-                $publicURL = AssetServices::getThumbnailPath($item);
+                // $publicURL = AssetServices::getThumbnailPath($item);
+                $publicURL = $item?->getFrontendPath();
                 $datas['data'][] = [
                     'id' => $item->getId(),
                     'filename' => $item->getFileName(),

@@ -2,12 +2,31 @@
 
 namespace CorepulseBundle\Component\Field;
 
-use CorepulseBundle\Services\ClassServices;
+use Pimcore\Model\DataObject\ClassDefinition\Layout\Tabpanel;
+use Pimcore\Model\DataObject\ClassDefinition\Layout\Panel;
 use Pimcore\Model\DataObject;
 use CorepulseBundle\Services\DataObjectServices;
+use CorepulseBundle\Services\ClassServices;
 
 class Fieldcollections extends Input
 {
+    protected $data;
+    protected $layout;
+    protected $value;
+    protected $localized;
+    protected $optionKey;
+
+    public function __construct($data, $layout = null, $value = null, $localized = false)
+    {
+        if (is_array($layout)) $layout = (object)$layout;
+
+        $this->layout = $layout;
+        $this->data = $data;
+        $this->value = $value;
+        $this->localized = $localized;
+        $this->optionKey = [];
+    }
+
     public function format($value)
     {
         if (!$value) return null;
@@ -16,10 +35,7 @@ class Fieldcollections extends Input
         foreach ($value->getItems() as $item) {
             $type = $item->getType();
             $definition = DataObject\Fieldcollection\Definition::getByKey($type);
-            $resultItems[] = [
-                'type' => $type,
-                'value' => DataObjectServices::getData($item, $definition->getFieldDefinitions())
-            ];
+            $resultItems[] = array_merge(['type' => $type], DataObjectServices::getData($item, $definition->getFieldDefinitions()));
         }
 
         return $resultItems;
@@ -28,35 +44,42 @@ class Fieldcollections extends Input
     public function formatDataSave($values)
     {
         $items = new DataObject\Fieldcollection();
-        foreach ($values as $value) {
-            $fieldCollection = $this->createFieldCollection($value);
-            if ($fieldCollection) {
-                $items->add($fieldCollection);
+        if ($values) {
+            foreach ($values as $value) {
+                $fieldCollection = $this->createFieldCollection($value['type'], $value );
+                if ($fieldCollection) {
+                    $items->add($fieldCollection);
+                }
             }
         }
-
+        
         return $items;
     }
 
-    private function createFieldCollection($value)
+    private function createFieldCollection($type, $data)
     {
-        $func = "Pimcore\\Model\\DataObject\\Fieldcollection\\Data\\" . ucfirst($value["name"]);
+        $func = "Pimcore\\Model\\DataObject\\Fieldcollection\\Data\\" . ucfirst($type);
         $fieldCollection = new $func();
 
-        foreach ($value['value'] as $k => $v) {
-            $component = $this->createComponent($v);
-            if ($component) {
-                $fieldCollection->{'set' . ucfirst($k)}($component->getDataSave());
+        $definition = DataObject\Fieldcollection\Definition::getByKey($type);
+        $fieldDefinitions = $definition->getFieldDefinitions();
+
+        foreach ($data as $key => $value) {
+            if ($key != 'type' && isset($fieldDefinitions[$key])) {
+                $component = $this->createComponent($fieldDefinitions[$key], $value);
+                if ($component) {
+                    $fieldCollection->{'set' . ucfirst($key)}($component->getDataSave());
+                }
             }
         }
 
         return $fieldCollection;
     }
 
-    private function createComponent($v)
+    private function createComponent($fieldDefinition, $value)
     {
-        $getClass = '\\CorepulseBundle\\Component\\Field\\' . ucfirst($v['type']);
-        return class_exists($getClass) ? new $getClass($this->data, null, $v['value']) : null;
+        $getClass = '\\CorepulseBundle\\Component\\Field\\' . ucfirst($fieldDefinition->getFieldType());
+        return class_exists($getClass) ? new $getClass($this->data, null, $value) : null;
     }
 
     public function getDefinitions()
@@ -73,28 +96,68 @@ class Fieldcollections extends Input
     {
         $definition = DataObject\Fieldcollection\Definition::getByKey($type);
 
-        // foreach ($definition->getFieldDefinitions() as $key => $fieldCollection) {
-        //     $layouts[$key] = ClassServices::getFieldProperty($fieldCollection, $this->localized, $this->data?->getClassId());
-        // }
-        $layouts = $this->getObjectVarsRecursive($definition->getLayoutDefinitions());
+        //convent panel to tabpanel
+        $parentLayout = $definition->getLayoutDefinitions();
+
+        $dataPanel = [];
+        foreach ($parentLayout->getChildren() as $key => $layout) {
+            if($layout instanceof Panel) $dataPanel[] = $layout;
+        }
+
+        if (!empty($dataPanel)) {
+            $tabpanel = new Tabpanel();
+            $tabpanel->setTitle('Convert Panel');
+            $tabpanel->setName('Convert Panel');
+            $tabpanel->setChildren($dataPanel);
+            $parentLayout->setChildren([$tabpanel]);
+        }
+
+        $layouts = $this->getObjectVarsRecursive($parentLayout, $type);
 
         return $layouts;
     }
 
-    public function getObjectVarsRecursive($layout)
+    public function getObjectVarsRecursive($layout,$type, $optionKey = null)
     {
         $vars = get_object_vars($layout);
         if (method_exists($layout, 'getFieldType')) {
             $vars['fieldtype'] = $layout->getFieldType();
+
+            if ($optionKey) {
+
+            } else {
+
+            }
+            $optionKey = $vars['fieldtype'] == 'block' ? 'block' : $optionKey;
+            $optionKey = $vars['fieldtype'] == 'localizedfields' ? 'localizedfields' : $optionKey;
+
+            if(in_array( $vars['fieldtype'], ClassServices::TYPE_OPTION)) {
+                if ($optionKey) {
+                    $this->optionKey[$type][$optionKey][$vars['name']] = [
+                        'fieldId' => $vars['name'],
+                        // 'class' => $classId
+                    ];
+                } else {
+                    $this->optionKey[$type][$vars['name']] = [
+                        'fieldId' => $vars['name'],
+                        // 'class' => $classId
+                    ];
+                }
+            }
         }
 
-        if (isset($vars['children']) && (isset($vars['fieldtype']) && $vars['fieldtype'] != 'block') ) {
+        if (isset($vars['children']) && isset($vars['fieldtype'])) {
             foreach ($vars['children'] as $key => $value) {
-                $vars['children'][$key] = $this->getObjectVarsRecursive($value);
+                $vars['children'][$key] = $this->getObjectVarsRecursive($value,$type, $optionKey);
             }
         }
 
         return $vars;
+    }
+
+    public function getOptionKey()
+    {
+        return $this->optionKey;
     }
 
     public function getFrontEndType(): string

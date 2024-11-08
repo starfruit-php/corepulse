@@ -22,23 +22,35 @@ class ManyToOneRelation extends Select
         return null;
     }
 
+    public function formatBlock($value)
+    {
+        if ($value) {
+            return $this->getElementType($value);
+        }
+
+        return null;
+    }
+
     public function formatDataSave($value)
     {
         $data = null;
-        if ($value && isset($value["type"])) {
-            switch ($value["type"]) {
+        if ($value && is_array($value)) {
+            $type = $value[0] ?? $value['type'] ?? null;
+            $id = $value[2] ?? $value['id'] ?? null;
+            switch (strtolower($type)) {
                 case 'asset':
-                    $data = Asset::getById($value['id']);
+                    $data = Asset::getById($id);
                     break;
                 case 'document':
-                    $data = Document::getById($value['id']);
+                    $data = Document::getById($id);
                     break;
                 case 'object':
-                    $data = DataObject::getById($value['id']);
+                case 'dataobject':
+                    $data = DataObject::getById($id);
                     break;
 
                 default:
-                    $data = DataObject::getById($value['id']);
+                    $data = null;
                     break;
             }
         }
@@ -103,7 +115,7 @@ class ManyToOneRelation extends Select
 
         return $data;
     }
-    
+
     public function getOption()
     {
         $layoutDefinition = $this->layout;

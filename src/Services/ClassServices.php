@@ -2,17 +2,8 @@
 
 namespace CorepulseBundle\Services;
 
-use CorepulseBundle\Controller\Cms\FieldController;
-use CorepulseBundle\Services\Helper\BlockJson;
-use Google\Service\AIPlatformNotebooks\Status;
 use Pimcore\Db;
-use PhpOffice\PhpSpreadsheet\Spreadsheet;
-use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
-use Pimcore\Model\Asset;
-use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\JsonResponse;
-use Pimcore\Model\DataObject\ClassDefinition;
+use Pimcore\Model\DataObject;
 
 class ClassServices
 {
@@ -72,12 +63,12 @@ class ClassServices
     {
         $data = [];
         try {
-            $classDefinition = ClassDefinition::getById($classId);
+            $classDefinition = DataObject\ClassDefinition::getById($classId);
             $propertyVisibility = $classDefinition->getPropertyVisibility();
             $fieldDefinitions = $classDefinition->getFieldDefinitions();
             $result = [];
             foreach ($fieldDefinitions as $key => $fieldDefinition) {
-                if ($fieldDefinition instanceof ClassDefinition\Data\Localizedfields) {
+                if ($fieldDefinition instanceof DataObject\ClassDefinition\Data\Localizedfields) {
                     foreach ($fieldDefinition->getChildren() as $child) {
                         $result[$child->name] = self::getFieldProperty($child, true);
                     }
@@ -213,7 +204,87 @@ class ClassServices
         return $data;
     }
 
-    // save object detail
+    public static function handleOption($entityType, $id, $fieldId)
+    {
+        switch ($entityType) {
+            case 'fieldcollections':
+                $layoutDefinition = DataObject\Fieldcollection\Definition::getByKey($id);
+                if (!$layoutDefinition) return self::error('FieldCollection not found');
+                break;
+            case 'localizedfields':
+                $layoutDefinition = DataObject\ClassDefinition::getById($id);
+                if (!$layoutDefinition) return self::error('Class not found');
+                break;
+            case 'block':
+                $layoutDefinition = DataObject\ClassDefinition::getById($id);
+                if (!$layoutDefinition) return self::error('Class not found');
+                break;
+            case 'class':
+                $layoutDefinition = DataObject\ClassDefinition::getById($id);
+                if (!$layoutDefinition) return self::error('Class not found');
+                break;
+            default:
+                $layoutDefinition = DataObject\ClassDefinition::getById($id);
+                if (!$layoutDefinition) return self::error('Class not found');
+                break;
+        }
+
+        $fieldDefinitions = $layoutDefinition->getFieldDefinitions();
+        if ($entityType === 'block') {
+            if (!is_array($fieldId) && !isset($fieldId[0]) && !isset($fieldDefinitions[$fieldId[0]])) {
+                return self::error('Block Field not found');
+            }
+    
+            $blockDefinition = $fieldDefinitions[$fieldId[0]];
+            if ($blockDefinition && $blockDefinition->getChildren()) {
+                $value = $fieldId[1];
+                $filter = array_filter($blockDefinition->getChildren(), function($item) use ($value) {
+                    return $item->name === $value;
+                });
+                if ($filter && $fieldDefinition = reset($filter)) {
+                    return self::getFieldOptions($fieldDefinition);
+                }
+            }
+
+            return self::error('Block Field not found');
+        }
+
+        if ($entityType === 'localizedfields') {
+            $localizedfieldDefinition = $fieldDefinitions['localizedfields'];
+            if ($localizedfieldDefinition && $localizedfieldDefinition->getChildren()) {
+                $filter = array_filter($localizedfieldDefinition->getChildren(), function($item) use ($fieldId) {
+                    return $item->name === $fieldId;
+                });
+                if ($filter && $fieldDefinition = reset($filter)) {
+                    return self::getFieldOptions($fieldDefinition);
+                }
+            }
+
+            return self::error('Localizedfields Field not found');
+        }
+        
+        if ($fieldDefinitions && !isset($fieldDefinitions[$fieldId])) {
+            return self::error('Field not found');
+        }
+    
+        $fieldDefinition = $fieldDefinitions[$fieldId];
+        return self::getFieldOptions($fieldDefinition);
+    }
+
+    public static function getFieldOptions($fieldDefinition)
+    {
+        if (!in_array($fieldDefinition->getFieldType(), self::TYPE_OPTION)) {
+            return self::error('Field not select option');
+        }
+
+        return self::getOptions($fieldDefinition);
+    }
+
+    public static function error($mesage)
+    {
+        return  ['error' => ['message' => $mesage]];
+    }
+
     static public function getOptions($fieldDefinition)
     {
         $data = [];

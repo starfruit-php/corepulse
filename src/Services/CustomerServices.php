@@ -12,7 +12,7 @@ class CustomerServices
     static public function getData($customer, $factory = null)
     {
         $data = [];
-        $params = ["id", "key", "email", "phone", "published", "gender", "active", "fullName", "username", "firstname", "lastname", "city", "street", "zip", "countryCode", "customerLanguage"];
+        $params = ["id", "key", "creationDate", "modificationDate", "email", "phone", "published", "gender", "active", "fullName", "username", "firstname", "lastname", "city", "street", "zip", "countryCode", "customerLanguage"];
         foreach ($params as $key => $value) {
             $data[$value] = ObjectHelper::getMethodData($customer, $value);
         }
@@ -28,14 +28,12 @@ class CustomerServices
                 $orderTotal++;
                 $priceTotal += $value->getTotalPrice();
             }
-        }
 
-        $data = array_merge($data, [
-            "creationDate" => date('Y/m/d', $customer->getCreationDate()),
-            "modificationDate" => date('Y/m/d', $customer->getModificationDate()),
-            "orderTotal" => $orderTotal,
-            "priceTotal" => $priceTotal,
-        ]);
+            $data = array_merge($data, [
+                "orderTotal" => $orderTotal,
+                "priceTotal" => $priceTotal,
+            ]);
+        }
 
         return $data;
     }

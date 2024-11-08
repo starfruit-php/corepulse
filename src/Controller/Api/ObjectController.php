@@ -96,8 +96,7 @@ class ObjectController extends BaseController
     public function listingByObject()
     {
         try {
-            $orderByOptions = ['modificationDate'];
-            $conditions = $this->getPaginationConditions($this->request, $orderByOptions);
+            $conditions = $this->getPaginationConditions($this->request, []);
             list($page, $limit, $condition) = $conditions;
 
             $condition = array_merge($condition, [
@@ -209,23 +208,45 @@ class ObjectController extends BaseController
     public function options()
     {
         try {
-            $condition = [ 'id' => 'required', 'class' => 'required'];
+            $condition = [
+                'id' => 'required',
+                'class' => !$this->request->get('type') ? 'required' : '',
+                'type' => $this->request->get('type') ? 'choice:block,fieldcollections,localizedfields' : '',
+                'typeId' => $this->request->get('type') ? 'required' : '',
+                'fieldId' => $this->request->get('type') ? 'required' : '',
+            ];
+
             $messageError = $this->validator->validate($condition, $this->request);
-            if($messageError) return $this->sendError($messageError);
+            if ($messageError) {
+                return $this->sendError($messageError);
+            }
 
-            $class = $this->request->get('class');
-            $classDefinition = DataObject\ClassDefinition::getById($class);
+            $type = $this->request->get('type');
 
-            if (!$classDefinition) return $this->sendError('Class not found');
-
-            $fieldDefinitions = $classDefinition->getfieldDefinitions();
-            if (!isset($fieldDefinitions[$this->request->get('id')])) return $this->sendError('Field not found');
-
-            $fieldDefinition = $fieldDefinitions[$this->request->get('id')];
-
-            if (!in_array($fieldDefinition->getFieldType(), ClassServices::TYPE_OPTION))  return $this->sendError('Field not select option');
-
-            $data = ClassServices::getOptions($fieldDefinition);
+            $data = [];
+            switch ($type) {
+                case 'fieldcollections':
+                    $typeId = $this->request->get('typeId');
+                    $fieldId = $this->request->get('fieldId');
+                    $data = ClassServices::handleOption('fieldcollections', $typeId, $fieldId);
+                    break;
+                case 'localizedfields':
+                    $class = $this->request->get('class');
+                    $fieldId = $this->request->get('fieldId');
+                    $data = ClassServices::handleOption('localizedfields', $class,  $fieldId);
+                    break;
+                case 'block':
+                    $class = $this->request->get('class');
+                    $id = $this->request->get('id');
+                    $fieldId = $this->request->get('fieldId');
+                    $data = ClassServices::handleOption('block', $class, [$id, $fieldId]);
+                    break;
+                default:
+                $class = $this->request->get('class');
+                $id = $this->request->get('id');
+                $data = ClassServices::handleOption('class', $class, $id);
+                    break;
+            }
 
             return $this->sendResponse($data);
         } catch (\Exception $e) {
@@ -324,7 +345,7 @@ class ObjectController extends BaseController
             $className = $classValidation['className'];
             $fields = $classValidation['columns'];
 
-            $folderName = $this->request->get('folderName');
+            $folderName = $this->request->get('folderName', $className);
             $parentId = $this->request->get('parentId') ? (int)$this->request->get('parentId') : 1;
             $key = $this->request->get('key');
 
@@ -409,7 +430,6 @@ class ObjectController extends BaseController
 
     private function validateClass($classId)
     {
-        if ($classId == 'customer') return ['success' => true];
         $checkClass = ClassServices::isValid($classId);
         $classConfig = ClassServices::getConfig($classId);
 
@@ -439,13 +459,14 @@ class ObjectController extends BaseController
     private function handlePostUpdate($objectFromDatabase)
     {
         $localized = $this->request->get('_locale', $this->request->getLocale());
-        $contents = json_decode($this->request->getContent(), true);
-        if (isset($contents['update'])) {
+        $data = $this->request->get('data');
+        if ($data) {
+            $data = json_decode($data, true);
             // try {
-                DataObjectServices::saveEdit($objectFromDatabase, $contents['update'], $localized);
+                DataObjectServices::saveEdit($objectFromDatabase, $data, $localized);
                 return $this->sendResponse(['success' => true, 'message' => 'Object update success.']);
             // } catch (\Throwable $th) {
-            //     return $this->sendError(['success' => false, 'message' => $th->getMessage()], statusCode: 500);
+            //     return $this->sendError(['success' => false, 'message' => $th->getMessage()]);
             // }
         }
         return $this->sendError(['success' => false, 'message' => 'Object update false.']);
@@ -493,45 +514,56 @@ class ObjectController extends BaseController
         $objectData['optionData'] = $this->optionData;
     }
 
-    protected function getObjectVarsRecursive($object, $layout, $classId, $localized = null)
+    protected function getObjectVarsRecursive($object, $layout, $classId, $localized = 'fieldcollections', $optionKey = false)
     {
         $vars = get_object_vars($layout);
-
         if (method_exists($layout, 'getFieldType')) {
             $vars['fieldtype'] = $layout->getFieldType();
-
-            $data  = null;
             $getClass = '\\CorepulseBundle\\Component\\Field\\' . ucfirst($vars['fieldtype']);
             if (class_exists($getClass)) {
                 $component = new $getClass($object, $vars, null, $localized);
-                $data = $component->getValue();
-                $this->objectLayoutData[$vars['name']] = $data;
-                if(in_array($layout->getFieldType(), ClassServices::TYPE_OPTION)) {
+                $this->objectLayoutData[$vars['name']] = $component->getValue();
+                if(!$optionKey && in_array($layout->getFieldType(), ClassServices::TYPE_OPTION)) {
                     $this->optionData[$vars['name']] = [
                         'id' => $vars['name'],
                         'class' => $classId
                     ];
-                    // $vars['api_options'] = [
-                    //     'id' => $vars['name'],
-                    //     'class' => $classId
-                    // ];
                 }
 
                 if ($vars['fieldtype'] == 'fieldcollections') {
                     $vars['layouts'] = $component->getDefinitions();
+                    $vars['api_options'] = [
+                        'id' => $vars['name'],
+                        'class' => $classId,
+                        'value' => $component->getOptionKey(),
+                    ];
                 }
 
                 if ($vars['fieldtype'] == 'block') {
                     $vars['children'] = $component->getDefinitions();
+                    $vars['api_options'] = [
+                        'id' => $vars['name'],
+                        'class' => $classId,
+                        'value' => $component->getOptionKey(),
+                    ];
+                }
+
+                if ($vars['fieldtype'] == 'localizedfields') {
+                    $component->getDefinitions();
+                    $vars['api_options'] = [
+                        'id' => $vars['name'],
+                        'class' => $classId,
+                        'value' => $component->getOptionKey(),
+                    ];
                 }
             }
         }
 
         $localized = $this->request->get('_locale', $this->request->getLocale());
 
-        if (isset($vars['children']) && (isset($vars['fieldtype']) && $vars['fieldtype'] != 'block') ) {
+        if (isset($vars['children']) && (isset($vars['fieldtype']) && $vars['fieldtype'] != 'block')) {
             foreach ($vars['children'] as $key => $value) {
-                $vars['children'][$key] = $this->getObjectVarsRecursive($object, $value, $classId, $localized);
+                $vars['children'][$key] = $this->getObjectVarsRecursive($object, $value, $classId, $localized, $vars['fieldtype'] == 'localizedfields');
             }
         }
 
